@@ -19,6 +19,7 @@ def subp_run(cmd, cwd="libpath", check=True):
         cwd = psydac_path
 
     print(f"\nRunning the following command as a subprocess:\n{' '.join(cmd)}")
+    print(f"Running in directory: {cwd}")
     subprocess.run(cmd, cwd=cwd, check=check)
 
 
