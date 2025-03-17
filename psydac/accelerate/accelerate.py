@@ -8,9 +8,11 @@ import subprocess
 import sysconfig
 
 import psydac
+
 # Get the absolute path to the psydac directory
 psydac_path = os.path.abspath(psydac.__path__[0])
-libdir = sysconfig.get_config_var('LIBDIR')
+libdir = sysconfig.get_config_var("LIBDIR")
+
 
 def subp_run(cmd, cwd="libpath", check=True):
     """Call subprocess.run and print run command."""
@@ -60,10 +62,12 @@ def psydac_compile(language, compiler, omp, delete, status, verbose, dependencie
     if delete:
         cleanup_files(psydac_path)
         return
-    
-    pyccel_path = which('pyccel')
+
+    pyccel_path = which("pyccel")
     if pyccel_path is None:
-        print("`pyccel` not found in PATH. Please ensure it is installed and accessible.")
+        print(
+            "`pyccel` not found in PATH. Please ensure it is installed and accessible."
+        )
         return
 
     sources = []
@@ -71,16 +75,16 @@ def psydac_compile(language, compiler, omp, delete, status, verbose, dependencie
     cleanup = False
     for root, _, files in os.walk(psydac_path):
         for name in files:
-            if name.endswith('_kernels.py'):
+            if name.endswith("_kernels.py"):
                 file_path = os.path.join(root, name)
                 sources.append(file_path)
                 # Check if the corresponding pyccelized file already exists
                 subdir = "__pyccel__"
-                generated_file_fortran = os.path.join(root, subdir, name[:-3] + '.f90')
-                generated_file_c = os.path.join(root, subdir, name[:-3] + '.c')
-                if language == 'fortran' and os.path.isfile(generated_file_c):
+                generated_file_fortran = os.path.join(root, subdir, name[:-3] + ".f90")
+                generated_file_c = os.path.join(root, subdir, name[:-3] + ".c")
+                if language == "fortran" and os.path.isfile(generated_file_c):
                     cleanup = True
-                elif language == 'c' and os.path.isfile(generated_file_fortran):
+                elif language == "c" and os.path.isfile(generated_file_fortran):
                     cleanup = True
     if cleanup:
         if yes:
@@ -90,7 +94,9 @@ def psydac_compile(language, compiler, omp, delete, status, verbose, dependencie
                 compiled_in = "C"
             else:
                 compiled_in = "fortran"
-            yesno = input(f'Kernels compiled in language {compiled_in} exist, will be deleted, continue (Y/n)?')
+            yesno = input(
+                f"Kernels compiled in language {compiled_in} exist, will be deleted, continue (Y/n)?"
+            )
         if yesno in ("", "Y", "y", "yes"):
             cleanup_files(psydac_path)
         else:
@@ -98,13 +104,13 @@ def psydac_compile(language, compiler, omp, delete, status, verbose, dependencie
 
     # pyccel flags
     # TODO: Compile psydac with OpenMP
-    flag_omp = "" 
+    flag_omp = ""
     if omp:
         flag_omp = "--openmp"
     sources = " ".join(sources)
     flags = "--language=" + language
     flags += " --compiler=" + compiler
-    
+
     cmd = [
         "make",
         "-f",
@@ -116,65 +122,69 @@ def psydac_compile(language, compiler, omp, delete, status, verbose, dependencie
     print(os.path.join(libdir, "accelerate"))
     subp_run(cmd, cwd=os.path.join(psydac_path, "accelerate")),
 
+
 def cleanup_files(root_path: str):
     """
     Remove unnecessary build artifacts, such as `__pyccel__` directories and `.lock_acquisition.lock` files.
     """
-    # Remove __pyccel__ directories
-    # for root, dirs, _ in os.walk(root_path):
-    #     for dirname in dirs:
-    #         if dirname == '__pyccel__':
-    #             dir_to_remove = os.path.join(root, dirname)
-    #             print(f"Removing directory: {dir_to_remove}")
-    #             rmtree(dir_to_remove)
-
     sources = []
     for root, _, files in os.walk(root_path):
         for filename in files:
-            if filename.endswith('_kernels.py'):
+            if filename.endswith("_kernels.py"):
                 file_path = os.path.join(root, filename)
                 sources.append(file_path)
-            # if filename == '.lock_acquisition.lock':
-            #     file_to_remove = os.path.join(root, filename)
-            #     print(f"Removing lock file: {file_to_remove}")
-            #     os.remove(file_to_remove)
-            # elif filename.endswith('.so'):
-            #     file_to_remove = os.path.join(root, filename)
-            #     print(f"Removing .so file: {file_to_remove}")
-            #     os.remove(file_to_remove)
     sources = " ".join(sources)
     # Delete using the makefile
     cmd = [
-            "make",
-            "clean",
-            "-f",
-            "compile_psydac.mk",
-            "sources=" + sources,
-        ]
+        "make",
+        "clean",
+        "-f",
+        "compile_psydac.mk",
+        "sources=" + sources,
+    ]
     subp_run(cmd)
 
 
 def main():
     parser = argparse.ArgumentParser(
         description="Pyccelize Psydac kernel files and optionally clean up build artifacts.",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    parser.add_argument('--language', type=str, default='c', choices=['fortran', 'c'],
-                        help="Language used to pyccelize kernel files.")
-    parser.add_argument('--openmp', action='store_true',
-                        help="Use OpenMP multithreading in generated code.")
-    parser.add_argument('--cleanup', action='store_true',
-                        help="If True, deletes generated Fortran/C files and .so files (default=False).")
-    parser.add_argument('--compiler', type=str, default="GNU",
-                        help='either "GNU" (default), "intel", "PGI", "nvidia" or the path to a JSON compiler file.')
-    parser.add_argument('--status', action='store_true',
-                        help="Show the status of pyccelization.")
-    parser.add_argument('--verbose', action='store_true',
-                        help="Enable verbose output.")
-    parser.add_argument('--dependencies', action="store_true",
-                        help="Print Psydac kernels to be compiled (.py) and their dependencies (.so) on screen.")
-    parser.add_argument('--yes', action='store_true',
-                        help="Automatically answer 'yes' to prompts.")
+    parser.add_argument(
+        "--language",
+        type=str,
+        default="c",
+        choices=["fortran", "c"],
+        help="Language used to pyccelize kernel files.",
+    )
+    parser.add_argument(
+        "--openmp",
+        action="store_true",
+        help="Use OpenMP multithreading in generated code.",
+    )
+    parser.add_argument(
+        "--cleanup",
+        action="store_true",
+        help="If True, deletes generated Fortran/C files and .so files (default=False).",
+    )
+    parser.add_argument(
+        "--compiler",
+        type=str,
+        default="GNU",
+        help='either "GNU" (default), "intel", "PGI", "nvidia" or the path to a JSON compiler file.',
+    )
+    parser.add_argument(
+        "--status", action="store_true", help="Show the status of pyccelization."
+    )
+    parser.add_argument("--verbose", action="store_true", help="Enable verbose output.")
+    parser.add_argument(
+        "--dependencies",
+        action="store_true",
+        help="Print Psydac kernels to be compiled (.py) and their dependencies (.so) on screen.",
+    )
+    parser.add_argument(
+        "--yes", action="store_true", help="Automatically answer 'yes' to prompts."
+    )
 
     args = parser.parse_args()
 
@@ -187,8 +197,9 @@ def main():
         status=args.status,
         verbose=args.verbose,
         dependencies=args.dependencies,
-        yes=args.yes
+        yes=args.yes,
     )
+
 
 if __name__ == "__main__":
     main()
