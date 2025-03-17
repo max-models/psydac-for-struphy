@@ -85,9 +85,11 @@ def psydac_compile(language, compiler, omp, delete, status, verbose, dependencie
         if yes:
             yesno = "Y"
         else:
-            yesno = input(
-                f'Kernels compiled in language {"C" if language == 'fortran' else "fortran"} exist, will be deleted, continue (Y/n)?',
-            )
+            if language == "fortran":
+                compiled_in = "C"
+            else:
+                compiled_in = "fortran"
+            yesno = input(f'Kernels compiled in language {compiled_in} exist, will be deleted, continue (Y/n)?')
         if yesno in ("", "Y", "y", "yes"):
             cleanup_files(psydac_path)
         else:
