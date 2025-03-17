@@ -113,7 +113,8 @@ def psydac_compile(language, compiler, omp, delete, status, verbose, dependencie
         "flags=" + flags,
         "flags_openmp=" + flag_omp,
     ]
-    subp_run(cmd)
+    print(os.path.join(libdir, "accelerate"))
+    subp_run(cmd, cwd=os.path.join(psydac_path, "accelerate")),
 
 def cleanup_files(root_path: str):
     """

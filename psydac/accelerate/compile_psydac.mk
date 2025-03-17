@@ -28,8 +28,10 @@ OUTPUTS := $(SOURCES:.py=$(SO_EXT))
 .PHONY: all
 all: $(OUTPUTS)
 
+# %$(SO_EXT) : %.py $$(shell $$(PYTHON)) $$(psydac_path)/dependencies.py $$@)
 .SECONDEXPANSION:
-%$(SO_EXT) : %.py $$(shell $$(PYTHON) #$$(psydac_path)/dependencies.py $$@)
+%$(SO_EXT): %.py
+
 	@echo "Building $@"
 	@echo "from dependencies:"
 	@for dep in $^ ; do \

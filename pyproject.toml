@@ -59,7 +59,7 @@ Documentation = "https://pyccel.github.io/psydac"
 Repository    = "https://github.com/pyccel/psydac.git"
 
 [project.scripts]
-psydac-mesh = "psydac.cmd.mesh:main"
+psydac-mesh = "psydac.cmd_mesh.mesh:main"
 psydac-accelerate = "psydac.accelerate.accelerate:main"
 [tool.setuptools.packages.find]
 include = ["psydac*"]
@@ -68,3 +68,4 @@ namespaces = false
 
 [tool.setuptools.package-data]
 "*" = ["*.txt"]
+psydac = ['compile_psydac.mk']
