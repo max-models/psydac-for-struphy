@@ -68,4 +68,4 @@ namespaces = false
 
 [tool.setuptools.package-data]
 "*" = ["*.txt"]
-psydac = ['compile_psydac.mk']
+psydac = ['accelerate/compile_psydac.mk']

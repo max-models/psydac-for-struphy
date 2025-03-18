@@ -12,12 +12,12 @@ import psydac
 # Get the absolute path to the psydac directory
 psydac_path = os.path.abspath(psydac.__path__[0])
 libdir = sysconfig.get_config_var("LIBDIR")
+psydac_makefile_dir = os.path.join(psydac_path, "accelerate")
 
-
-def subp_run(cmd, cwd="libpath", check=True):
+def subp_run(cmd, cwd=None, check=True):
     """Call subprocess.run and print run command."""
 
-    if cwd == "libpath":
+    if cwd is None:
         cwd = psydac_path
 
     print(f"\nRunning the following command as a subprocess:\n{' '.join(cmd)}")
@@ -120,7 +120,7 @@ def psydac_compile(language, compiler, omp, delete, status, verbose, dependencie
         "flags_openmp=" + flag_omp,
     ]
     print(os.path.join(libdir, "accelerate"))
-    subp_run(cmd, cwd=os.path.join(psydac_path, "accelerate")),
+    subp_run(cmd, cwd=psydac_makefile_dir),
 
 
 def cleanup_files(root_path: str):
@@ -142,7 +142,7 @@ def cleanup_files(root_path: str):
         "compile_psydac.mk",
         "sources=" + sources,
     ]
-    subp_run(cmd)
+    subp_run(cmd, cwd=psydac_makefile_dir)
 
 
 def main():
