@@ -223,10 +223,12 @@ jobs:
         run: |
           echo "Psydac location for this branch"
           pip show psydac
+          ls -lR $(python -c "import psydac; print(psydac.__path__[0])")
           pip uninstall psydac -y
           python -m pip install .[test] --no-cache-dir
           echo "Psydac location after installing struphy"
           pip show psydac
+          ls -lR $(python -c "import psydac; print(psydac.__path__[0])")
        
       - name: Re-install Psydac from the current branch
         run: |
@@ -236,6 +238,7 @@ jobs:
           python -m pip install ${{ env.PSYDAC_DIR }} --force-reinstall --no-cache-dir
           echo "Psydac location after installing psydac from the current branch (should be the same as in the previous step)"
           pip show psydac
+          ls -lR $(python -c "import psydac; print(psydac.__path__[0])")
 
       - name: Compile struphy
         working-directory: ${{ env.STRUPHY_DIR }}
