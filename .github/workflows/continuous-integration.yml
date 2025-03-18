@@ -167,6 +167,10 @@ jobs:
         run: |
           python -m pip install . --no-cache-dir
           python -m pip freeze
+      
+      - name: Compile psydac kernels
+        run: |
+          psydac-accelerate --language c
 
       - name: Test Pyccel optimization flags
         run: |
