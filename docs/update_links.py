@@ -2,7 +2,7 @@ import re
 
 modules = ['api.ast', 'api', 'api.printing', 
            'cad', 
-           'cmd_mesh', 
+           'cmd', 
            'core', 
            'ddm', 
            'feec', 'feec.multipatch', 

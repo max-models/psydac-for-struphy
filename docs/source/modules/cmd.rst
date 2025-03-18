@@ -1,4 +1,4 @@
-cmd_mesh
+cmd
 ===
 
 .. currentmodule:: psydac
@@ -7,4 +7,4 @@ cmd_mesh
     :toctree: STUBDIR
     :template: autosummary/module.rst
 
-    cmd_mesh.mesh
+    cmd.mesh

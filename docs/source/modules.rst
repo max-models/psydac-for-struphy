@@ -9,7 +9,7 @@ Relying solely on docstrings.
 
     modules/api
     modules/cad
-    modules/cmd_mesh
+    modules/cmd
     modules/core
     modules/ddm
     modules/feec
