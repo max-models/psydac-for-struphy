@@ -165,7 +165,7 @@ jobs:
 
       - name: Install project
         run: |
-          python -m pip install . --no-cache-dir
+          python -m pip install ".[test]" --no-cache-dir
           python -m pip freeze
 
       - name: Test Pyccel optimization flags
@@ -218,7 +218,7 @@ jobs:
         working-directory: ${{ env.STRUPHY_DIR }}
         run: |
           pip uninstall psydac -y
-          python -m pip install .[test] --no-cache-dir
+          python -m pip install ".[test]" --no-cache-dir
           pip show psydac
        
       - name: Re-install Psydac from the current branch
