@@ -198,6 +198,11 @@ jobs:
         run: |
           python -m pytest -n auto --pyargs psydac -m "not parallel and petsc"
 
+      - name: Set up environment variables
+        run: |
+          echo "PSYDAC_DIR=$GITHUB_WORKSPACE" >> $GITHUB_ENV
+          echo "STRUPHY_DIR=$GITHUB_WORKSPACE/struphy" >> $GITHUB_ENV
+
       - name: Clone struphy from GitLab (devel branch)
         run: |
           # TODO: Use the struphy devel branch here when it's ready
