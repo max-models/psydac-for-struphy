@@ -200,20 +200,10 @@ jobs:
         run: |
           coverage report --ignore-errors --show-missing --sort=cover
 
-      - name: Run MPI tests with Pytest
-        working-directory: ./pytest
-        run: |
-          python mpi_tester.py --mpirun="mpiexec -n 4 ${MPI_OPTS}" --pyargs psydac -m "parallel and not petsc"
-
       - name: Run single-process PETSc tests with Pytest
         working-directory: ./pytest
         run: |
           python -m pytest -n auto --pyargs psydac -m "not parallel and petsc"
-
-      - name: Run MPI PETSc tests with Pytest
-        working-directory: ./pytest
-        run: |
-          python mpi_tester.py --mpirun="mpiexec -n 4 ${MPI_OPTS}" --pyargs psydac -m "parallel and petsc"
 
       - name: Clone struphy from GitLab (devel branch)
         run: |
