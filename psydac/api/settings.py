@@ -57,6 +57,7 @@ if platform.system() == "Darwin" and platform.machine() == 'arm64' and gfortran_
     if   "Apple M1" in cpu_brand: PSYDAC_BACKEND_GPYCCEL['flags'] += ' -mcpu=apple-m1'
     elif "Apple M2" in cpu_brand: PSYDAC_BACKEND_GPYCCEL['flags'] += ' -mcpu=apple-m2'
     elif "Apple M3" in cpu_brand: PSYDAC_BACKEND_GPYCCEL['flags'] += ' -mcpu=apple-m3'
+    elif "Apple M4" in cpu_brand: PSYDAC_BACKEND_GPYCCEL['flags'] += ' -mcpu=apple-m4'
     else:
         # TODO: Support later Apple CPU models. Perhaps the CPU naming scheme could be easily guessed
         # based on the output of 'sysctl -n machdep.cpu.brand_string', but I wouldn't rely on this
