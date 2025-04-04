@@ -7,7 +7,7 @@ name            = "psydac"
 version         = "2.4.1"
 description     = "Python package for isogeometric analysis (IGA)"
 readme          = "README.md"
-requires-python = ">= 3.10"
+requires-python = ">= 3.9"
 license         = {file = "LICENSE"}
 authors         = [
     {name = "Psydac development team", email = "psydac@googlegroups.com"}
@@ -30,7 +30,7 @@ dependencies = [
     'pyevtk',
 
     # Our packages from PyPi
-    'sympde == 0.19.1',
+    'sympde == 0.19.2',
     'pyccel >= 1.11.2',
     'gelato == 0.12',
 
@@ -39,7 +39,7 @@ dependencies = [
     #
     # python3 -m pip install requirements.txt
     # python3 -m pip install .
-    'mpi4py<4.0.0',
+    'mpi4py',
     'h5py',
 
     # When pyccel is run in parallel with MPI, it uses tblib to pickle
@@ -111,4 +111,3 @@ ignore_errors = true
 
 [tool.coverage.html]
 directory = "coverage_html_report"
-
