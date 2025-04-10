@@ -1,6 +1,5 @@
 from pyccel.decorators import template
 
-
 #========================================================================================================
 @template(name='T', types=[float, complex])
 def axpy_1d(alpha: 'T', x: 'T[:]', y: 'T[:]'):
