@@ -7,11 +7,7 @@ name            = "psydac"
 version         = "2.4.2.dev0"
 description     = "Python package for isogeometric analysis (IGA)"
 readme          = "README.md"
-<<<<<<< HEAD
 requires-python = ">= 3.10"
-=======
-requires-python = ">= 3.9"
->>>>>>> upstream/use-pyccel-devel
 license         = {file = "LICENSE"}
 authors         = [
     {name = "Psydac development team", email = "psydac@googlegroups.com"}
