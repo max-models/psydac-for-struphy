@@ -7,7 +7,11 @@ name            = "psydac"
 version         = "2.4.2.dev0"
 description     = "Python package for isogeometric analysis (IGA)"
 readme          = "README.md"
+<<<<<<< HEAD
 requires-python = ">= 3.10"
+=======
+requires-python = ">= 3.9"
+>>>>>>> upstream/use-pyccel-devel
 license         = {file = "LICENSE"}
 authors         = [
     {name = "Psydac development team", email = "psydac@googlegroups.com"}
@@ -30,7 +34,7 @@ dependencies = [
     'pyevtk',
 
     # Our packages from PyPi
-    'pyccel >= 1.11.2',
+    'pyccel @ git+https://github.com/pyccel/pyccel.git@devel',
 
     # In addition, we depend on mpi4py and h5py (MPI version).
     # Since h5py must be built from source, we run the commands
