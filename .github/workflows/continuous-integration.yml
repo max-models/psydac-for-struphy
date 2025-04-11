@@ -30,7 +30,7 @@ jobs:
         #   - os: macos-14
         #     python-version: '3.13'
 
-    name: ${{ matrix.os }} / Python ${{ matrix.python-version }} / ${{ matrix.compile_language }}
+    name: Compile on ${{ matrix.os }} / Python ${{ matrix.python-version }} / ${{ matrix.compile_language }}
 
     steps:
       - uses: actions/checkout@v4
