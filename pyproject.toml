@@ -30,7 +30,8 @@ dependencies = [
     'pyevtk',
 
     # Our packages from PyPi
-    'pyccel >= 1.11.2',
+    # 'pyccel >= 1.11.2',
+    'pyccel @ git+https://github.com/pyccel/pyccel.git@devel',
 
     # In addition, we depend on mpi4py and h5py (MPI version).
     # Since h5py must be built from source, we run the commands
