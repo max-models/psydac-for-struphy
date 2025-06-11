@@ -28,7 +28,7 @@ jobs:
         #   - os: macos-14
         #     python-version: '3.13'
 
-    name: Compile with pyccel devel on ${{ matrix.os }} / Python ${{ matrix.python-version }} / ${{ matrix.compile_language }}
+    name: Test with pyccel devel on ${{ matrix.os }} / Python ${{ matrix.python-version }} / ${{ matrix.compile_language }}
 
     steps:
       - uses: actions/checkout@v4
@@ -179,7 +179,104 @@ jobs:
       - name: Compile psydac kernels
         run: |
           psydac-accelerate --language ${{ matrix.compile_language }}
+      
+      # - name: Initialize test directory
+      #   run: |
+      #     mkdir pytest
+      #     cp mpi_tester.py pytest
 
+      # - name: Run coverage tests on macOS
+      #   if: matrix.os == 'macos-14'
+      #   working-directory: ./pytest
+      #   run: >- 
+      #     python -m pytest -n auto
+      #     --cov psydac
+      #     --cov-config $GITHUB_WORKSPACE/pyproject.toml
+      #     --cov-report xml
+      #     --pyargs psydac -m "not parallel and not petsc"
+
+      # - name: Run single-process tests with Pytest on Ubuntu
+      #   if: matrix.os == 'ubuntu-latest'
+      #   working-directory: ./pytest
+      #   run: |
+      #     python -m pytest -n auto --pyargs psydac -m "not parallel and not petsc"
+
+      # - name: Run MPI tests with Pytest
+      #   working-directory: ./pytest
+      #   run: |
+      #     python mpi_tester.py --mpirun="mpiexec -n 4 ${MPI_OPTS}" --pyargs psydac -m "parallel and not petsc"
+
+      # - name: Run single-process PETSc tests with Pytest
+      #   working-directory: ./pytest
+      #   run: |
+      #     python -m pytest -n auto --pyargs psydac -m "not parallel and petsc"
+
+      # - name: Run MPI PETSc tests with Pytest
+      #   working-directory: ./pytest
+      #   run: |
+      #     python mpi_tester.py --mpirun="mpiexec -n 4 ${MPI_OPTS}" --pyargs psydac -m "parallel and petsc"
+      
+      - name: Set up environment variables
+        run: |
+          echo "PSYDAC_DIR=$GITHUB_WORKSPACE" >> $GITHUB_ENV
+          echo "STRUPHY_DIR=$GITHUB_WORKSPACE/struphy" >> $GITHUB_ENV
+
+      - name: Clone struphy from GitLab (devel branch)
+        run: |
+          # git clone --branch test-pyccel-devel-in-ci https://gitlab.mpcdf.mpg.de/struphy/struphy.git $STRUPHY_DIR
+          git clone --branch devel https://gitlab.mpcdf.mpg.de/struphy/struphy.git $STRUPHY_DIR
+      
+      - name: Install struphy
+        working-directory: ${{ env.STRUPHY_DIR }}
+        run: |
+          echo "Psydac location for this branch"
+          pip show psydac
+          pip uninstall psydac -y
+          python -m pip install ".[phys]" --no-cache-dir
+          echo "Psydac location after installing struphy"
+          pip show psydac
+          
+      - name: Re-install Psydac from the current branch
+        run: |
+          echo "Uninstall psydac"
+          pip show psydac
+          pip uninstall psydac -y
+          python -m pip install ${{ env.PSYDAC_DIR }} --force-reinstall --no-cache-dir
+          echo "Psydac location after installing psydac from the current branch (should be the same as in the previous step)"
+          pip show psydac
+      
+      - name: Install pyccel again...
+        working-directory: ${{ env.PYCCEL_DIR }}
+        run: |
+          git checkout e787ad5f10ad76616877b4d7a67b3ae094e01a63
+          echo "Pyccel location for this branch"
+          pip show pyccel
+          pip uninstall pyccel -y
+          python -m pip install ".[test]" --no-cache-dir
+          echo "Pyccel location after reinstalling"
+          pip show pyccel
+          
+      - name: Compile struphy
+        working-directory: ${{ env.STRUPHY_DIR }}
+        run: |
+          pip show psydac
+          struphy -h
+          struphy compile -y --language ${{ matrix.compile_language }}
+
+      - name: Run struphy unit tests
+        working-directory: ${{ env.STRUPHY_DIR }}
+        run: |
+            struphy test unit
+      
+      - name: Run struphy model tests
+        working-directory: ${{ env.STRUPHY_DIR }}
+        run: |
+            struphy test models --fast
+
+      - name: Remove test directory
+        if: always()
+        run: |
+          rm -rf pytest
   test:
     runs-on: ${{ matrix.os }}
     strategy:
