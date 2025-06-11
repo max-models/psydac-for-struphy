@@ -38,7 +38,7 @@ def matmul(a: 'float[:,:]', b: 'float[:,:]', c: 'float[:,:]'):
                 
                 
 @pure
-def sum_vec(a: 'float[:]') -> float:
+def sum_vec(a: 'const float[:]') -> float:
     """
     Sum the elements of a 1D vector.
 
@@ -59,7 +59,7 @@ def sum_vec(a: 'float[:]') -> float:
         
         
 @pure
-def min_vec(a: 'float[:]') -> float:
+def min_vec(a: 'const float[:]') -> float:
     """
     Compute the minimum a 1D vector.
 
@@ -81,7 +81,7 @@ def min_vec(a: 'float[:]') -> float:
 
 
 @pure
-def max_vec(a: 'float[:]') -> float:
+def max_vec(a: 'const float[:]') -> float:
     """
     Compute the maximum a 1D vector.
 
@@ -103,7 +103,7 @@ def max_vec(a: 'float[:]') -> float:
 
 
 @pure
-def max_vec_int(a: 'int[:]') -> int:
+def max_vec_int(a: 'const int[:]') -> int:
     """
     Compute the maximum a 1D vector.
 
