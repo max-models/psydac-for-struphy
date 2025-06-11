@@ -168,6 +168,7 @@ jobs:
       - name: Install pyccel
         working-directory: ${{ env.PYCCEL_DIR }}
         run: |
+          git checkout e787ad5f10ad76616877b4d7a67b3ae094e01a63
           echo "Pyccel location for this branch"
           pip show pyccel
           pip uninstall pyccel -y
