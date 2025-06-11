@@ -13,7 +13,7 @@ def eval_fields_3d_no_weights(nc1: int, nc2: int, nc3: int, f_p1: int, f_p2: int
                               f_p3: int, k1: int, k2: int, k3: int, global_basis_1: 'float[:,:,:,:]',
                               global_basis_2: 'float[:,:,:,:]', global_basis_3: 'float[:,:,:,:]',
                               global_spans_1: 'int[:]', global_spans_2: 'int[:]', global_spans_3: 'int[:]',
-                              glob_arr_coeff: 'T', out_fields: 'T'):
+                              glob_arr_coeff: 'T[:]', out_fields: 'T[:]'):
     """
     Parameters
     ----------
