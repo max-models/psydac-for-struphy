@@ -5,6 +5,7 @@
 from pyccel.decorators import pure
 from numpy import shape, abs
 import numpy as np
+from typing import Final
 
 # Auxiliary functions needed for the bsplines kernels.
 @pure
@@ -38,7 +39,7 @@ def matmul(a: 'float[:,:]', b: 'float[:,:]', c: 'float[:,:]'):
                 
                 
 @pure
-def sum_vec(a: 'const float[:]') -> float:
+def sum_vec(a: 'Final[float[:]]') -> float:
     """
     Sum the elements of a 1D vector.
 
@@ -59,7 +60,7 @@ def sum_vec(a: 'const float[:]') -> float:
         
         
 @pure
-def min_vec(a: 'const float[:]') -> float:
+def min_vec(a: 'Final[float[:]]') -> float:
     """
     Compute the minimum a 1D vector.
 
@@ -81,7 +82,7 @@ def min_vec(a: 'const float[:]') -> float:
 
 
 @pure
-def max_vec(a: 'const float[:]') -> float:
+def max_vec(a: 'Final[float[:]]') -> float:
     """
     Compute the maximum a 1D vector.
 
@@ -103,7 +104,7 @@ def max_vec(a: 'const float[:]') -> float:
 
 
 @pure
-def max_vec_int(a: 'const int[:]') -> int:
+def max_vec_int(a: 'Final[int[:]]') -> int:
     """
     Compute the maximum a 1D vector.
 
