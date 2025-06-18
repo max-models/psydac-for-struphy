@@ -10,7 +10,7 @@ psydac_path := $(shell $(PYTHON) -c "import psydac as _; print(_.__path__[0])")
 
 # Arguments to this script are: 
 PSYDAC_SOURCES := $(sources)
-FLAGS := --libdir $(LIBDIR) $(flags) 
+FLAGS := --libdirs $(LIBDIR) $(flags) 
 FLAGS_openmp := $(flags_openmp)
 
 #--------------------------------------
