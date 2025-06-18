@@ -25,7 +25,7 @@ def subp_run(cmd, cwd=None, check=True):
     subprocess.run(cmd, cwd=cwd, check=check)
 
 
-def psydac_compile(language, compiler, omp, delete, status, verbose, dependencies, yes):
+def psydac_compile(language, compiler_family, omp, delete, status, verbose, dependencies, yes):
     """
     Compile Psydac kernels. All files that contain "kernels" are detected automatically and saved to state.yml.
 
@@ -34,7 +34,7 @@ def psydac_compile(language, compiler, omp, delete, status, verbose, dependencie
     language : str
         Either "c" (default) or "fortran".
 
-    compiler : str
+    compiler_family : str
         Either "GNU" (default), "intel", "PGI", "nvidia" or the path to a JSON compiler file.
         Only "GNU" is regularly tested at the moment.
 
@@ -109,7 +109,7 @@ def psydac_compile(language, compiler, omp, delete, status, verbose, dependencie
         flag_omp = "--openmp"
     sources = " ".join(sources)
     flags = "--language=" + language
-    flags += " --compiler=" + compiler
+    flags += " --compiler-family=" + compiler_family
 
     cmd = [
         "make",
@@ -168,7 +168,7 @@ def main():
         help="If True, deletes generated Fortran/C files and .so files (default=False).",
     )
     parser.add_argument(
-        "--compiler",
+        "--compiler-family",
         type=str,
         default="GNU",
         help='either "GNU" (default), "intel", "PGI", "nvidia" or the path to a JSON compiler file.',
@@ -191,7 +191,7 @@ def main():
     # Assuming psydac_compile is a function defined elsewhere
     psydac_compile(
         language=args.language,
-        compiler=args.compiler,
+        compiler_family=args.compiler_family,
         omp=args.openmp,
         delete=args.cleanup,
         status=args.status,
