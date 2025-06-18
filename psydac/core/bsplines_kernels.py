@@ -739,7 +739,7 @@ def histopolation_matrix_p(knots: 'float[:]', degree: int, periodic: bool, norma
 
 
 # =============================================================================
-def merge_sort(a: 'float[:]') -> 'float[:]':
+def merge_sort(a: 'float[:]'):
     """Performs a 'in place' merge sort of the input list
 
     Parameters
