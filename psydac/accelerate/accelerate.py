@@ -25,7 +25,7 @@ def subp_run(cmd, cwd=None, check=True):
     subprocess.run(cmd, cwd=cwd, check=check)
 
 
-def psydac_compile(language, compiler_family, omp, delete, status, verbose, dependencies, yes):
+def psydac_compile(language, compiler_family, compiler_config, omp, delete, status, verbose, dependencies, yes):
     """
     Compile Psydac kernels. All files that contain "kernels" are detected automatically and saved to state.yml.
 
@@ -35,8 +35,10 @@ def psydac_compile(language, compiler_family, omp, delete, status, verbose, depe
         Either "c" (default) or "fortran".
 
     compiler_family : str
-        Either "GNU" (default), "intel", "PGI", "nvidia" or the path to a JSON compiler file.
-        Only "GNU" is regularly tested at the moment.
+        Either "GNU" (default), "intel", "PGI", "nvidia", "LLVM"
+
+    compiler_config: str
+        Path to a JSON compiler file.
 
     omp_pic : bool
         Whether to compile PIC kernels with OpenMP (default=False).
@@ -109,7 +111,11 @@ def psydac_compile(language, compiler_family, omp, delete, status, verbose, depe
         flag_omp = "--openmp"
     sources = " ".join(sources)
     flags = "--language=" + language
-    flags += " --compiler-family=" + compiler_family
+
+    if compiler_config:
+        flags += " --compiler-config=" + compiler_config
+    else:
+        flags += " --compiler-family=" + compiler_family
 
     cmd = [
         "make",
@@ -173,6 +179,14 @@ def main():
         default="GNU",
         help='either "GNU" (default), "intel", "PGI", "nvidia" or the path to a JSON compiler file.',
     )
+
+    parser.add_argument(
+        "--compiler-config",
+        type=str,
+        default=None,
+        help='Path to a JSON compiler file.',
+    )
+
     parser.add_argument(
         "--status", action="store_true", help="Show the status of pyccelization."
     )
@@ -192,6 +206,7 @@ def main():
     psydac_compile(
         language=args.language,
         compiler_family=args.compiler_family,
+        compiler_config=args.compiler_config,
         omp=args.openmp,
         delete=args.cleanup,
         status=args.status,
