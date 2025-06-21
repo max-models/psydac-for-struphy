@@ -160,10 +160,6 @@ def eval_fields_2d_no_weights(nc1: int, nc2: int, f_p1: int, f_p2: int, k1: int,
                                        :] += spline * coeff_fields
 
 
-<<<<<<< HEAD
-
-=======
->>>>>>> upstream/remove-template-decorator
 def eval_fields_1d_no_weights(nc1: int, f_p1: int, k1: int,
                               global_basis_1: 'float[:,:,:,:]',
                               global_spans_1: 'int[:]', 
@@ -209,10 +205,6 @@ def eval_fields_1d_no_weights(nc1: int, f_p1: int, k1: int,
 # -----------------------------------------------------------------------------
 # 2: Irregular tensor grid without weights
 # -----------------------------------------------------------------------------
-<<<<<<< HEAD
-
-=======
->>>>>>> upstream/remove-template-decorator
 def eval_fields_3d_irregular_no_weights(np1: int, np2: int, np3: int, f_p1: int, f_p2: int,
                                         f_p3: int, cell_index_1: 'int[:]', cell_index_2: 'int[:]', cell_index_3 : 'int[:]',
                                         global_basis_1: 'float[:,:,:]', global_basis_2: 'float[:,:,:]', global_basis_3: 'float[:,:,:]',
@@ -297,10 +289,6 @@ def eval_fields_3d_irregular_no_weights(np1: int, np2: int, np3: int, f_p1: int,
                             out_fields[i_p_1, i_p_2, i_p_3, :] += spline * coeff_fields
 
 
-<<<<<<< HEAD
-
-=======
->>>>>>> upstream/remove-template-decorator
 def eval_fields_2d_irregular_no_weights(np1: int, np2: int, f_p1: int, f_p2: int,
                                         cell_index_1: 'int[:]', cell_index_2: 'int[:]',
                                         global_basis_1: 'float[:,:,:]', global_basis_2: 'float[:,:,:]',
@@ -367,10 +355,6 @@ def eval_fields_2d_irregular_no_weights(np1: int, np2: int, f_p1: int, f_p2: int
                     out_fields[i_p_1, i_p_2, :] += spline * coeff_fields
 
 
-<<<<<<< HEAD
-
-=======
->>>>>>> upstream/remove-template-decorator
 def eval_fields_1d_irregular_no_weights(np1: int, f_p1: int,
                                         cell_index_1: 'int[:]',
                                         global_basis_1: 'float[:,:,:]',
@@ -4303,10 +4287,6 @@ def eval_jacobians_inv_3d_weights(nc1: int, nc2: int, nc3: int,  f_p1: int, f_p2
                                           i_cell_3 * k3 + i_quad_3,
                                           :, :] = jmat / det
 
-<<<<<<< HEAD
-=======
-
->>>>>>> upstream/remove-template-decorator
 def eval_jacobians_inv_2d_weights(nc1: int, nc2: int,  f_p1: int, f_p2: int, k1: int, k2: int,
                                   global_basis_1: 'float[:,:,:,:]', global_basis_2: 'float[:,:,:,:]',
                                   global_spans_1: 'int[:]', global_spans_2: 'int[:]', global_arr_coeff_x: 'T[:,:]',
