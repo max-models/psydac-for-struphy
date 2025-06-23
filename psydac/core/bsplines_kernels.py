@@ -237,7 +237,6 @@ def basis_funs_p(knots: 'float[:]', degree: int, x: float, span: int, out: 'floa
     """
     left = np.zeros(degree, dtype=float)
     right = np.zeros(degree, dtype=float)
-
     out[0] = 1.0
     for j in range(degree):
         left[j]  = x - knots[span - j]
@@ -393,6 +392,8 @@ def basis_funs_all_ders_p(knots: 'float[:]', degree: int, x: float, span: int, n
     .. [1] L. Piegl and W. Tiller. The NURBS Book, 2nd ed.,
         Springer-Verlag Berlin Heidelberg GmbH, 1997.
     """
+    sh_a  = np.empty(2)
+    sh_b  = np.empty(2)
     left  = np.empty(degree)
     right = np.empty(degree)
     ndu   = np.empty((degree+1, degree+1))
@@ -442,8 +443,8 @@ def basis_funs_all_ders_p(knots: 'float[:]', degree: int, x: float, span: int, n
             a[s2, j1:j2 + 1] = (a[s1, j1:j2 + 1] - a[s1, j1 - 1:j2]) * ndu[pk + 1, rk + j1:rk + j2 + 1]
             # temp_d[:, :] = np.matmul(a[s2:s2 + 1, j1:j2 + 1], ndu[rk + j1:rk + j2 + 1, pk: pk + 1])
             
-            sh_a = shape(a[s2:s2 + 1, j1:j2 + 1])
-            sh_b = shape(ndu[rk + j1:rk + j2 + 1, pk: pk + 1])
+            sh_a[:] = shape(a[s2:s2 + 1, j1:j2 + 1])
+            sh_b[:] = shape(ndu[rk + j1:rk + j2 + 1, pk: pk + 1])
             
             if sh_a[0] == 0 or sh_a[1] == 0 or sh_b[0] == 0 or sh_b[1] == 0:
                 temp_d[:, :] = 0.
