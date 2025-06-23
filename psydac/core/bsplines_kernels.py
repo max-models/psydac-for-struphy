@@ -235,9 +235,12 @@ def basis_funs_p(knots: 'float[:]', degree: int, x: float, span: int, out: 'floa
     .. [1] L. Piegl and W. Tiller. The NURBS Book, 2nd ed.,
         Springer-Verlag Berlin Heidelberg GmbH, 1997.
     """
+    out[0] = 1.0
+    if degree == 0:
+        return
     left = np.zeros(degree, dtype=float)
     right = np.zeros(degree, dtype=float)
-    out[0] = 1.0
+
     for j in range(degree):
         left[j]  = x - knots[span - j]
         right[j] = knots[span + 1 + j] - x
