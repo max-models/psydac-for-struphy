@@ -27,15 +27,12 @@ def matmul(a: 'float[:,:]', b: 'float[:,:]', c: 'float[:,:]'):
 
     sh_a = shape(a)
     sh_b = shape(b)
-    
-    if sh_a[0] == 0 or sh_a[1] == 0 or sh_b[0] == 0 or sh_b[1] == 0:
-        c[:, :] = 0.
-    else:
-        c[:, :] = 0.
-        for i in range(sh_a[0]):
-            for j in range(sh_b[1]):
-                for k in range(sh_a[1]):
-                    c[i, j] += a[i, k] * b[k, j] 
+
+    c[:, :] = 0.
+    for i in range(sh_a[0]):
+        for j in range(sh_b[1]):
+            for k in range(sh_a[1]):
+                c[i, j] += a[i, k] * b[k, j] 
                 
                 
 @pure
@@ -444,7 +441,14 @@ def basis_funs_all_ders_p(knots: 'float[:]', degree: int, x: float, span: int, n
 
             a[s2, j1:j2 + 1] = (a[s1, j1:j2 + 1] - a[s1, j1 - 1:j2]) * ndu[pk + 1, rk + j1:rk + j2 + 1]
             # temp_d[:, :] = np.matmul(a[s2:s2 + 1, j1:j2 + 1], ndu[rk + j1:rk + j2 + 1, pk: pk + 1])
-            matmul(a[s2:s2 + 1, j1:j2 + 1], ndu[rk + j1:rk + j2 + 1, pk: pk + 1],temp_d[:, :])
+            
+            sh_a = shape(a[s2:s2 + 1, j1:j2 + 1])
+            sh_b = shape(ndu[rk + j1:rk + j2 + 1, pk: pk + 1])
+            
+            if sh_a[0] == 0 or sh_a[1] == 0 or sh_b[0] == 0 or sh_b[1] == 0:
+                temp_d[:, :] = 0.
+            else:
+                matmul(a[s2:s2 + 1, j1:j2 + 1], ndu[rk + j1:rk + j2 + 1, pk: pk + 1],temp_d[:, :])
             d+= temp_d[0, 0]
             if r <= pk:
                a[s2, k] = - a[s1, k - 1] * ndu[pk + 1, r]
