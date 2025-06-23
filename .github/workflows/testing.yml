@@ -408,6 +408,7 @@ jobs:
       - name: Re-install Psydac from the current branch
         run: |
           echo "Uninstall psydac"
+          psydac-accelerate --cleanup --yes
           pip show psydac
           pip uninstall psydac -y
           python -m pip install ${{ env.PSYDAC_DIR }} --force-reinstall --no-cache-dir
