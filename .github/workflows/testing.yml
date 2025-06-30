@@ -487,7 +487,7 @@ jobs:
 
       - name: Clone struphy from GitLab #TODO: Set branch to devel
         run: |
-          git clone --branch enable-pyccel-devel https://gitlab.mpcdf.mpg.de/struphy/struphy.git $STRUPHY_DIR
+          git clone https://gitlab.mpcdf.mpg.de/struphy/struphy.git $STRUPHY_DIR
       
       - name: Install struphy
         working-directory: ${{ env.STRUPHY_DIR }}
