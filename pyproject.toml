@@ -32,12 +32,6 @@ dependencies = [
     # Our packages from PyPi
     'pyccel >= 2.0.1',
 
-    # MPI for Python provides Python bindings for the
-    # Message Passing Interface (MPI) standard
-    'mpi4py >= 4',
-
-    # In addition, we depend on h5py (MPI version). Since h5py must
-    # be built from source, we install it with the commands
     #
     # python3 -m pip install requirements.txt
     # python3 -m pip install .
