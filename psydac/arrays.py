@@ -27,7 +27,7 @@ class ArrayBackend:
                 self._backend = "numpy"
 
         if self.backend == "numpy":
-            from psydac.arrays import xp as np
+            import numpy as np
 
             self._xp = np
 
