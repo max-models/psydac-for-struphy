@@ -1,7 +1,7 @@
 # -*- coding: UTF-8 -*-
 
 import pytest
-import numpy as np
+from psydac.arrays import xp as np
 from random import random
 
 from psydac.linalg.stencil import StencilVectorSpace, StencilVector, StencilMatrix, StencilInterfaceMatrix

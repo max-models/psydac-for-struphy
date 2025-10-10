@@ -6,7 +6,7 @@ of compact support
 
 """
 from mpi4py import MPI
-import numpy as np
+from psydac.arrays import xp as np
 import itertools
 import h5py
 import os

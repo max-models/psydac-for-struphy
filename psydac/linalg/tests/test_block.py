@@ -1,7 +1,7 @@
 # -*- coding: UTF-8 -*-
 #
 import pytest
-import numpy as np
+from psydac.arrays import xp as np
 from scipy.sparse import csr_matrix
 from random import random, seed
 

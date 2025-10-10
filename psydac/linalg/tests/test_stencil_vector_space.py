@@ -1,5 +1,5 @@
 import pytest
-import numpy as np
+from psydac.arrays import xp as np
 
 from psydac.linalg.stencil import StencilVectorSpace, StencilVector
 from psydac.ddm.cart import DomainDecomposition, CartDecomposition, find_mpi_type

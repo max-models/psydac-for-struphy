@@ -2,7 +2,7 @@
 # Copyright 2018 Yaman Güçlü
 
 from mpi4py import MPI
-import numpy as np
+from psydac.arrays import xp as np
 import pytest
 import time
 

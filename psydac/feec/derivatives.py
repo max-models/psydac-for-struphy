@@ -1,6 +1,6 @@
 # -*- coding: UTF-8 -*-
 
-import numpy as np
+from psydac.arrays import xp as np
 import scipy.sparse as spa
 
 from psydac.linalg.stencil  import StencilVector, StencilMatrix, StencilVectorSpace

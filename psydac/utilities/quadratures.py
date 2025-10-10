@@ -7,7 +7,7 @@ it has also a routine uniform, which generates uniform points
 with weights equal to 1
 """
 
-import numpy as np
+from psydac.arrays import xp as np
 
 from math import cos, pi
 from numpy import zeros

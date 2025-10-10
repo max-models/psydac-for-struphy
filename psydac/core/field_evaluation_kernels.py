@@ -1,4 +1,4 @@
-import numpy as np
+from psydac.arrays import xp as np
 from typing import TypeVar
 
 T = TypeVar('T', float, complex)

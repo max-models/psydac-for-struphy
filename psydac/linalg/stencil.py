@@ -5,7 +5,7 @@
 import os
 import warnings
 
-import numpy as np
+from psydac.arrays import xp as np
 
 from types        import MappingProxyType
 from scipy.sparse import coo_matrix, diags as sp_diags

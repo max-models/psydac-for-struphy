@@ -1,7 +1,7 @@
 #coding = utf-8
 from functools import reduce
 
-import numpy as np
+from psydac.arrays import xp as np
 from scipy.sparse import kron
 from scipy.sparse import coo_matrix
 

@@ -2,7 +2,7 @@ from psydac.linalg.basic import LinearOperator, LinearSolver
 from psydac.linalg.stencil import StencilVectorSpace
 from psydac.linalg.kron import KroneckerLinearSolver
 
-import numpy as np
+from psydac.arrays import xp as np
 import scipy.fft as scifft
 import os
 

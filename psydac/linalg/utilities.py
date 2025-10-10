@@ -1,6 +1,6 @@
 # coding: utf-8
 
-import numpy as np
+from psydac.arrays import xp as np
 from math import sqrt
 
 from psydac.linalg.basic   import Vector

@@ -3,7 +3,7 @@
 This module provides iterative solvers and preconditioners.
 
 """
-import numpy as np
+from psydac.arrays import xp as np
 from math import sqrt
 
 from psydac.utilities.utils  import is_real

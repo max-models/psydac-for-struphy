@@ -1,6 +1,6 @@
 import pytest
 import scipy.fft as scifft
-import numpy as np
+from psydac.arrays import xp as np
 from mpi4py import MPI
 
 from psydac.linalg.fft import *

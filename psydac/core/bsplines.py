@@ -14,7 +14,7 @@ References:
    - [2] SELALIB, Semi-Lagrangian Library. http://selalib.gforge.inria.fr
 
 """
-import numpy as np
+from psydac.arrays import xp as np
 
 from psydac.core.bsplines_kernels import (find_span_p,
                                           find_spans_p,
@@ -545,7 +545,7 @@ def elements_spans(knots, degree, out=None):
 
     Examples
     --------
-    >>> import numpy as np
+    >>> from psydac.arrays import xp as np
     >>> from psydac.core.bsplines import make_knots, elements_spans
 
     >>> p = 3 ; n = 8
@@ -1073,7 +1073,7 @@ def hrefinement_matrix(ts, p, knots):
 
     Examples
     --------
-    >>> import numpy as np
+    >>> from psydac.arrays import xp as np
     >>> from psydac.core.bsplines import make_knots
     >>> from psydac.core.bsplines import hrefinement_matrix
     >>> grid = np.linspace(0.,1.,5)

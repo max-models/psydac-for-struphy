@@ -1,6 +1,6 @@
 from itertools import product as cartesian_prod
 
-import numpy as np
+from psydac.arrays import xp as np
 
 from psydac.linalg.basic   import VectorSpace
 from psydac.linalg.block   import BlockVectorSpace, BlockVector, BlockLinearOperator

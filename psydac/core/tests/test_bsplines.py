@@ -1,7 +1,7 @@
 #coding: utf-8
 
 import pytest
-import numpy as np
+from psydac.arrays import xp as np
 
 from psydac.core.bsplines import ( find_span,
         basis_funs,

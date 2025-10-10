@@ -1,7 +1,7 @@
 # coding: utf-8
 
 # TODO: - have a block version for VectorSpace when all component spaces are the same
-import numpy as np
+from psydac.arrays import xp as np
 
 from functools import reduce
 from typing import Optional

@@ -1,7 +1,7 @@
 # coding: utf-8
 
 import pytest
-import numpy as np
+from psydac.arrays import xp as np
 
 from psydac.linalg.stencil import StencilVectorSpace, StencilVector, StencilMatrix
 from psydac.linalg.utilities import array_to_psydac, petsc_to_psydac
