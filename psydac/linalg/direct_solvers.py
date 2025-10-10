@@ -50,7 +50,11 @@ class BandedSolver(LinearSolver):
         else:
             msg = f'Cannot create a BandedSolver for bmat.dtype = {bmat.dtype}'
             raise NotImplementedError(msg)
-
+        # print(f"{bmat = } {type(bmat) = }")
+        if hasattr(bmat, "get"):  # CuPy array
+            bmat = bmat.get()
+        else:
+            bmat = np.asanyarray(bmat)
         self._bmat, self._ipiv, self._finfo = self._factor_function(bmat, l, u)
 
         self._sinfo = None

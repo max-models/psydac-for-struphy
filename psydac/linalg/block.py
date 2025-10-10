@@ -537,8 +537,12 @@ class BlockLinearOperator(LinearOperator):
                     self[i, j] = Lij
 
             elif isinstance(blocks, (list, tuple)):
-                blocks = np.array(blocks, dtype=object)
-                for (i, j), Lij in np.ndenumerate(blocks):
+                # blocks = np.array(blocks, dtype=object)
+                # for (i, j), Lij in np.ndenumerate(blocks):
+                #     self[i, j] = Lij
+                import numpy as _np  # ensures CPU-side object array creation
+                blocks = _np.array(blocks, dtype=object)
+                for (i, j), Lij in _np.ndenumerate(blocks):
                     self[i, j] = Lij
 
             else:

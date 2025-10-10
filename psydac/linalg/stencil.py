@@ -168,7 +168,9 @@ class StencilVectorSpace(VectorSpace):
             self._inner_func = self._inner_python
 
         # Constant arguments for inner product: total number of ghost cells
-        self._inner_consts = tuple(np.int64(p * s) for p, s in zip(self._pads, self._shifts))
+        # self._inner_consts = tuple(np.int64(p) * np.int64(s) for p, s in zip(self._pads, self._shifts))
+        self._inner_consts = tuple(int(p * s) for p, s in zip(self._pads, self._shifts))
+
 
         # TODO [YG, 06.09.2023]: print warning if pure Python functions are used
 
@@ -443,7 +445,8 @@ class StencilVector(Vector):
         self._space          = V
         self._sizes          = V.shape
         self._ndim           = len(V.npts)
-        self._data           = np.zeros(V.shape, dtype=V.dtype)
+        # self._data           = np.zeros(V.shape, dtype=V.dtype)
+        self._data = np.zeros(tuple(int(s) for s in V.shape), dtype=V.dtype)
         self._dot_send_data  = np.zeros((1,), dtype=V.dtype)
         self._dot_recv_data  = np.zeros((1,), dtype=V.dtype)
         self._interface_data = {}
@@ -915,7 +918,7 @@ class StencilMatrix(LinearOperator):
         self._pads     = pads or tuple(V.pads)
         dims           = list(W.shape)
         diags          = [compute_diag_len(p, md, mc) for p,md,mc in zip(self._pads, V.shifts, W.shifts)]
-        self._data     = np.zeros(dims+diags, dtype=W.dtype)
+        self._data     = np.zeros(tuple(int(d) for d in (dims + diags)), dtype=W.dtype)
         self._domain   = V
         self._codomain = W
         self._ndim     = len(dims)
@@ -1574,7 +1577,7 @@ class StencilMatrix(LinearOperator):
         dm    = self._domain.shifts
         cm    = self._codomain.shifts
 
-        pp = [np.int64(compute_diag_len(p,mj,mi)-(p+1)) for p,mi,mj in zip(self._pads, cm, dm)]
+        pp = [int(compute_diag_len(p,mj,mi)-(p+1)) for p,mi,mj in zip(self._pads, cm, dm)]
 
         # Range of data owned by local process (no ghost regions)
         local = tuple( [slice(mi*p,-mi*p) if p != 0 else slice(p, None) for p,mi in zip(cpads, cm)] + [slice(None)] * nd )
@@ -1584,22 +1587,31 @@ class StencilMatrix(LinearOperator):
         rows = np.zeros(size, dtype='int64')
         cols = np.zeros(size, dtype='int64')
         data = np.zeros(size, dtype=self.dtype)
-        nrl = [np.int64(e-s+1) for s,e in zip(self.codomain.starts, self.codomain.ends)]
-        ncl = [np.int64(i) for i in self._data.shape[nd:]]
-        ss = [np.int64(i) for i in ss]
-        nr = [np.int64(i) for i in nr]
-        nc = [np.int64(i) for i in nc]
-        dm = [np.int64(i) for i in dm]
-        cm = [np.int64(i) for i in cm]
-        cpads = [np.int64(i) for i in cpads]
-        pp = [np.int64(i) for i in pp]
+        nrl = [int(e-s+1) for s,e in zip(self.codomain.starts, self.codomain.ends)]
+        ncl = [int(i) for i in self._data.shape[nd:]]
+        ss = [int(i) for i in ss]
+        nr = [int(i) for i in nr]
+        nc = [int(i) for i in nc]
+        dm = [int(i) for i in dm]
+        cm = [int(i) for i in cm]
+        cpads = [int(i) for i in cpads]
+        pp = [int(i) for i in pp]
 
         stencil2coo = kernels['stencil2coo'][order][nd]
-
+        import numpy as _np
         ind = stencil2coo(self._data, data, rows, cols, *nrl, *ncl, *ss, *nr, *nc, *dm, *cm, *cpads, *pp)
-        M = coo_matrix(
+        
+        
+        if "cupy" in np.__name__:
+            M = coo_matrix(
+                (data[:ind].get(), (rows[:ind].get(), cols[:ind].get())),
+                shape=[int(_np.prod(nr)), int(_np.prod(nc))],
+                dtype=self.dtype
+            )
+        else:
+            M = coo_matrix(
                 (data[:ind],(rows[:ind],cols[:ind])),
-                shape = [np.prod(nr),np.prod(nc)],
+                shape = [_np.prod(nr),_np.prod(nc)],
                 dtype = self.dtype)
         return M
 
@@ -1779,17 +1791,29 @@ class StencilMatrix(LinearOperator):
                  for mi, mj, n, p in zip(cm, dm, ndiagsT, pp)]
 
         args={}
-        args['n']   = np.int64(nrows)
-        args['nc']  = np.int64(ncols)
-        args['gp']  = np.int64(gpads)
-        args['p']   = np.int64(pp)
-        args['dm']  = np.int64(dm)
-        args['cm']  = np.int64(cm)
-        args['nd']  = np.int64(ndiags)
-        args['ndT'] = np.int64(ndiagsT)
-        args['si']  = np.int64(si)
-        args['sk']  = np.int64(sk)
-        args['sl']  = np.int64(sl)
+        # args['n']   = np.int64(nrows)
+        # args['nc']  = np.int64(ncols)
+        # args['gp']  = np.int64(gpads)
+        # args['p']   = np.int64(pp)
+        # args['dm']  = np.int64(dm)
+        # args['cm']  = np.int64(cm)
+        # args['nd']  = np.int64(ndiags)
+        # args['ndT'] = np.int64(ndiagsT)
+        # args['si']  = np.int64(si)
+        # args['sk']  = np.int64(sk)
+        # args['sl']  = np.int64(sl)
+        args['n']   = [int(x) for x in nrows]
+        args['nc']  = [int(x) for x in ncols]
+        args['gp']  = [int(x) for x in gpads]
+        args['p']   = [int(x) for x in pp]
+        args['dm']  = [int(x) for x in dm]
+        args['cm']  = [int(x) for x in cm]
+        args['nd']  = [int(x) for x in ndiags]
+        args['ndT'] = [int(x) for x in ndiagsT]
+        args['si']  = [int(x) for x in si]
+        args['sk']  = [int(x) for x in sk]
+        args['sl']  = [int(x) for x in sl]
+
 
         return args
 

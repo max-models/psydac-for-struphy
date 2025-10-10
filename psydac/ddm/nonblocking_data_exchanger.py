@@ -234,19 +234,29 @@ class NonBlockingCartDataExchanger(CartDataExchanger):
             recv_starts = list( info['recv_starts'] ) + coeff_start
 
             if info['rank_dest']>=0:
+                # send_types[shift] = mpi_type.Create_subarray(
+                #     sizes    = data_shape,
+                #     subsizes = buf_shape,
+                #     starts   = send_starts,
+                # ).Commit()
                 send_types[shift] = mpi_type.Create_subarray(
-                    sizes    = data_shape,
-                    subsizes = buf_shape,
-                    starts   = send_starts,
+                    sizes    = [int(x) for x in data_shape],
+                    subsizes = [int(x) for x in buf_shape],
+                    starts   = [int(x) for x in send_starts],
                 ).Commit()
             else:
                 send_types[shift] = MPI.DATATYPE_NULL
 
             if info['rank_source']>=0:
+                # recv_types[shift] = mpi_type.Create_subarray(
+                #     sizes    = data_shape,
+                #     subsizes = buf_shape,
+                #     starts   = recv_starts,
+                # ).Commit()
                 recv_types[shift] = mpi_type.Create_subarray(
-                    sizes    = data_shape,
-                    subsizes = buf_shape,
-                    starts   = recv_starts,
+                    sizes    = [int(x) for x in data_shape],
+                    subsizes = [int(x) for x in buf_shape],
+                    starts   = [int(x) for x in recv_starts],
                 ).Commit()
             else:
                 recv_types[shift] = MPI.DATATYPE_NULL
@@ -317,15 +327,21 @@ class NonBlockingCartDataExchanger(CartDataExchanger):
                     recv_starts[axis] = 0
 
                 send_types[direction,disp] = mpi_type.Create_subarray(
-                    sizes    = data_shape ,
-                    subsizes =  buf_shape ,
-                    starts   = send_starts,
+                    # sizes    = data_shape ,
+                    # subsizes =  buf_shape ,
+                    # starts   = send_starts,
+                    sizes    = [int(x) for x in data_shape],
+                    subsizes = [int(x) for x in buf_shape],
+                    starts   = [int(x) for x in send_starts],
                 ).Commit()
 
                 recv_types[direction,disp] = mpi_type.Create_subarray(
-                    sizes    = data_shape ,
-                    subsizes =  buf_shape ,
-                    starts   = recv_starts,
+                    # sizes    = data_shape ,
+                    # subsizes =  buf_shape ,
+                    # starts   = recv_starts,
+                    sizes    = [int(x) for x in data_shape],
+                    subsizes = [int(x) for x in buf_shape],
+                    starts   = [int(x) for x in recv_starts],
                 ).Commit()
 
         return send_types, recv_types

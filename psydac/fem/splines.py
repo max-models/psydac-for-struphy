@@ -1,6 +1,7 @@
 # coding: utf-8
 # Copyright 2018 Ahmed Ratnani, Yaman Güçlü
 
+import numpy as _np
 from psydac.arrays import xp as np
 from scipy.sparse import csc_matrix, csr_matrix, dia_matrix
 
@@ -91,7 +92,7 @@ class SplineSpace( FemSpace ):
         indices = np.where(np.diff(knots[degree:len(knots)-degree])>1e-15)[0]
 
         if len(indices)>0:
-            multiplicity = np.diff(indices).max(initial=1)
+            multiplicity = max(np.diff(indices), default=1)
         else:
             multiplicity = max(1,len(knots[degree+1:-degree-1]))
 
@@ -168,7 +169,7 @@ class SplineSpace( FemSpace ):
         for the calculation of a spline interpolant given the values at the
         Greville points.
 
-        """
+        """        
         if self.greville.size == 1:
             imat = np.ones((1, 1), dtype=float)
         else:
@@ -183,9 +184,21 @@ class SplineSpace( FemSpace ):
 
         if self.periodic:
             # Convert to CSC format and compute sparse LU decomposition
+            
+            # Convert to LAPACK banded format (see DGBTRF function)
+            if "cupy" in np.__name__:  # CuPy array
+                imat = imat.get()
+            else:
+                imat = _np.asanyarray(imat)
+
             self._interpolator = SparseSolver( csc_matrix( imat ) )
         else:
+
             # Convert to LAPACK banded format (see DGBTRF function)
+            if "cupy" in np.__name__:  # CuPy array
+                imat = imat.get()
+            else:
+                imat = _np.asanyarray(imat)
             dmat = dia_matrix( imat )
             l = abs( dmat.offsets.min() )
             u =      dmat.offsets.max()
@@ -215,7 +228,11 @@ class SplineSpace( FemSpace ):
             xgrid    = self.ext_greville,
             multiplicity = self._multiplicity
         )
-
+        if "cupy" in np.__name__:  # CuPy array
+            imat = imat.get()
+        else:
+            imat = _np.asanyarray(imat)
+        
         self.hmat= imat
         if self.periodic:
             # Convert to CSC format and compute sparse LU decomposition

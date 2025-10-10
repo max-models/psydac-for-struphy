@@ -502,13 +502,13 @@ class KroneckerLinearSolver(LinearOperator):
         """
         Allocates all temporary data needed for the solve operation.
         """
-        temp1 = np.empty((self._tempsize,), dtype=self._dtype)
+        temp1 = np.empty((int(self._tempsize),), dtype=self._dtype)
         if self._ndim <= 1 and self._allserial:
             # if ndim==1 and we have no parallelism,
             # we can avoid allocating a second temp array
             temp2 = None
         else:
-            temp2 = np.empty((self._tempsize,), dtype=self._dtype)
+            temp2 = np.empty((int(self._tempsize),), dtype=self._dtype)
         return temp1, temp2
 
     @property

@@ -250,7 +250,7 @@ class DomainDecomposition:
 
         if comm is None:
             # compute the coords for all processes
-            self._global_coords = np.array([np.unravel_index(rank, nprocs) for rank in range(self._size)])
+            self._global_coords = np.array([np.unravel_index(np.int64(rank), nprocs) for rank in range(self._size)])
             self._coords        = self._global_coords[self._rank]
             self._rank_in_topo  = 0
             self._ranks_in_topo = np.array([0])
@@ -490,7 +490,9 @@ class CartDecomposition():
         self._ends   = tuple( self._global_ends  [axis][c] for axis,c in zip(range(self._ndims), self._coords) )
 
         # List of 1D global indices (without ghost regions)
-        self._grids = tuple( range(s,e+1) for s,e in zip( self._starts, self._ends ) )
+        # self._grids = tuple( range(s,e+1) for s,e in zip( self._starts, self._ends ) )
+        self._grids = tuple(range(int(s), int(e) + 1) for s, e in zip(self._starts, self._ends))
+
 
         # Compute shape of local arrays in topology (with ghost regions)
         self._shape = tuple( e-s+1+2*m*p for s,e,p,m in zip( self._starts, self._ends, self._pads, shifts ) )
@@ -894,7 +896,9 @@ class CartDecomposition():
         if len([i for i in shift if i==0]) == 2 and rank_dest != MPI.PROC_NULL:
             direction = [i for i,s in enumerate(shift) if s != 0][0]
             comm = self._subcomm[direction]
-            local_dest_rank = self._comm_cart.group.Translate_ranks(np.array([rank_dest]), comm.group)[0]
+            # local_dest_rank = self._comm_cart.group.Translate_ranks(np.array([rank_dest]), comm.group)[0]
+            local_dest_rank = self._comm_cart.group.Translate_ranks([int(rank_dest)], comm.group)[0]
+
         else:
             local_dest_rank = rank_dest
             comm = self._comm_cart
@@ -907,7 +911,8 @@ class CartDecomposition():
         if len([i for i in shift if i==0]) == 2 and rank_source != MPI.PROC_NULL:
             direction = [i for i,s in enumerate(shift) if s != 0][0]
             comm = self._subcomm[direction]
-            local_source_rank = self._comm_cart.group.Translate_ranks(np.array([rank_source]), comm.group)[0]
+            # local_source_rank = self._comm_cart.group.Translate_ranks(np.array([rank_source]), comm.group)[0]
+            local_source_rank = self._comm_cart.group.Translate_ranks([int(rank_source)], comm.group)[0]
         else:
             local_source_rank = rank_source
             comm = self._comm_cart

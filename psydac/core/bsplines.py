@@ -350,9 +350,9 @@ def collocation_matrix(knots, degree, periodic, normalization, xgrid, out=None, 
         if periodic:
             nb -= degree + 1 - multiplicity
 
-        out = np.zeros((xgrid.shape[0], nb), dtype=float)
+        out = np.zeros((int(xgrid.shape[0]), int(nb)), dtype=float)
     else:
-        assert out.shape == ((xgrid.shape[0], nb)) and out.dtype == np.dtype('float')
+        assert out.shape == ((int(xgrid.shape[0]), int(nb))) and out.dtype == np.dtype('float')
 
     bool_normalization = normalization == "M"
     multiplicity = int(multiplicity)
@@ -435,9 +435,9 @@ def histopolation_matrix(knots, degree, periodic, normalization, xgrid, multipli
 
     if out is None:
         if periodic:
-            out = np.zeros((len(xgrid), len(knots) - 2 * degree - 2 + multiplicity), dtype=float)
+            out = np.zeros((len(xgrid), len(knots) - 2 * int(degree) - 2 + int(multiplicity)), dtype=float)
         else:
-            out = np.zeros((len(xgrid) - 1, len(elevated_knots) - (degree + 1) - 1 - 1), dtype=float)
+            out = np.zeros((len(xgrid) - 1, len(elevated_knots) - (int(degree) + 1) - 1 - 1), dtype=float)
     else:
         if periodic:
             assert out.shape == (len(xgrid), len(knots) - 2 * degree - 2 + multiplicity)
@@ -515,7 +515,7 @@ def greville(knots, degree, periodic, out=None, multiplicity=1):
     knots = np.ascontiguousarray(knots, dtype=float)
     if out is None:
         n = len(knots) - 2 * degree - 2 + multiplicity if periodic else len(knots) - degree - 1
-        out = np.zeros(n)
+        out = np.zeros(int(n))
     multiplicity = int(multiplicity)
     greville_p(knots, degree, periodic, out, multiplicity)
     return out
@@ -751,8 +751,13 @@ def quadrature_grid(breaks, quad_rule_x, quad_rule_w):
 
     breaks = np.ascontiguousarray(breaks, dtype=float)
 
-    quad_rule_x = np.ascontiguousarray( quad_rule_x, dtype=float )
-    quad_rule_w = np.ascontiguousarray( quad_rule_w, dtype=float )
+    if "cupy" in np.__name__:
+        quad_rule_x = np.ascontiguousarray(np.array(quad_rule_x), dtype=float)
+        quad_rule_w = np.ascontiguousarray( np.array(quad_rule_w), dtype=float )
+    else:
+        quad_rule_x = np.ascontiguousarray(quad_rule_x, dtype=float)
+        quad_rule_w = np.ascontiguousarray( quad_rule_w, dtype=float )
+    
 
     out1 = np.zeros((len(breaks) - 1, len(quad_rule_x)))
     out2 = np.zeros_like(out1)

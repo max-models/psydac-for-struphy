@@ -163,18 +163,26 @@ class GlobalProjector(metaclass=ABCMeta):
                     solvercells += [V._interpolator]
                     
                     # make 1D collocation matrix in stencil format
-                    row_indices, col_indices = np.nonzero(V.imat)
+                    if 'cupy' in np.__name__:
+                        V_imat = np.asarray(V.imat)  # converts to cupy array if not already
+                    else:
+                        V_imat = V.imat
+
+                    row_indices, col_indices = np.nonzero(V_imat)
 
                     for row_i, col_i in zip(row_indices, col_indices):
 
                         # only consider row indices on process
-                        if row_i in range(V_cart.starts[0], V_cart.ends[0] + 1):
+                        if row_i in range(int(V_cart.starts[0]), int(V_cart.ends[0]) + 1):
                             row_i_loc = row_i - s
 
-                            M._data[row_i_loc + m*p, (col_i + p - row_i)%V.imat.shape[1]] = V.imat[row_i, col_i]
+                            
+                            M._data[row_i_loc + m*p, (col_i + p - row_i)%V.imat.shape[1]] = V_imat[row_i, col_i]
 
                     # check if stencil matrix was built correctly
-                    assert np.allclose(M.toarray()[s:e + 1], V.imat[s:e + 1])
+                    # assert np.allclose(M.toarray()[s:e + 1], V_imat[s:e + 1])
+                    assert np.allclose(M.toarray()[int(s):int(e) + 1], V_imat[int(s):int(e) + 1])
+
                     # TODO Fix toarray() for multiplicity m > 1
                     matrixcells += [M.copy()]
                     
@@ -196,18 +204,20 @@ class GlobalProjector(metaclass=ABCMeta):
                     solvercells += [V._histopolator]
                     
                     # make 1D collocation matrix in stencil format
-                    row_indices, col_indices = np.nonzero(V.hmat)
+                    if "cupy" in np.__name__:
+                        row_indices, col_indices = np.nonzero(np.array(V.hmat))
+                    else:
+                        row_indices, col_indices = np.nonzero(V.hmat)
 
                     for row_i, col_i in zip(row_indices, col_indices):
 
                         # only consider row indices on process
-                        if row_i in range(V_cart.starts[0], V_cart.ends[0] + 1):
+                        if row_i in range(int(V_cart.starts[0]), int(V_cart.ends[0]) + 1):
                             row_i_loc = row_i - s
-
-                            M._data[row_i_loc + m*p, (col_i + p - row_i)%V.hmat.shape[1]] = V.hmat[row_i, col_i]
+                            M._data[row_i_loc + m*p, (col_i + p - row_i)%V.hmat.shape[1]] = V.hmat[int(row_i), int(col_i)]
 
                     # check if stencil matrix was built correctly
-                    assert np.allclose(M.toarray()[s:e + 1], V.hmat[s:e + 1])
+                    assert np.allclose(M.toarray()[int(s):int(e) + 1], V.hmat[int(s):int(e) + 1])
 
                     matrixcells += [M.copy()]
                     
