@@ -4287,10 +4287,6 @@ def eval_jacobians_inv_3d_weights(nc1: int, nc2: int, nc3: int,  f_p1: int, f_p2
                                           i_cell_3 * k3 + i_quad_3,
                                           :, :] = jmat / det
 
-<<<<<<< HEAD
-=======
-
->>>>>>> upstream/devel
 def eval_jacobians_inv_2d_weights(nc1: int, nc2: int,  f_p1: int, f_p2: int, k1: int, k2: int,
                                   global_basis_1: 'float[:,:,:,:]', global_basis_2: 'float[:,:,:,:]',
                                   global_spans_1: 'int[:]', global_spans_2: 'int[:]', global_arr_coeff_x: 'T[:,:]',
