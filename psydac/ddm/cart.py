@@ -72,7 +72,8 @@ class MultiPatchDomainDecomposition:
     def __init__(self, ncells, periods, comm=None, num_threads=None):
 
         assert len( ncells ) == len( periods )
-        if comm is not None:assert isinstance( comm, MPI.Comm )
+        if not isinstance(MPI, MockMPI) and comm is not None:
+            assert isinstance( comm, MPI.Comm )
         num_threads = num_threads if num_threads else int(os.environ.get('OMP_NUM_THREADS', 1))
 
         # Store input arguments
@@ -215,7 +216,8 @@ class DomainDecomposition:
         assert len( ncells ) == len( periods )
         assert all( n >=1 for n in ncells )
         assert all( isinstance( period, bool ) for period in periods )
-        if comm is not None: assert isinstance( comm, MPI.Comm )
+        if not isinstance(MPI, MockMPI) and comm is not None:
+            assert isinstance( comm, MPI.Comm )
 
         self._ncells       = tuple ( ncells )
         self._periods      = tuple ( periods )
