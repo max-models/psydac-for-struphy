@@ -3,8 +3,14 @@
 import os
 import numpy as np
 from itertools import product
-from mpi4py    import MPI
+from typing import TYPE_CHECKING
 
+if TYPE_CHECKING:
+    from mpi4py import MPI
+else:
+    from psydac.ddm.mpi import mpi as MPI
+    
+from psydac.ddm.mpi import MockMPI
 from psydac.ddm.partition import compute_dims, partition_procs_per_patch
 
 
@@ -31,11 +37,14 @@ def find_mpi_type( dtype ):
         MPI datatype to be used for communication.
 
     """
-    if isinstance( dtype, MPI.Datatype ):
-        mpi_type = dtype
+    if not isinstance(MPI, MockMPI):
+        if isinstance( dtype, MPI.Datatype ):
+            mpi_type = dtype
+        else:
+            nt = np.dtype( dtype )
+            mpi_type = MPI._typedict[nt.char]
     else:
-        nt = np.dtype( dtype )
-        mpi_type = MPI._typedict[nt.char]
+        mpi_type = np.dtype( dtype )
 
     return mpi_type
 
