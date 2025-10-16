@@ -1064,7 +1064,13 @@ class BlockLinearOperator(LinearOperator):
         if not self.codomain.parallel:
             return blocks, blocks_T
 
-        from mpi4py import MPI
+        from typing import TYPE_CHECKING
+
+        if TYPE_CHECKING:
+            from mpi4py import MPI
+        else:
+            from psydac.ddm.mpi import mpi as MPI
+            
         from psydac.linalg.stencil import StencilInterfaceMatrix
 
         if not isinstance(self.codomain, BlockVectorSpace):

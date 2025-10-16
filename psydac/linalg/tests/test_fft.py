@@ -1,7 +1,12 @@
 import pytest
 import scipy.fft as scifft
 import numpy as np
-from mpi4py import MPI
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from mpi4py import MPI
+else:
+    from psydac.ddm.mpi import mpi as MPI
 
 from psydac.linalg.fft import *
 from psydac.ddm.cart               import DomainDecomposition, CartDecomposition

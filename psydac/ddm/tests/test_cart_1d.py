@@ -11,7 +11,13 @@ from psydac.ddm.nonblocking_data_exchanger import NonBlockingCartDataExchanger
 def run_cart_1d( data_exchanger_type, verbose=False ):
 
     import numpy as np
-    from mpi4py       import MPI
+    from typing import TYPE_CHECKING
+
+    if TYPE_CHECKING:
+        from mpi4py import MPI
+    else:
+        from psydac.ddm.mpi import mpi as MPI
+        
     from psydac.ddm.cart import DomainDecomposition, CartDecomposition
 
     #---------------------------------------------------------------------------

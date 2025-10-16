@@ -216,8 +216,12 @@ class DomainDecomposition:
         assert len( ncells ) == len( periods )
         assert all( n >=1 for n in ncells )
         assert all( isinstance( period, bool ) for period in periods )
-        if not isinstance(MPI, MockMPI) and comm is not None:
-            assert isinstance( comm, MPI.Comm )
+        if isinstance(MPI, MockMPI): 
+            comm = None
+        else:
+            if comm is not None:
+                assert isinstance( comm, MPI.Comm )
+        
 
         self._ncells       = tuple ( ncells )
         self._periods      = tuple ( periods )

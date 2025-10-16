@@ -9,7 +9,12 @@ from psydac.fem.vector  import VectorFemSpace
 from psydac.ddm.cart    import DomainDecomposition
 
 from numpy  import linspace
-from mpi4py import MPI
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from mpi4py import MPI
+else:
+    from psydac.ddm.mpi import mpi as MPI
 
 def test_2d_1():
 
