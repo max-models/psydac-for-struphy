@@ -330,7 +330,7 @@ jobs:
 
       - name: Install project without mpi
         run: |
-          python -m pip install ".[test,mpi]" --no-cache-dir
+          python -m pip install ".[test]" --no-cache-dir
           python -m pip freeze
       
       - name: Compile psydac kernels
