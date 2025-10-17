@@ -485,11 +485,11 @@ jobs:
           echo "PSYDAC_DIR=$GITHUB_WORKSPACE" >> $GITHUB_ENV
           echo "STRUPHY_DIR=$GITHUB_WORKSPACE/struphy" >> $GITHUB_ENV
 
-      - name: Clone struphy from GitLab #TODO: Set branch to 467-no-mpi
+      - name: Clone struphy from GitLab
         run: |
           git clone https://gitlab.mpcdf.mpg.de/struphy/struphy.git $STRUPHY_DIR
       
-      - name: Install struphy without mpi
+      - name: Install struphy without mpi #TODO: Set branch to devel
         working-directory: ${{ env.STRUPHY_DIR }}
         run: |
           echo "Psydac location for this branch"
