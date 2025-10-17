@@ -487,7 +487,7 @@ jobs:
 
       - name: Clone struphy from GitLab #TODO: Set branch to 467-no-mpi
         run: |
-          git clone https://gitlab.mpcdf.mpg.de/struphy/struphy.git@467-no-mpi $STRUPHY_DIR
+          git clone https://gitlab.mpcdf.mpg.de/struphy/struphy.git $STRUPHY_DIR
       
       - name: Install struphy without mpi
         working-directory: ${{ env.STRUPHY_DIR }}
@@ -495,6 +495,7 @@ jobs:
           echo "Psydac location for this branch"
           pip show psydac
           pip uninstall psydac -y
+          git checkout 467-no-mpi
           python -m pip install ".[phys]" --no-cache-dir
           echo "Psydac location after installing struphy"
           pip show psydac
