@@ -3,13 +3,8 @@
 import os
 import numpy as np
 from itertools import product
-from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    from mpi4py import MPI
-else:
-    from psydac.ddm.mpi import mpi as MPI
-    
+from psydac.ddm.mpi import mpi as MPI
 from psydac.ddm.mpi import MockMPI
 from psydac.ddm.partition import compute_dims, partition_procs_per_patch
 

@@ -2,13 +2,8 @@
 
 import pytest
 import numpy as np
-from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    from mpi4py import MPI
-else:
-    from psydac.ddm.mpi import mpi as MPI
-
+from psydac.ddm.mpi import mpi as MPI
 from psydac.linalg.stencil import StencilVectorSpace, StencilVector, StencilMatrix
 from psydac.linalg.utilities import array_to_psydac, petsc_to_psydac
 from psydac.ddm.cart import DomainDecomposition, CartDecomposition

@@ -4,13 +4,8 @@ import pytest
 import numpy as np
 from scipy.sparse import csr_matrix
 from random import random, seed
-from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    from mpi4py import MPI
-else:
-    from psydac.ddm.mpi import mpi as MPI
-
+from psydac.ddm.mpi import mpi as MPI
 from psydac.linalg.direct_solvers import SparseSolver
 from psydac.linalg.stencil        import StencilVectorSpace, StencilVector, StencilMatrix
 from psydac.linalg.block          import BlockVectorSpace, BlockVector

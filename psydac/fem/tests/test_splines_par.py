@@ -7,14 +7,9 @@ from psydac.fem.splines import SplineSpace
 from psydac.fem.tensor  import TensorFemSpace
 from psydac.fem.vector  import VectorFemSpace
 from psydac.ddm.cart    import DomainDecomposition
+from psydac.ddm.mpi import mpi as MPI
 
 from numpy  import linspace
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from mpi4py import MPI
-else:
-    from psydac.ddm.mpi import mpi as MPI
 
 def test_2d_1():
 

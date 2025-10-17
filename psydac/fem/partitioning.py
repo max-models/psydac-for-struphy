@@ -2,12 +2,6 @@
 import os
 
 import numpy as np
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from mpi4py import MPI
-else:
-    from psydac.ddm.mpi import mpi as MPI
 
 from psydac.ddm.cart       import CartDecomposition, InterfaceCartDecomposition, create_interfaces_cart
 from psydac.core.bsplines  import elements_spans

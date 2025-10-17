@@ -101,12 +101,7 @@ def MPITest(commsize):
     def test_stuff(comm):
         pass
     """
-    from typing import TYPE_CHECKING
-
-    if TYPE_CHECKING:
-        from mpi4py import MPI
-    else:
-        from psydac.ddm.mpi import mpi as MPI
+    from psydac.ddm.mpi import mpi as MPI
         
     if not isinstance(commsize, (tuple, list)):
         commsize = (commsize,)
@@ -188,13 +183,7 @@ class Tester( object ):
     #---------------------------------------------------------------------------
     @property
     def comm(self):
-        from typing import TYPE_CHECKING
-
-        if TYPE_CHECKING:
-            from mpi4py import MPI
-        else:
-            from psydac.ddm.mpi import mpi as MPI
-            
+        from psydac.ddm.mpi import mpi as MPI
         return MPI.COMM_WORLD
 
     #---------------------------------------------------------------------------

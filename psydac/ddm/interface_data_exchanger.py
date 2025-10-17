@@ -1,11 +1,6 @@
 # coding: utf-8
 
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from mpi4py import MPI
-else:
-    from psydac.ddm.mpi import mpi as MPI
+from psydac.ddm.mpi import mpi as MPI
 
 from .cart import InterfaceCartDecomposition, find_mpi_type
 

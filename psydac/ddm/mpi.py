@@ -98,5 +98,3 @@ if TYPE_CHECKING:
     mpi = MPI
 else:
     mpi = mpi_wrapper.MPI
-
-print(f"{mpi = }")
