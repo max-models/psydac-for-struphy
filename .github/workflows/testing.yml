@@ -475,7 +475,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
 
-      - name: Install project
+      - name: Install project without mpi
         run: |
           python -m pip install ".[test]" --no-cache-dir
           python -m pip freeze
@@ -485,11 +485,11 @@ jobs:
           echo "PSYDAC_DIR=$GITHUB_WORKSPACE" >> $GITHUB_ENV
           echo "STRUPHY_DIR=$GITHUB_WORKSPACE/struphy" >> $GITHUB_ENV
 
-      - name: Clone struphy from GitLab #TODO: Set branch to devel
+      - name: Clone struphy from GitLab #TODO: Set branch to 467-no-mpi
         run: |
-          git clone https://gitlab.mpcdf.mpg.de/struphy/struphy.git $STRUPHY_DIR
+          git clone https://gitlab.mpcdf.mpg.de/struphy/struphy.git@467-no-mpi $STRUPHY_DIR
       
-      - name: Install struphy
+      - name: Install struphy without mpi
         working-directory: ${{ env.STRUPHY_DIR }}
         run: |
           echo "Psydac location for this branch"
@@ -525,6 +525,16 @@ jobs:
         working-directory: ${{ env.STRUPHY_DIR }}
         run: |
             struphy test models --fast
+
+      - name: Install mpi4py
+        working-directory: ${{ env.STRUPHY_DIR }}
+        run: |
+            pip install -U mpi4py
+
+      - name: Run struphy unit tests with mpi
+        working-directory: ${{ env.STRUPHY_DIR }}
+        run: |
+            struphy test unit --mpi 2
 
       - name: Remove test directory
         if: always()
