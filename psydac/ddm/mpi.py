@@ -66,9 +66,6 @@ class MockMPI:
     @property
     def COMM_WORLD(self):
         return MockComm()
-    
-    class Comm:
-        x = None
 
     # def comm_Get_rank(self):
     #     return 0

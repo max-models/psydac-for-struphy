@@ -328,9 +328,9 @@ jobs:
       #       f = h5py.File('parallel_test.hdf5', 'w', driver='mpio', comm=MPI.COMM_WORLD)
       #       print(f)"
 
-      - name: Install project
+      - name: Install project without mpi
         run: |
-          python -m pip install ".[test]" --no-cache-dir
+          python -m pip install ".[test,mpi]" --no-cache-dir
           python -m pip freeze
       
       - name: Compile psydac kernels
@@ -362,15 +362,20 @@ jobs:
         run: |
           python -m pytest -n auto --pyargs psydac -m "not parallel and not petsc"
 
-      - name: Run MPI tests with Pytest
-        working-directory: ./pytest
-        run: |
-          python mpi_tester.py --mpirun="mpiexec -n 4 ${MPI_OPTS}" --pyargs psydac -m "parallel and not petsc"
-
       - name: Run single-process PETSc tests with Pytest
         working-directory: ./pytest
         run: |
           python -m pytest -n auto --pyargs psydac -m "not parallel and petsc"
+
+      - name: Install project with mpi
+        run: |
+          python -m pip install ".[mpi]" 
+          python -m pip freeze
+
+      - name: Run MPI tests with Pytest
+        working-directory: ./pytest
+        run: |
+          python mpi_tester.py --mpirun="mpiexec -n 4 ${MPI_OPTS}" --pyargs psydac -m "parallel and not petsc"
 
       - name: Run MPI PETSc tests with Pytest
         working-directory: ./pytest
@@ -381,6 +386,7 @@ jobs:
         if: always()
         run: |
           rm -rf pytest
+  
   test_struphy:
     runs-on: ${{ matrix.os }}
     strategy:
