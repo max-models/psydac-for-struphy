@@ -132,8 +132,16 @@ class BandedSolver(LinearSolver):
             # TODO: handle non-contiguous views?
 
             # we want FORTRAN-contiguous data (default is assumed to be C contiguous)
-            _, self._sinfo = self._solver_function(self._bmat, self._l, self._u, out.T, self._ipiv, overwrite_b=True,
+            from psydac.arrays import array_backend
+            if array_backend.backend == "numpy":
+                _, self._sinfo = self._solver_function(self._bmat, self._l, self._u, out.T, self._ipiv, overwrite_b=True,
                                                    trans=transposed)
+            else:
+                # GPU
+                out_cpu = out.get()
+                _, self._sinfo = self._solver_function(self._bmat, self._l, self._u, out_cpu.T, self._ipiv, overwrite_b=True,
+                                                   trans=transposed)
+                out.set(out_cpu)
 
         return out
 
