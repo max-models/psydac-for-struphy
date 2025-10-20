@@ -630,7 +630,9 @@ class KroneckerLinearSolver(LinearOperator):
         sourceview = source[:self._localsize]
         sourceview.shape = self._shapes[-1]
 
-        outslice[:] = sourceview.transpose(self._perm)
+        # outslice[:] = sourceview.transpose(self._perm)
+        perm = tuple(int(p) for p in self._perm)
+        outslice[:] = sourceview.transpose(perm)
 
     class KroneckerSolverSerialPass:
         """
