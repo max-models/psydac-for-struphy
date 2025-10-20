@@ -3,6 +3,7 @@
 
 from abc                 import abstractmethod
 from psydac.arrays import xp as np
+from psydac.arrays import array_backend
 from scipy.linalg.lapack import dgbtrf, dgbtrs, sgbtrf, sgbtrs, cgbtrf, cgbtrs, zgbtrf, zgbtrs
 from scipy.sparse        import spmatrix
 from scipy.sparse.linalg import splu
@@ -200,6 +201,11 @@ class SparseSolver (LinearSolver):
             assert out.dtype == rhs.dtype
 
             # currently no in-place solve exposed
-            out[:] = self._splu.solve(rhs.T, trans='T' if transposed else 'N').T
+            if array_backend.backend == "numpy":
+                out[:] = self._splu.solve(rhs.T, trans='T' if transposed else 'N').T
+            else:
+                rhs_cpu = rhs.get()
+                result_cpu = self._splu.solve(rhs_cpu.T, trans='T' if transposed else 'N').T
+                out[:] = np.asarray(result_cpu)
 
         return out
