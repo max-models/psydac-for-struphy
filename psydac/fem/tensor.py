@@ -5,7 +5,8 @@ We assume here that a tensor space is the product of fem spaces whom basis are
 of compact support
 
 """
-from mpi4py import MPI
+from psydac.ddm.mpi import mpi as MPI
+    
 from psydac.arrays import xp as np
 import itertools
 import h5py

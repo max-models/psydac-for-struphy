@@ -2,7 +2,6 @@
 import os
 
 from psydac.arrays import xp as np
-from mpi4py import MPI
 
 from psydac.ddm.cart       import CartDecomposition, InterfaceCartDecomposition, create_interfaces_cart
 from psydac.core.bsplines  import elements_spans
