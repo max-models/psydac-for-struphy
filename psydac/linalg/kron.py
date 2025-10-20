@@ -675,7 +675,7 @@ class KroneckerLinearSolver(LinearOperator):
             """
             # reshape necessary memory in column-major
             view = workmem[:self._datasize]
-            view.shape = (self._numrhs,self._dimrhs)
+            view.shape = (int(self._numrhs), int(self._dimrhs))
 
             # call solver in in-place mode
             self._solver.solve(view, out=view)
