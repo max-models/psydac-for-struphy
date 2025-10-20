@@ -104,7 +104,7 @@ def compute_dims( nnodes, gridsizes, min_blocksizes=None, mpi=None, try_uniform=
     """
     assert nnodes > 0
     assert all( s > 0 for s in gridsizes )
-    assert np.prod( gridsizes ) >= nnodes
+    assert np.prod( np.asarray(gridsizes) ) >= nnodes
 
     if (min_blocksizes is not None):
         assert len( min_blocksizes ) == len( gridsizes )
@@ -112,7 +112,7 @@ def compute_dims( nnodes, gridsizes, min_blocksizes=None, mpi=None, try_uniform=
         assert all( s >= m for s,m in zip( gridsizes, min_blocksizes ) )
 
     # Determine whether uniform decomposition is possible
-    uniform = (np.prod( gridsizes ) % nnodes == 0)
+    uniform = (np.prod( np.asarray(gridsizes) ) % nnodes == 0)
 
     # Compute dimensions of MPI Cartesian topology with most appropriate algorithm
     if try_uniform and uniform:
