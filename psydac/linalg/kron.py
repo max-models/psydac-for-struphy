@@ -610,12 +610,17 @@ class KroneckerLinearSolver(LinearOperator):
         Does not allocate any new array.
         """
         sourceview = source[:self._localsize]
+        self._shapes[i] = tuple(int(x) for x in self._shapes[i])
+        self._shapes[i+1] = tuple(int(x) for x in self._shapes[i+1])
         sourceview.shape = self._shapes[i]
 
         targetview = target[:self._localsize]
         targetview.shape = self._shapes[i+1]
+        
+        # targetview[:] = sourceview.transpose(self._perm)
+        perm = tuple(int(p) for p in self._perm)
 
-        targetview[:] = sourceview.transpose(self._perm)
+        targetview[:] = sourceview.transpose(perm)
     
     def _reorder_temp_to_outslice(self, source, outslice):
         """
