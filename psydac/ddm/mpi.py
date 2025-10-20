@@ -80,7 +80,7 @@ try:
     _comm = MPI.COMM_WORLD
     rank = _comm.Get_rank()
     size = _comm.Get_size()
-    mpi_enabled = size > 1
+    mpi_enabled = True
 except ImportError:
     # mpi4py not installed
     mpi_enabled = False
