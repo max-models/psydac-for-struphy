@@ -1,4 +1,4 @@
-from psydac.arrays import xp as np
+import cunumpy as xp
 
 from psydac.linalg.kron     import KroneckerDenseMatrix
 from psydac.core.bsplines   import hrefinement_matrix

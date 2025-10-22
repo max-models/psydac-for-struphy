@@ -1,4 +1,4 @@
-from psydac.arrays import xp as np
+import cunumpy as xp
 import numpy.ma as ma
 
 from sympy.ntheory import factorint

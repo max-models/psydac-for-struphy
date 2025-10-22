@@ -1,7 +1,7 @@
 from functools import reduce
 
 import pytest
-from psydac.arrays import xp as np
+import cunumpy as xp
 from scipy.sparse import kron
 
 from psydac.ddm.cart       import DomainDecomposition, CartDecomposition

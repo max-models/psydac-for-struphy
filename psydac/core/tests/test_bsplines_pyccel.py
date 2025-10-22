@@ -1,4 +1,4 @@
-from psydac.arrays import xp as np
+import cunumpy as xp
 import pytest
 
 from psydac.utilities.quadratures import gauss_legendre

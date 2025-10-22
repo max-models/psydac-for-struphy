@@ -1,7 +1,7 @@
 #coding: utf-8
 
 import pytest
-from psydac.arrays import xp as np
+import cunumpy as xp
 
 
 from psydac.core.bsplines_kernels import cell_index_p

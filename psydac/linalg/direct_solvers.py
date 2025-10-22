@@ -2,7 +2,7 @@
 # Copyright 2018 Jalal Lakhlili, Yaman Güçlü
 
 from abc                 import abstractmethod
-from psydac.arrays import xp as np
+import cunumpy as xp
 from psydac.arrays import array_backend
 from scipy.linalg.lapack import dgbtrf, dgbtrs, sgbtrf, sgbtrs, cgbtrf, cgbtrs, zgbtrf, zgbtrs
 from scipy.sparse        import spmatrix

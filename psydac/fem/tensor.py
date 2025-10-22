@@ -7,7 +7,7 @@ of compact support
 """
 from psydac.ddm.mpi import mpi as MPI
     
-from psydac.arrays import xp as np
+import cunumpy as xp
 import itertools
 import h5py
 import os

@@ -28,6 +28,7 @@ dependencies = [
     'pyyaml >= 5.1',
     'packaging',
     'pyevtk',
+    'cunumpy',
 
     # Our packages from PyPi
     'pyccel >= 2.0.1',

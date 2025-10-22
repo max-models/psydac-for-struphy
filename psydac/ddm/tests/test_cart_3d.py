@@ -8,7 +8,7 @@ from psydac.ddm.nonblocking_data_exchanger import NonBlockingCartDataExchanger
 #===============================================================================
 def run_cart_3d( data_exchanger_type, verbose=False ):
 
-    from psydac.arrays import xp as np
+    import cunumpy as xp
     from psydac.ddm.mpi import mpi as MPI 
     from psydac.ddm.cart import DomainDecomposition, CartDecomposition
 

@@ -2,7 +2,7 @@
 # Copyright 2018 Yaman Güçlü
 
 import math
-from psydac.arrays import xp as np
+import cunumpy as xp
 
 from psydac.fem.tests.analytical_profiles_base import AnalyticalProfile
 from psydac.fem.tests.utilities                import horner, falling_factorial

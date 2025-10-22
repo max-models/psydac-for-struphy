@@ -2,7 +2,7 @@
 # Copyright 2018 Ahmed Ratnani, Yaman Güçlü
 
 import numpy as _np
-from psydac.arrays import xp as np
+import cunumpy as xp
 from scipy.sparse import csc_matrix, csr_matrix, dia_matrix
 
 from psydac.linalg.stencil        import StencilVectorSpace

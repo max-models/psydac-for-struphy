@@ -1,7 +1,7 @@
 # -*- coding: UTF-8 -*-
 import os
 
-from psydac.arrays import xp as np
+import cunumpy as xp
 
 from psydac.ddm.cart       import CartDecomposition, InterfaceCartDecomposition, create_interfaces_cart
 from psydac.core.bsplines  import elements_spans

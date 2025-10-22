@@ -1,4 +1,4 @@
-from psydac.arrays import xp as np
+import cunumpy as xp
 from typing import TypeVar
 
 T = TypeVar('T', float, complex)

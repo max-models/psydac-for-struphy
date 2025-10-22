@@ -35,7 +35,7 @@ def get_plus_starts_ends(minus_starts, minus_ends, minus_npts, plus_npts, minus_
 # TEST MultiPatchDomainDecomposition and CartDataExchanger in 2D
 #===============================================================================
 def run_carts_2d():
-    from psydac.arrays import xp as np
+    import cunumpy as xp
     
     from psydac.ddm.mpi import mpi as MPI
     from psydac.ddm.cart import MultiPatchDomainDecomposition, CartDecomposition, create_interfaces_cart

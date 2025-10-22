@@ -1,7 +1,7 @@
 # coding: utf-8
 # Copyright 2018 Yaman Güçlü
 
-from psydac.arrays import xp as np
+import cunumpy as xp
 
 #===============================================================================
 def horner( x, *poly_coeffs ):

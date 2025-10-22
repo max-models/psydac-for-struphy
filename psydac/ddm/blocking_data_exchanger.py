@@ -1,6 +1,6 @@
 # coding: utf-8
 
-from psydac.arrays import xp as np
+import cunumpy as xp
 from psydac.ddm.mpi import mpi as MPI
 
 from .cart import CartDecomposition, find_mpi_type

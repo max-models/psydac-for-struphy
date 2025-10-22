@@ -11,7 +11,7 @@ from abc import ABC, abstractmethod
 from types import LambdaType 
 from inspect import signature
 
-from psydac.arrays import xp as np
+import cunumpy as xp
 from scipy.sparse import coo_matrix
 
 from psydac.utilities.utils import is_real

@@ -2,7 +2,7 @@
 #
 # Copyright 2018 Yaman Güçlü
 
-from psydac.arrays import xp as np
+import cunumpy as xp
 from numbers import Number
 
 __all__ = (

@@ -4,7 +4,7 @@
 
 from pyccel.decorators import pure
 from numpy import shape, abs
-from psydac.arrays import xp as np
+import cunumpy as xp
 from typing import Final
 
 # Auxiliary functions needed for the bsplines kernels.

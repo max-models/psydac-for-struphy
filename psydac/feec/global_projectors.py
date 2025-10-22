@@ -1,6 +1,6 @@
 # -*- coding: UTF-8 -*-
 
-from psydac.arrays import xp as np
+import cunumpy as xp
 
 from psydac.linalg.kron           import KroneckerLinearSolver, KroneckerStencilMatrix
 from psydac.linalg.stencil        import StencilMatrix, StencilVectorSpace

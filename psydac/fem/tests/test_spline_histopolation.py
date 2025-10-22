@@ -1,5 +1,5 @@
 import pytest
-from psydac.arrays import xp as np
+import cunumpy as xp
 import matplotlib.pyplot as plt
 from scipy.integrate import quad
 

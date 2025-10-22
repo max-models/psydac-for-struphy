@@ -3,7 +3,7 @@
 
 from psydac.ddm.mpi import mpi as MPI
     
-from psydac.arrays import xp as np
+import cunumpy as xp
 import pytest
 import time
 

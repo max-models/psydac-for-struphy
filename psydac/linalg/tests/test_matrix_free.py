@@ -1,5 +1,5 @@
 import pytest
-from psydac.arrays import xp as np
+import cunumpy as xp
 
 from psydac.linalg.block import BlockLinearOperator, BlockVector, BlockVectorSpace
 from psydac.linalg.basic import LinearOperator, ZeroOperator, IdentityOperator, ComposedLinearOperator, SumLinearOperator, PowerLinearOperator, ScaledLinearOperator

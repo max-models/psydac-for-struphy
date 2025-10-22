@@ -2,7 +2,7 @@
 #
 # Copyright 2018 Jalal Lakhlili, Yaman Güçlü
 
-from psydac.arrays import xp as np
+import cunumpy as xp
 
 from types import MappingProxyType
 from scipy.sparse import bmat, lil_matrix

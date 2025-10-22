@@ -1,6 +1,6 @@
 # coding: utf-8
 
-from psydac.arrays import xp as np
+import cunumpy as xp
 from itertools import product
 
 from .cart import CartDecomposition

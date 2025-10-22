@@ -1,5 +1,5 @@
 
-from psydac.arrays import xp as np
+import cunumpy as xp
 import pytest
 from psydac.linalg.solvers import inverse
 from psydac.linalg.stencil import StencilVectorSpace, StencilMatrix, StencilVector

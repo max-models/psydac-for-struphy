@@ -2,7 +2,7 @@
 #
 # Copyright 2018 Yaman Güçlü
 
-from psydac.arrays import xp as np
+import cunumpy as xp
 
 from psydac.core.bsplines         import elements_spans
 from psydac.core.bsplines         import quadrature_grid
