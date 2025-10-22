@@ -20,7 +20,7 @@ from psydac.core.bsplines import (find_span,
 # The pytest-xdist plugin requires that every worker sees the same parameters
 # in the unit tests. As in this module random parameters are used, here we set
 # the same random seed for all workers.
-np.random.seed(0)
+xp.random.seed(0)
 
 ###############################################################################
 # "True" Functions
@@ -48,9 +48,9 @@ def find_span_true( knots, degree, x ):
 
 #==============================================================================
 def basis_funs_true( knots, degree, x, span ):
-    left   = np.empty( degree  , dtype=float )
-    right  = np.empty( degree  , dtype=float )
-    values = np.empty( degree+1, dtype=float )
+    left   = xp.empty( degree  , dtype=float )
+    right  = xp.empty( degree  , dtype=float )
+    values = xp.empty( degree+1, dtype=float )
 
     values[0] = 1.0
     for j in range(0,degree):
@@ -75,7 +75,7 @@ def basis_funs_1st_der_true( knots, degree, x, span ):
     # degree deg-1
     # -------
     # j = 0
-    ders  = np.empty( degree+1, dtype=float )
+    ders  = xp.empty( degree+1, dtype=float )
     saved = degree * values[0] / (knots[span+1]-knots[span+1-degree])
     ders[0] = -saved
     # j = 1,...,degree-1
@@ -122,11 +122,11 @@ def basis_funs_all_ders_true(knots, degree, x, span, n, normalization='B'):
         - inverse of knot differences are saved to avoid unnecessary divisions;
         - innermost loops are replaced with vector operations on slices.
     """
-    left  = np.empty( degree )
-    right = np.empty( degree )
-    ndu   = np.empty( (degree+1, degree+1) )
-    a     = np.empty( (       2, degree+1) )
-    ders  = np.zeros( (     n+1, degree+1) ) # output array
+    left  = xp.empty( degree )
+    right = xp.empty( degree )
+    ndu   = xp.empty( (degree+1, degree+1) )
+    a     = xp.empty( (       2, degree+1) )
+    ders  = xp.zeros( (     n+1, degree+1) ) # output array
 
     # Number of derivatives that need to be effectively computed
     # Derivatives higher than degree are = 0.
@@ -165,7 +165,7 @@ def basis_funs_all_ders_true(knots, degree, x, span, n, normalization='B'):
             j1 = 1   if (rk  > -1 ) else -rk
             j2 = k-1 if (r-1 <= pk) else degree-r
             a[s2,j1:j2+1] = (a[s1,j1:j2+1] - a[s1,j1-1:j2]) * ndu[pk+1,rk+j1:rk+j2+1]
-            d += np.dot( a[s2,j1:j2+1], ndu[rk+j1:rk+j2+1,pk] )
+            d += xp.dot( a[s2,j1:j2+1], ndu[rk+j1:rk+j2+1,pk] )
             if r <= pk:
                a[s2,k] = - a[s1,k-1] * ndu[pk+1,r]
                d += a[s2,k] * ndu[r,pk]
@@ -197,7 +197,7 @@ def collocation_matrix_true(knots, degree, periodic, normalization, xgrid):
     nx = len(xgrid)
 
     # Collocation matrix as 2D Numpy array (dense storage)
-    mat = np.zeros( (nx,nb) )
+    mat = xp.zeros( (nx,nb) )
 
     # Indexing of basis functions (periodic or not) for a given span
     if periodic:
@@ -226,11 +226,11 @@ def collocation_matrix_true(knots, degree, periodic, normalization, xgrid):
 #==============================================================================
 def histopolation_matrix_true(knots, degree, periodic, normalization, xgrid):
     # Check that knots are ordered (but allow repeated knots)
-    if not np.all(np.diff(knots) >= 0):
+    if not xp.all(xp.diff(knots) >= 0):
         raise ValueError("Cannot accept knot sequence: {}".format(knots))
 
     # Check that spline degree is non-negative integer
-    if not isinstance(degree, (int, np.integer)):
+    if not isinstance(degree, (int, xp.integer)):
         raise TypeError("Degree {} must be integer, got type {} instead".format(degree, type(degree)))
     if degree < 0:
         raise ValueError("Cannot accept negative degree: {}".format(degree))
@@ -244,7 +244,7 @@ def histopolation_matrix_true(knots, degree, periodic, normalization, xgrid):
         raise ValueError("Cannot accept 'normalization' parameter: {}".format(normalization))
 
     # Check that grid points are ordered, and do not allow repetitions
-    if not np.all(np.diff(xgrid) > 0):
+    if not xp.all(xp.diff(xgrid) > 0):
         raise ValueError("Grid points must be ordered, with no repetitions: {}".format(xgrid))
 
     # Number of basis functions (in periodic case remove degree repeated elements)
@@ -293,7 +293,7 @@ def histopolation_matrix_true(knots, degree, periodic, normalization, xgrid):
     # Compute histopolation matrix from collocation matrix of higher degree
     m = C.shape[0] - 1
     n = C.shape[1] - 1
-    H = np.zeros((m, n))
+    H = xp.zeros((m, n))
     for i in range(m):
         # Indices of first/last non-zero elements in row of collocation matrix
         jstart = spans[i] - (degree+1)
@@ -312,7 +312,7 @@ def histopolation_matrix_true(knots, degree, periodic, normalization, xgrid):
     # Periodic case: wrap around histopolation matrix
     #  1. identify repeated basis functions (sum columns)
     #  2. identify split interval (sum rows)
-    Hp = np.zeros((nx, nb))
+    Hp = xp.zeros((nx, nb))
     for i in range(m):
         for j in range(n):
             Hp[i % nx, j % nb] += H[i, j]
@@ -321,8 +321,8 @@ def histopolation_matrix_true(knots, degree, periodic, normalization, xgrid):
 
 #==============================================================================
 def breakpoints_true( knots, degree ,tol=1e-15):
-    knots = np.array(knots)
-    diff  = np.append(True, abs(np.diff(knots[degree:-degree]))>tol)
+    knots = xp.array(knots)
+    diff  = xp.append(True, abs(xp.diff(knots[degree:-degree]))>tol)
     return knots[degree:-degree][diff]
 
 #==============================================================================
@@ -332,7 +332,7 @@ def greville_true( knots, degree, periodic ):
     n = len(T)-2*p-1 if periodic else len(T)-p-1
 
     # Compute greville abscissas as average of p consecutive knot values
-    xg = np.array([sum(T[i:i+p])/p for i in range(1,1+n)])
+    xg = xp.array([sum(T[i:i+p])/p for i in range(1,1+n)])
 
     # Domain boundaries
     a = T[p]
@@ -341,7 +341,7 @@ def greville_true( knots, degree, periodic ):
     # If needed apply periodic boundary conditions, then sort array
     if periodic:
         xg = (xg-a) % (b-a) + a
-        xg = xg[np.argsort(xg)]
+        xg = xg[xp.argsort(xg)]
 
     # Make sure roundoff errors don't push Greville points outside domain
     xg[ 0] = max(xg[ 0], a)
@@ -354,7 +354,7 @@ def elements_spans_true( knots, degree ):
     breaks = breakpoints_true( knots, degree )
     nk     = len(knots)
     ne     = len(breaks)-1
-    spans  = np.zeros( ne, dtype=int )
+    spans  = xp.zeros( ne, dtype=int )
 
     ie = 0
     for ik in range( degree, nk-degree ):
@@ -374,14 +374,14 @@ def make_knots_true( breaks, degree, periodic, multiplicity=1 ):
 
     # Consistency checks
     assert len(breaks) > 1
-    assert all( np.diff(breaks) > 0 )
+    assert all( xp.diff(breaks) > 0 )
     assert degree > 0
     assert 1 <= multiplicity and multiplicity <= degree + 1
 
     if periodic:
         assert len(breaks) > degree
         
-    T = np.zeros(multiplicity * len(breaks[1:-1]) + 2 + 2 * degree)
+    T = xp.zeros(multiplicity * len(breaks[1:-1]) + 2 + 2 * degree)
     ncells = len(breaks) - 1
     
     for i in range(0, ncells+1):
@@ -403,7 +403,7 @@ def make_knots_true( breaks, degree, periodic, multiplicity=1 ):
 
 #==============================================================================
 def elevate_knots_true(knots, degree, periodic, multiplicity=1, tol=1e-15):
-    knots = np.array(knots)
+    knots = xp.array(knots)
 
     if periodic:
         T, p = knots, degree
@@ -414,14 +414,14 @@ def elevate_knots_true(knots, degree, periodic, multiplicity=1, tol=1e-15):
         left  = [knots[0],*knots[:degree+1]]
         right = [knots[-1],*knots[-degree-1:]]
 
-        diff   = np.append(True, np.diff(knots[degree+1:-degree-1])>tol)
+        diff   = xp.append(True, xp.diff(knots[degree+1:-degree-1])>tol)
         if len(knots[degree+1:-degree-1])>0:
             unique = knots[degree+1:-degree-1][diff]
-            knots  = np.repeat(unique, multiplicity)
+            knots  = xp.repeat(unique, multiplicity)
         else:
             knots = knots[degree+1:-degree-1]
 
-    return np.array([*left, *knots, *right])
+    return xp.array([*left, *knots, *right])
 
 #==============================================================================
 def quadrature_grid_true(breaks, quad_rule_x, quad_rule_w):
@@ -433,13 +433,13 @@ def quadrature_grid_true(breaks, quad_rule_x, quad_rule_w):
     assert min(quad_rule_x) >= -1
     assert max(quad_rule_x) <= +1
 
-    quad_rule_x = np.asarray(quad_rule_x)
-    quad_rule_w = np.asarray(quad_rule_w)
+    quad_rule_x = xp.asarray(quad_rule_x)
+    quad_rule_w = xp.asarray(quad_rule_w)
 
     ne     = len(breaks) - 1
     nq     = len(quad_rule_x)
-    quad_x = np.zeros((ne, nq))
-    quad_w = np.zeros((ne, nq))
+    quad_x = xp.zeros((ne, nq))
+    quad_w = xp.zeros((ne, nq))
 
     # Compute location and weight of quadrature points from basic rule
     for ie, (a, b) in enumerate(zip(breaks[:-1], breaks[1:])):
@@ -453,7 +453,7 @@ def quadrature_grid_true(breaks, quad_rule_x, quad_rule_w):
 #==============================================================================
 def basis_ders_on_quad_grid_true(knots, degree, quad_grid, nders, normalization):
     ne,nq = quad_grid.shape
-    basis = np.zeros((ne, degree+1, nders+1, nq))
+    basis = xp.zeros((ne, degree+1, nders+1, nq))
 
     if normalization == 'M':
         scaling = 1. / basis_integrals_true(knots, degree)
@@ -474,7 +474,7 @@ def basis_integrals_true(knots, degree):
     T = knots
     p = degree
     n = len(T)-p-1
-    K = np.array([(T[i+p+1] - T[i]) / (p + 1) for i in range(n)])
+    K = xp.array([(T[i+p+1] - T[i]) / (p + 1) for i in range(n)])
 
     return K
 
@@ -488,77 +488,77 @@ ATOL = 1e-11
 
 
 @pytest.mark.parametrize(('knots', 'degree'),
-                         [(np.sort(np.random.random(15)), 2),
-                          (np.sort(np.random.random(15)), 3),
-                          (np.sort(np.random.random(15)), 4),
-                          (np.sort(np.random.random(15)), 5),
-                          (np.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 2),
-                          (np.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 3),
-                          (np.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 4),
-                          (np.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 5),
-                          (np.array([0.0, 0.0, 0.0, 1.0, 1.0, 1.0]), 2),
-                          (np.array([0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0]), 3)])
-@pytest.mark.parametrize('x', (np.random.random(), np.random.random(), np.random.random()))
+                         [(xp.sort(xp.random.random(15)), 2),
+                          (xp.sort(xp.random.random(15)), 3),
+                          (xp.sort(xp.random.random(15)), 4),
+                          (xp.sort(xp.random.random(15)), 5),
+                          (xp.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 2),
+                          (xp.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 3),
+                          (xp.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 4),
+                          (xp.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 5),
+                          (xp.array([0.0, 0.0, 0.0, 1.0, 1.0, 1.0]), 2),
+                          (xp.array([0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0]), 3)])
+@pytest.mark.parametrize('x', (xp.random.random(), xp.random.random(), xp.random.random()))
 
 def test_find_span(knots, degree, x):
     expected = find_span_true(knots, degree, x)
     out = find_span(knots, degree, x)
 
-    assert np.allclose(expected, out, atol=ATOL, rtol=RTOL)
+    assert xp.allclose(expected, out, atol=ATOL, rtol=RTOL)
 
 
 @pytest.mark.parametrize(('knots', 'degree'),
-                         [(np.sort(np.random.random(15)), 2),
-                          (np.sort(np.random.random(15)), 3),
-                          (np.sort(np.random.random(15)), 4),
-                          (np.sort(np.random.random(15)), 5),
-                          (np.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 2),
-                          (np.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 3),
-                          (np.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 4),
-                          (np.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 5),
-                          (np.array([0.0, 0.0, 0.0, 1.0, 1.0, 1.0]), 2),
-                          (np.array([0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0]), 3)])
-@pytest.mark.parametrize('x', (np.random.random(), np.random.random(), np.random.random()))
+                         [(xp.sort(xp.random.random(15)), 2),
+                          (xp.sort(xp.random.random(15)), 3),
+                          (xp.sort(xp.random.random(15)), 4),
+                          (xp.sort(xp.random.random(15)), 5),
+                          (xp.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 2),
+                          (xp.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 3),
+                          (xp.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 4),
+                          (xp.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 5),
+                          (xp.array([0.0, 0.0, 0.0, 1.0, 1.0, 1.0]), 2),
+                          (xp.array([0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0]), 3)])
+@pytest.mark.parametrize('x', (xp.random.random(), xp.random.random(), xp.random.random()))
 def test_basis_funs(knots, degree, x):
     span = find_span(knots, degree, x)
     expected = basis_funs_true(knots, degree, x, span)
     out = basis_funs(knots, degree, x, span)
 
-    assert np.allclose(expected, out, atol=ATOL, rtol=RTOL)
+    assert xp.allclose(expected, out, atol=ATOL, rtol=RTOL)
 
 
 @pytest.mark.parametrize(('knots', 'degree'),
-                         [(np.sort(np.random.random(15)), 2),
-                          (np.sort(np.random.random(15)), 3),
-                          (np.sort(np.random.random(15)), 4),
-                          (np.sort(np.random.random(15)), 5),
-                          (np.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 2),
-                          (np.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 3),
-                          (np.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 4),
-                          (np.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 5),
-                          (np.array([0.0, 0.0, 0.0, 1.0, 1.0, 1.0]), 2),
-                          (np.array([0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0]), 3)])
-@pytest.mark.parametrize('x', (np.random.random(), np.random.random(), np.random.random()))
+                         [(xp.sort(xp.random.random(15)), 2),
+                          (xp.sort(xp.random.random(15)), 3),
+                          (xp.sort(xp.random.random(15)), 4),
+                          (xp.sort(xp.random.random(15)), 5),
+                          (xp.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 2),
+                          (xp.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 3),
+                          (xp.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 4),
+                          (xp.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 5),
+                          (xp.array([0.0, 0.0, 0.0, 1.0, 1.0, 1.0]), 2),
+                          (xp.array([0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0]), 3)])
+@pytest.mark.parametrize('x', (xp.random.random(), xp.random.random(), xp.random.random()))
 def test_basis_funs_1st_der(knots, degree, x):
     span = find_span(knots, degree, x)
     expected = basis_funs_1st_der_true(knots, degree, x, span)
     out = basis_funs_1st_der(knots, degree, x, span)
 
-    assert np.allclose(expected, out, atol=ATOL, rtol=RTOL)
+    assert xp.allclose(expected, out, atol=ATOL, rtol=RTOL)
 
 
 @pytest.mark.parametrize(('knots', 'degree'),
-                         [(np.sort(np.random.random(15)), 2),
-                          (np.sort(np.random.random(15)), 3),
-                          (np.sort(np.random.random(15)), 4),
-                          (np.sort(np.random.random(15)), 5),
-                          (np.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 2),
-                          (np.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 3),
-                          (np.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 4),
-                          (np.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 5),
-                          (np.array([0.0, 0.0, 0.0, 1.0, 1.0, 1.0]), 2),
-                          (np.array([0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0]), 3)])
-@pytest.mark.parametrize('x', (np.random.random(), np.random.random(), np.random.random()))
+                         [(xp.sort(xp.random.random(15)), 2),
+                          (xp.sort(xp.random.random(15)), 3),
+                          (xp.sort(xp.random.random(15)), 4),
+                          (xp.sort(xp.random.random(15)), 5),
+                          (xp.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 2),
+                          (xp.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 3),
+                          (xp.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 4),
+                          (xp.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 5),
+                          (xp.array([0.0, 0.0, 0.0, 1.0, 1.0, 1.0]), 2),
+                          (xp.array([0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0]), 3)])
+@pytest.mark.parametrize('x', (xp.random.random(), xp.random.random(), xp.random.random()))
 @pytest.mark.parametrize('n', (2, 3, 4, 5))
 @pytest.mark.parametrize('normalization', ('B', 'M'))
 def test_basis_funs_all_ders(knots, degree, x, n, normalization):
@@ -566,106 +566,106 @@ def test_basis_funs_all_ders(knots, degree, x, n, normalization):
     expected = basis_funs_all_ders_true(knots, degree, x, span, n, normalization)
     out = basis_funs_all_ders(knots, degree, x, span, n, normalization)
 
-    assert np.allclose(expected, out, atol=ATOL, rtol=RTOL)
+    assert xp.allclose(expected, out, atol=ATOL, rtol=RTOL)
 
 
 @pytest.mark.parametrize(('knots', 'degree'),
-                         [(np.sort(np.random.random(15)), 2),
-                          (np.sort(np.random.random(15)), 3),
-                          (np.sort(np.random.random(15)), 4),
-                          (np.sort(np.random.random(15)), 5),
-                          (np.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 2),
-                          (np.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 3),
-                          (np.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 4),
-                          (np.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 5),
-                          (np.array([0.0, 0.0, 0.0, 1.0, 1.0, 1.0]), 2),
-                          (np.array([0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0]), 3)])
+                         [(xp.sort(xp.random.random(15)), 2),
+                          (xp.sort(xp.random.random(15)), 3),
+                          (xp.sort(xp.random.random(15)), 4),
+                          (xp.sort(xp.random.random(15)), 5),
+                          (xp.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 2),
+                          (xp.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 3),
+                          (xp.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 4),
+                          (xp.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 5),
+                          (xp.array([0.0, 0.0, 0.0, 1.0, 1.0, 1.0]), 2),
+                          (xp.array([0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0]), 3)])
 @pytest.mark.parametrize('periodic', (True, False))
 @pytest.mark.parametrize('normalization', ('B', 'M'))
-@pytest.mark.parametrize('xgrid', (np.random.random(10), np.random.random(15)))
+@pytest.mark.parametrize('xgrid', (xp.random.random(10), xp.random.random(15)))
 def test_collocation_matrix(knots, degree, periodic, normalization, xgrid):
     expected = collocation_matrix_true(knots, degree, periodic, normalization, xgrid)
     out = collocation_matrix(knots, degree, periodic, normalization, xgrid)
 
-    assert np.allclose(expected, out, atol=ATOL, rtol=RTOL)
+    assert xp.allclose(expected, out, atol=ATOL, rtol=RTOL)
 
 
 @pytest.mark.parametrize(('knots', 'degree'),
-                         [(np.sort(np.random.random(15)), 2),
-                          (np.sort(np.random.random(15)), 3),
-                          (np.sort(np.random.random(15)), 4),
-                          (np.sort(np.random.random(15)), 5),
-                          (np.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 2),
-                          (np.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 3),
-                          (np.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 4),
-                          (np.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 5),
-                          (np.array([0.0, 0.0, 0.0, 1.0, 1.0, 1.0]), 2),
-                          (np.array([0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0]), 3)])
+                         [(xp.sort(xp.random.random(15)), 2),
+                          (xp.sort(xp.random.random(15)), 3),
+                          (xp.sort(xp.random.random(15)), 4),
+                          (xp.sort(xp.random.random(15)), 5),
+                          (xp.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 2),
+                          (xp.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 3),
+                          (xp.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 4),
+                          (xp.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 5),
+                          (xp.array([0.0, 0.0, 0.0, 1.0, 1.0, 1.0]), 2),
+                          (xp.array([0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0]), 3)])
 @pytest.mark.parametrize('periodic', [True, False])
 @pytest.mark.parametrize('normalization', ('B', 'M'))
-@pytest.mark.parametrize('xgrid', (np.random.random(10), np.random.random(15)))
+@pytest.mark.parametrize('xgrid', (xp.random.random(10), xp.random.random(15)))
 def test_histopolation_matrix(knots, degree, periodic, normalization, xgrid):
-    xgrid = np.sort(np.unique(xgrid))
+    xgrid = xp.sort(xp.unique(xgrid))
     expected = histopolation_matrix_true(knots, degree, periodic, normalization, xgrid)
     out = histopolation_matrix(knots, degree, periodic, normalization, xgrid)
-    assert np.allclose(expected, out, atol=ATOL, rtol=RTOL)
+    assert xp.allclose(expected, out, atol=ATOL, rtol=RTOL)
 
 
 @pytest.mark.parametrize(('knots', 'degree'),
-                         [(np.sort(np.random.random(15)), 2),
-                          (np.sort(np.random.random(15)), 3),
-                          (np.sort(np.random.random(15)), 4),
-                          (np.sort(np.random.random(15)), 5),
-                          (np.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 2),
-                          (np.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 3),
-                          (np.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 4),
-                          (np.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 5),
-                          (np.array([0.0, 0.0, 0.0, 1.0, 1.0, 1.0]), 2),
-                          (np.array([0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0]), 3)])
+                         [(xp.sort(xp.random.random(15)), 2),
+                          (xp.sort(xp.random.random(15)), 3),
+                          (xp.sort(xp.random.random(15)), 4),
+                          (xp.sort(xp.random.random(15)), 5),
+                          (xp.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 2),
+                          (xp.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 3),
+                          (xp.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 4),
+                          (xp.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 5),
+                          (xp.array([0.0, 0.0, 0.0, 1.0, 1.0, 1.0]), 2),
+                          (xp.array([0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0]), 3)])
 def test_breakpoints(knots, degree):
     expected = breakpoints_true(knots, degree)
     out = breakpoints(knots, degree)
 
-    assert np.allclose(expected, out, atol=ATOL, rtol=RTOL)
+    assert xp.allclose(expected, out, atol=ATOL, rtol=RTOL)
 
 @pytest.mark.parametrize(('knots', 'degree'),
-                         [(np.sort(np.random.random(15)), 2),
-                          (np.sort(np.random.random(15)), 3),
-                          (np.sort(np.random.random(15)), 4),
-                          (np.sort(np.random.random(15)), 5),
-                          (np.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 2),
-                          (np.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 3),
-                          (np.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 4),
-                          (np.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 5),
-                          (np.array([0.0, 0.0, 0.0, 1.0, 1.0, 1.0]), 2),
-                          (np.array([0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0]), 3)])
+                         [(xp.sort(xp.random.random(15)), 2),
+                          (xp.sort(xp.random.random(15)), 3),
+                          (xp.sort(xp.random.random(15)), 4),
+                          (xp.sort(xp.random.random(15)), 5),
+                          (xp.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 2),
+                          (xp.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 3),
+                          (xp.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 4),
+                          (xp.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 5),
+                          (xp.array([0.0, 0.0, 0.0, 1.0, 1.0, 1.0]), 2),
+                          (xp.array([0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0]), 3)])
 @pytest.mark.parametrize('periodic', [True, False])
 def test_greville(knots, degree, periodic):
     expected = greville_true(knots, degree, periodic)
     out = greville(knots, degree, periodic)
 
-    assert np.allclose(expected, out, atol=ATOL, rtol=RTOL)
+    assert xp.allclose(expected, out, atol=ATOL, rtol=RTOL)
 
 
 @pytest.mark.parametrize(('knots', 'degree'),
-                         [(np.sort(np.random.random(15)), 2),
-                          (np.sort(np.random.random(15)), 3),
-                          (np.sort(np.random.random(15)), 4),
-                          (np.sort(np.random.random(15)), 5),
-                          (np.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 2),
-                          (np.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 3),
-                          (np.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 4),
-                          (np.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 5),
-                          (np.array([0.0, 0.0, 0.0, 1.0, 1.0, 1.0]), 2),
-                          (np.array([0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0]), 3)])
+                         [(xp.sort(xp.random.random(15)), 2),
+                          (xp.sort(xp.random.random(15)), 3),
+                          (xp.sort(xp.random.random(15)), 4),
+                          (xp.sort(xp.random.random(15)), 5),
+                          (xp.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 2),
+                          (xp.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 3),
+                          (xp.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 4),
+                          (xp.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 5),
+                          (xp.array([0.0, 0.0, 0.0, 1.0, 1.0, 1.0]), 2),
+                          (xp.array([0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0]), 3)])
 def test_elements_spans(knots, degree):
     expected = elements_spans_true(knots, degree)
     out = elements_spans(knots, degree)
 
-    assert np.allclose(expected, out, atol=ATOL, rtol=RTOL)
+    assert xp.allclose(expected, out, atol=ATOL, rtol=RTOL)
 
-@pytest.mark.parametrize('breaks', (np.linspace(0, 1, 10, endpoint=False),
-                                    np.sort(np.random.random(15))))
+@pytest.mark.parametrize('breaks', (xp.linspace(0, 1, 10, endpoint=False),
+                                    xp.sort(xp.random.random(15))))
 @pytest.mark.parametrize(('degree', 'multiplicity'), [(2, 1),
                                                       (3, 1), (3, 2),
                                                       (4, 1), (4, 2), (4, 3),
@@ -675,51 +675,51 @@ def test_make_knots(breaks, degree, periodic, multiplicity):
     expected = make_knots_true(breaks, degree, periodic, multiplicity)
     out = make_knots(breaks, degree, periodic, multiplicity)
     print(out, expected)
-    assert np.allclose(expected, out, atol=ATOL, rtol=RTOL)
+    assert xp.allclose(expected, out, atol=ATOL, rtol=RTOL)
 
 
 @pytest.mark.parametrize(('knots', 'degree'),
-                         [(np.sort(np.random.random(15)), 2),
-                          (np.sort(np.random.random(15)), 3),
-                          (np.sort(np.random.random(15)), 4),
-                          (np.sort(np.random.random(15)), 5),
-                          (np.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 2),
-                          (np.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 3),
-                          (np.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 4),
-                          (np.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 5),
-                          (np.array([0.0, 0.0, 0.0, 1.0, 1.0, 1.0]), 2),
-                          (np.array([0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0]), 3)])
+                         [(xp.sort(xp.random.random(15)), 2),
+                          (xp.sort(xp.random.random(15)), 3),
+                          (xp.sort(xp.random.random(15)), 4),
+                          (xp.sort(xp.random.random(15)), 5),
+                          (xp.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 2),
+                          (xp.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 3),
+                          (xp.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 4),
+                          (xp.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 5),
+                          (xp.array([0.0, 0.0, 0.0, 1.0, 1.0, 1.0]), 2),
+                          (xp.array([0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0]), 3)])
 @pytest.mark.parametrize('periodic', (True, False))
 @pytest.mark.parametrize('multiplicity', (1, 2, 3))
 def test_elevate_knots(knots, degree, periodic, multiplicity):
     expected = elevate_knots_true(knots, degree, periodic, multiplicity)
     out = elevate_knots(knots, degree, periodic, multiplicity)
 
-    assert np.allclose(expected, out, atol=ATOL, rtol=RTOL)
+    assert xp.allclose(expected, out, atol=ATOL, rtol=RTOL)
 
 
-@pytest.mark.parametrize('breaks', (np.linspace(0, 1, 10, endpoint=False),
-                                    np.sort(np.random.random(15))))
+@pytest.mark.parametrize('breaks', (xp.linspace(0, 1, 10, endpoint=False),
+                                    xp.sort(xp.random.random(15))))
 @pytest.mark.parametrize('nquads', (2, 3, 4, 5))
 def test_quadrature_grid(breaks, nquads):
     quad_x, quad_w = gauss_legendre(nquads)
     expected = quadrature_grid_true(breaks, quad_x, quad_w)
     out = quadrature_grid(breaks, quad_x, quad_w)
 
-    assert np.allclose(expected, out, atol=ATOL, rtol=RTOL)
+    assert xp.allclose(expected, out, atol=ATOL, rtol=RTOL)
 
 
 @pytest.mark.parametrize(('knots', 'degree'),
-                         [(np.sort(np.random.random(15)), 2),
-                          (np.sort(np.random.random(15)), 3),
-                          (np.sort(np.random.random(15)), 4),
-                          (np.sort(np.random.random(15)), 5),
-                          (np.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 2),
-                          (np.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 3),
-                          (np.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 4),
-                          (np.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 5),
-                          (np.array([0.0, 0.0, 0.0, 1.0, 1.0, 1.0]), 2),
-                          (np.array([0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0]), 3)])
+                         [(xp.sort(xp.random.random(15)), 2),
+                          (xp.sort(xp.random.random(15)), 3),
+                          (xp.sort(xp.random.random(15)), 4),
+                          (xp.sort(xp.random.random(15)), 5),
+                          (xp.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 2),
+                          (xp.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 3),
+                          (xp.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 4),
+                          (xp.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 5),
+                          (xp.array([0.0, 0.0, 0.0, 1.0, 1.0, 1.0]), 2),
+                          (xp.array([0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0]), 3)])
 @pytest.mark.parametrize('n', (2, 3, 4, 5))
 @pytest.mark.parametrize('normalization', ('B', 'M'))
 @pytest.mark.parametrize('nquads', (2, 3, 4, 5))
@@ -731,22 +731,22 @@ def test_basis_ders_on_quad_grid(knots, degree, n, normalization, nquads):
     expected = basis_ders_on_quad_grid_true(knots, degree, quad_grid, n, normalization)
     out = basis_ders_on_quad_grid(knots, degree, quad_grid, n, normalization)
 
-    assert np.allclose(expected, out, atol=ATOL, rtol=RTOL)
+    assert xp.allclose(expected, out, atol=ATOL, rtol=RTOL)
 
 
 @pytest.mark.parametrize(('knots', 'degree'),
-                         [(np.sort(np.random.random(15)), 2),
-                          (np.sort(np.random.random(15)), 3),
-                          (np.sort(np.random.random(15)), 4),
-                          (np.sort(np.random.random(15)), 5),
-                          (np.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 2),
-                          (np.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 3),
-                          (np.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 4),
-                          (np.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 5),
-                          (np.array([0.0, 0.0, 0.0, 1.0, 1.0, 1.0]), 2),
-                          (np.array([0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0]), 3)])
+                         [(xp.sort(xp.random.random(15)), 2),
+                          (xp.sort(xp.random.random(15)), 3),
+                          (xp.sort(xp.random.random(15)), 4),
+                          (xp.sort(xp.random.random(15)), 5),
+                          (xp.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 2),
+                          (xp.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 3),
+                          (xp.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 4),
+                          (xp.array([0.0, 0.0, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0]), 5),
+                          (xp.array([0.0, 0.0, 0.0, 1.0, 1.0, 1.0]), 2),
+                          (xp.array([0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0]), 3)])
 def test_basis_integrals(knots, degree):
     expected = basis_integrals_true(knots, degree)
     out = basis_integrals(knots, degree)
 
-    assert np.allclose(expected, out, atol=ATOL, rtol=RTOL)
+    assert xp.allclose(expected, out, atol=ATOL, rtol=RTOL)

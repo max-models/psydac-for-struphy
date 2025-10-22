@@ -48,7 +48,7 @@ class BlockVectorSpace(VectorSpace):
         # Store spaces in a Tuple, because they will not be changed
         self._spaces = tuple(spaces)
 
-        if all(np.dtype(s.dtype)==np.dtype(spaces[0].dtype) for s in spaces):
+        if all(xp.dtype(s.dtype)==xp.dtype(spaces[0].dtype) for s in spaces):
             self._dtype  = spaces[0].dtype
         else:
             raise NotImplementedError("The matrices domains don't have the same data type.")
@@ -278,7 +278,7 @@ class BlockVector(Vector):
     # ...
     def toarray(self, order='C'):
         """ Convert to Numpy 1D array. """
-        return np.concatenate([bi.toarray(order=order) for bi in self._blocks])
+        return xp.concatenate([bi.toarray(order=order) for bi in self._blocks])
 
     #...
     def copy(self, out=None):
@@ -478,7 +478,7 @@ class BlockVector(Vector):
         """
 
         blocks = [v.toarray_local(order=order) for v in self._blocks]
-        return np.block([blocks])[0]
+        return xp.block([blocks])[0]
 
     # ...
     def topetsc(self):
@@ -537,8 +537,8 @@ class BlockLinearOperator(LinearOperator):
                     self[i, j] = Lij
 
             elif isinstance(blocks, (list, tuple)):
-                # blocks = np.array(blocks, dtype=object)
-                # for (i, j), Lij in np.ndenumerate(blocks):
+                # blocks = xp.array(blocks, dtype=object)
+                # for (i, j), Lij in xp.ndenumerate(blocks):
                 #     self[i, j] = Lij
                 import numpy as _np  # ensures CPU-side object array creation
                 blocks = _np.array(blocks, dtype=object)
@@ -620,7 +620,7 @@ class BlockLinearOperator(LinearOperator):
 #                B_ij = B[i, j]
 #                if not ( A_ij is B_ij ):
 #                    if not (((A_ij is None) or (isinstance(A_ij, ZeroOperator))) & ((B_ij is None) or (isinstance(B_ij, ZeroOperator)))):
-#                        if not ( np.array_equal(A_ij.toarray(), B_ij.toarray()) ):
+#                        if not ( xp.array_equal(A_ij.toarray(), B_ij.toarray()) ):
 #                            return False
 #        return True
 
@@ -1364,20 +1364,20 @@ class BlockLinearOperator(LinearOperator):
                     key_str = ''.join(str(i) for i in key)
                     starts_k = starts[k]
                     for i in range(len(starts_k)):
-                        self._args['s{}_{}'.format(key_str, i+1)] = np.int64(starts_k[i])
+                        self._args['s{}_{}'.format(key_str, i+1)] = xp.int64(starts_k[i])
 
                 for k,key in enumerate(keys):
                     key_str = ''.join(str(i) for i in key)
                     nrows_k  = nrows[k]
                     for i in range(len(nrows_k)):
-                        self._args['n{}_{}'.format(key_str, i+1)] = np.int64(nrows_k[i])
+                        self._args['n{}_{}'.format(key_str, i+1)] = xp.int64(nrows_k[i])
 
 
                 for k,key in enumerate(keys):
                     key_str       = ''.join(str(i) for i in key)
                     nrows_extra_k = nrows_extra[k]
                     for i in range(len(nrows_extra_k)):
-                        self._args['ne{}_{}'.format(key_str, i+1)] = np.int64(nrows_extra_k[i])
+                        self._args['ne{}_{}'.format(key_str, i+1)] = xp.int64(nrows_extra_k[i])
 
             else:
                 dot = LinearOperatorDot(ndim,
@@ -1402,19 +1402,19 @@ class BlockLinearOperator(LinearOperator):
                     key_str       = ''.join(str(i) for i in key)
                     starts_k      = starts[k]
                     for i in range(len(starts_k)):
-                        self._args['s{}_{}'.format(key_str, i+1)] = np.int64(starts_k[i])
+                        self._args['s{}_{}'.format(key_str, i+1)] = xp.int64(starts_k[i])
 
                 for k,key in enumerate(keys):
                     key_str       = ''.join(str(i) for i in key)
                     nrows_k       = nrows[k]
                     for i in range(len(nrows_k)):
-                        self._args['n{}_{}'.format(key_str, i+1)] = np.int64(nrows_k[i])
+                        self._args['n{}_{}'.format(key_str, i+1)] = xp.int64(nrows_k[i])
 
                 for k,key in enumerate(keys):
                     key_str       = ''.join(str(i) for i in key)
                     nrows_extra_k = nrows_extra[k]
                     for i in range(len(nrows_extra_k)):
-                        self._args['ne{}_{}'.format(key_str, i+1)] = np.int64(nrows_extra_k[i])
+                        self._args['ne{}_{}'.format(key_str, i+1)] = xp.int64(nrows_extra_k[i])
 
         else:
             dot = LinearOperatorDot(ndim,

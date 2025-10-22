@@ -78,11 +78,11 @@ def gauss_lobatto(k):
     Returns nodal abscissas {x} and weights {A} of
     Gauss-Legendre m-point quadrature.
     """
-    beta = .5 / np.sqrt(1-(2 * np.arange(1., k + 1)) ** (-2)) #3-term recurrence coeffs
-    beta[-1] = np.sqrt((k / (2 * k-1.)))
-    T = np.diag(beta, 1) + np.diag(beta, -1) # jacobi matrix
-    D, V = np.linalg.eig(T) # eigenvalue decomposition
-    xg = np.real(D); i = xg.argsort(); xg.sort() # nodes (= Legendres points)
+    beta = .5 / xp.sqrt(1-(2 * xp.arange(1., k + 1)) ** (-2)) #3-term recurrence coeffs
+    beta[-1] = xp.sqrt((k / (2 * k-1.)))
+    T = xp.diag(beta, 1) + xp.diag(beta, -1) # jacobi matrix
+    D, V = xp.linalg.eig(T) # eigenvalue decomposition
+    xg = xp.real(D); i = xg.argsort(); xg.sort() # nodes (= Legendres points)
     w = 2 * (V[0, :]) ** 2; # weights
 
     return xg, w[i]
@@ -102,8 +102,8 @@ def quadrature(a, k, method="legendre"):
 
     grid = a
     N = len(a)
-    xgl = np.zeros((N-1, k + 1))
-    wgl = np.zeros((N-1, k + 1))
+    xgl = xp.zeros((N-1, k + 1))
+    wgl = xp.zeros((N-1, k + 1))
     for i in range (0, N-1):
         xmin = grid[i];xmax = grid[i + 1];dx = 0.5 * (xmax-xmin)
         tab = dx * x + dx + xmin

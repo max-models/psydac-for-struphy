@@ -17,7 +17,7 @@ def compute_global_starts_ends(domain_decomposition, npts):
 
         global_ends[axis] = ee.copy()
         global_ends[axis][-1] = npts[axis] - 1
-        global_starts[axis] = np.array([0] + (global_ends[axis][:-1] + 1).tolist())
+        global_starts[axis] = xp.array([0] + (global_ends[axis][:-1] + 1).tolist())
 
     return global_starts, global_ends
 
@@ -206,7 +206,7 @@ def test_stencil_vector_space_2D_serial_zeros(dtype, n1, n2, p1, p2, s1, s2, P1=
     assert x._data.shape == (n1+2*p1*s1, n2+2*p2*s2)
     assert x.pads == (p1, p2)
     assert x._data.dtype == dtype
-    assert np.array_equal(x._data, np.zeros((n1+2*p1*s1, n2+2*p2*s2), dtype=dtype))
+    assert xp.array_equal(x._data, xp.zeros((n1+2*p1*s1, n2+2*p2*s2), dtype=dtype))
 # ===============================================================================
 
 @pytest.mark.parametrize('dtype', [float, complex])

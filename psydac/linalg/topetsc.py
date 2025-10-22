@@ -24,13 +24,13 @@ kernels = {
 
 
 def get_index_shift_per_block_per_process(V):
-    npts_local_per_block_per_process = np.array(get_npts_per_block(V)) #indexed [b,k,d] for block b and process k and dimension d
-    local_sizes_per_block_per_process = np.prod(npts_local_per_block_per_process, axis=-1) #indexed [b,k] for block b and process k
+    npts_local_per_block_per_process = xp.array(get_npts_per_block(V)) #indexed [b,k,d] for block b and process k and dimension d
+    local_sizes_per_block_per_process = xp.prod(npts_local_per_block_per_process, axis=-1) #indexed [b,k] for block b and process k
 
     n_blocks = npts_local_per_block_per_process.shape[0]
     n_procs = npts_local_per_block_per_process.shape[1]
 
-    index_shift_per_block_per_process = [[0 + np.sum(local_sizes_per_block_per_process[:,:k]) + np.sum(local_sizes_per_block_per_process[:b,k]) for k in range(n_procs)] for b in range(n_blocks)]
+    index_shift_per_block_per_process = [[0 + xp.sum(local_sizes_per_block_per_process[:,:k]) + xp.sum(local_sizes_per_block_per_process[:b,k]) for k in range(n_procs)] for b in range(n_blocks)]
 
     return index_shift_per_block_per_process #Global variable indexed as [b][k] fo block b, process k
 
@@ -41,33 +41,33 @@ def toIJVrowmap(mat_block, bd, bc, I, J, V, rowmap, dspace, cspace, dnpts_block,
     cspace_block = cspace if isinstance(cspace, StencilVectorSpace) else cspace.spaces[bc]       
 
     # Shortcuts
-    cnl = [np.int64(n) for n in get_npts_local(cspace_block)[0]] 
-    dng = [np.int64(n) for n in dspace_block.cart.npts]
-    cs = [np.int64(s) for s in cspace_block.cart.starts]
-    cp = [np.int64(p) for p in cspace_block.cart.pads]
-    cm = [np.int64(m) for m in cspace_block.cart.shifts]
-    dsh = np.array(dshift_block, dtype='int64')
-    csh = np.array(cshift_block, dtype='int64')
+    cnl = [xp.int64(n) for n in get_npts_local(cspace_block)[0]] 
+    dng = [xp.int64(n) for n in dspace_block.cart.npts]
+    cs = [xp.int64(s) for s in cspace_block.cart.starts]
+    cp = [xp.int64(p) for p in cspace_block.cart.pads]
+    cm = [xp.int64(m) for m in cspace_block.cart.shifts]
+    dsh = xp.array(dshift_block, dtype='int64')
+    csh = xp.array(cshift_block, dtype='int64')
 
-    dgs = [np.array(gs, dtype='int64') for gs in dspace_block.cart.global_starts] # Global variable
-    dge = [np.array(ge, dtype='int64') for ge in dspace_block.cart.global_ends] # Global variable
-    cgs = [np.array(gs, dtype='int64') for gs in cspace_block.cart.global_starts] # Global variable
-    cge = [np.array(ge, dtype='int64') for ge in cspace_block.cart.global_ends] # Global variable
+    dgs = [xp.array(gs, dtype='int64') for gs in dspace_block.cart.global_starts] # Global variable
+    dge = [xp.array(ge, dtype='int64') for ge in dspace_block.cart.global_ends] # Global variable
+    cgs = [xp.array(gs, dtype='int64') for gs in cspace_block.cart.global_starts] # Global variable
+    cge = [xp.array(ge, dtype='int64') for ge in cspace_block.cart.global_ends] # Global variable
 
-    dnlb = [np.array([n[d] for n in dnpts_block], dtype='int64') for d in range(dspace_block.cart.ndim)] 
-    cnlb = [np.array([n[d] for n in cnpts_block] , dtype='int64') for d in range(cspace_block.cart.ndim)]
+    dnlb = [xp.array([n[d] for n in dnpts_block], dtype='int64') for d in range(dspace_block.cart.ndim)] 
+    cnlb = [xp.array([n[d] for n in cnpts_block] , dtype='int64') for d in range(cspace_block.cart.ndim)]
 
     # Range of data owned by local process (no ghost regions)
     local = tuple( [slice(m*p,-m*p) for p,m in zip(cp, cm)] + [slice(None)] * dspace_block.cart.ndim )
     shape  = mat_block._data[local].shape
-    nrows = np.prod(shape[0:dspace_block.cart.ndim])
-    nentries = np.prod(shape)
+    nrows = xp.prod(shape[0:dspace_block.cart.ndim])
+    nentries = xp.prod(shape)
 
     # locally block I, J, V, rowmap storage
-    Ib = np.zeros(nrows + 1, dtype='int64')
-    Jb = np.zeros(nentries, dtype='int64')
-    rowmapb = np.zeros(nrows, dtype='int64')
-    Vb = np.zeros(nentries, dtype=mat_block._data.dtype)
+    Ib = xp.zeros(nrows + 1, dtype='int64')
+    Jb = xp.zeros(nentries, dtype='int64')
+    rowmapb = xp.zeros(nrows, dtype='int64')
+    Vb = xp.zeros(nentries, dtype=mat_block._data.dtype)
 
     Ib[0] += I[-1]
 
@@ -111,17 +111,17 @@ def petsc_local_to_psydac(
     """
 
     # Get the number of points for each block and each dimension local to the current process:
-    npts_local_per_block = np.array(get_npts_local(V)) # indexed [b,d] for block b and dimension d
+    npts_local_per_block = xp.array(get_npts_local(V)) # indexed [b,d] for block b and dimension d
     # Get the local size of the current process for each block:
-    local_sizes_per_block = np.prod(npts_local_per_block, axis=-1)  # indexed [b] for block b
+    local_sizes_per_block = xp.prod(npts_local_per_block, axis=-1)  # indexed [b] for block b
     # Compute the accumulated local size of the current process for each block:
-    accumulated_local_sizes_per_block = np.concatenate((np.zeros((1,), dtype=int), np.cumsum(local_sizes_per_block, axis=0))) #indexed [b+1] for block b
+    accumulated_local_sizes_per_block = xp.concatenate((xp.zeros((1,), dtype=int), xp.cumsum(local_sizes_per_block, axis=0))) #indexed [b+1] for block b
 
     n_blocks = local_sizes_per_block.size
 
     # Find the block where the index belongs to:
-    bb = np.nonzero(
-            np.array(
+    bb = xp.nonzero(
+            xp.array(
                 [petsc_index in range(accumulated_local_sizes_per_block[b], accumulated_local_sizes_per_block[b+1]) 
                     for b in range(n_blocks)]
             ))[0][0]
@@ -139,7 +139,7 @@ def petsc_local_to_psydac(
     # Get the PETSc index local within the block:
     petsc_index -= accumulated_local_sizes_per_block[bb]
     
-    ii = np.zeros((ndim,), dtype=int)
+    ii = xp.zeros((ndim,), dtype=int)
     if ndim == 1:
         ii[0] = petsc_index + p[0]*m[0]
 
@@ -188,9 +188,9 @@ def psydac_to_petsc_global(
 
     bb = block_indices[0]
     # Get the number of points per block, per process and per dimension:
-    npts_local_per_block_per_process = np.array(get_npts_per_block(V)) #indexed [b,k,d] for block b and process k and dimension d
+    npts_local_per_block_per_process = xp.array(get_npts_per_block(V)) #indexed [b,k,d] for block b and process k and dimension d
     # Get the local sizes per block and per process:
-    local_sizes_per_block_per_process = np.prod(npts_local_per_block_per_process, axis=-1) #indexed [b,k] for block b and process k
+    local_sizes_per_block_per_process = xp.prod(npts_local_per_block_per_process, axis=-1) #indexed [b,k] for block b and process k
 
     # Extract Cartesian decomposition of the Block where the node is:
     if isinstance(V, BlockVectorSpace):
@@ -210,12 +210,12 @@ def psydac_to_petsc_global(
     if ndim == 1:
         if cart.comm:
             # Find to which process the node belongs to:
-            proc_index = np.nonzero(np.array([jj[0] in range(gs[0][k],ge[0][k]+1) for k in range(gs[0].size)]))[0][0]
+            proc_index = xp.nonzero(xp.array([jj[0] in range(gs[0][k],ge[0][k]+1) for k in range(gs[0].size)]))[0][0]
         else:
             proc_index = 0
        
         # Find the index shift corresponding to the block and the owner process:
-        index_shift = 0 + np.sum(local_sizes_per_block_per_process[:,:proc_index]) + np.sum(local_sizes_per_block_per_process[:bb,proc_index])
+        index_shift = 0 + xp.sum(local_sizes_per_block_per_process[:,:proc_index]) + xp.sum(local_sizes_per_block_per_process[:bb,proc_index])
 
         # Compute the global PETSc index:
         global_index = index_shift + jj[0] - gs[0][proc_index]
@@ -223,15 +223,15 @@ def psydac_to_petsc_global(
     elif ndim == 2:
         if cart.comm:
             # Find to which process the node belongs to:
-            proc_x = np.nonzero(np.array([jj[0] in range(gs[0][k],ge[0][k]+1) for k in range(gs[0].size)]))[0][0]
-            proc_y = np.nonzero(np.array([jj[1] in range(gs[1][k],ge[1][k]+1) for k in range(gs[1].size)]))[0][0]
+            proc_x = xp.nonzero(xp.array([jj[0] in range(gs[0][k],ge[0][k]+1) for k in range(gs[0].size)]))[0][0]
+            proc_y = xp.nonzero(xp.array([jj[1] in range(gs[1][k],ge[1][k]+1) for k in range(gs[1].size)]))[0][0]
         else:
             proc_x = 0
             proc_y = 0
 
         proc_index = proc_y + proc_x*nprocs[1]
         # Find the index shift corresponding to the block and the owner process:
-        index_shift = 0 + np.sum(local_sizes_per_block_per_process[:,:proc_index]) + np.sum(local_sizes_per_block_per_process[:bb,proc_index])
+        index_shift = 0 + xp.sum(local_sizes_per_block_per_process[:,:proc_index]) + xp.sum(local_sizes_per_block_per_process[:bb,proc_index])
 
         # Compute the global PETSc index:
         global_index = index_shift + jj[1] - gs[1][proc_y] + (jj[0] - gs[0][proc_x]) * npts_local_per_block_per_process[bb,proc_index,1]
@@ -239,9 +239,9 @@ def psydac_to_petsc_global(
     elif ndim == 3:
         if cart.comm:
             # Find to which process the node belongs to:
-            proc_x = np.nonzero(np.array([jj[0] in range(gs[0][k],ge[0][k]+1) for k in range(gs[0].size)]))[0][0]
-            proc_y = np.nonzero(np.array([jj[1] in range(gs[1][k],ge[1][k]+1) for k in range(gs[1].size)]))[0][0]
-            proc_z = np.nonzero(np.array([jj[2] in range(gs[2][k],ge[2][k]+1) for k in range(gs[2].size)]))[0][0]
+            proc_x = xp.nonzero(xp.array([jj[0] in range(gs[0][k],ge[0][k]+1) for k in range(gs[0].size)]))[0][0]
+            proc_y = xp.nonzero(xp.array([jj[1] in range(gs[1][k],ge[1][k]+1) for k in range(gs[1].size)]))[0][0]
+            proc_z = xp.nonzero(xp.array([jj[2] in range(gs[2][k],ge[2][k]+1) for k in range(gs[2].size)]))[0][0]
         else:
             proc_x = 0
             proc_y = 0
@@ -250,7 +250,7 @@ def psydac_to_petsc_global(
         proc_index = proc_z + proc_y*nprocs[2] + proc_x*nprocs[1]*nprocs[2]
 
         # Find the index shift corresponding to the block and the owner process:
-        index_shift = 0 + np.sum(local_sizes_per_block_per_process[:,:proc_index]) + np.sum(local_sizes_per_block_per_process[:bb,proc_index])
+        index_shift = 0 + xp.sum(local_sizes_per_block_per_process[:,:proc_index]) + xp.sum(local_sizes_per_block_per_process[:bb,proc_index])
 
         # Compute the global PETSc index:
         global_index = index_shift \
@@ -368,7 +368,7 @@ def vec_topetsc(vec):
     globalsize = vec.space.dimension
 
     # Sum over the blocks to get the total local size
-    localsize = np.sum(np.prod(npts_local, axis=1))
+    localsize = xp.sum(xp.prod(npts_local, axis=1))
 
     gvec  = PETSc.Vec().create(comm=carts[0].global_comm)    
 
@@ -411,9 +411,9 @@ def vec_topetsc(vec):
                         petsc_data.append(value)
 
         elif ndims[b] == 3:
-            for i1 in np.arange(npts_local[b][0]):             
-                for i2 in np.arange(npts_local[b][1]):
-                    for i3 in np.arange(npts_local[b][2]):
+            for i1 in xp.arange(npts_local[b][0]):             
+                for i2 in xp.arange(npts_local[b][1]):
+                    for i3 in xp.arange(npts_local[b][2]):
                         value = vec_block._data[i1 + ghost_size[0], i2 + ghost_size[1], i3 + ghost_size[2]]
                         if value != 0:
                             i1_n = s[0] + i1
@@ -469,8 +469,8 @@ def mat_topetsc(mat):
     cnpts_local = get_npts_local(mat.codomain) # indexed [block, dimension]. Different for each process. 
 
     # Get the number of points per block, per process and per dimension:
-    dnpts_per_block_per_process = np.array(get_npts_per_block(mat.domain)) # global variable, indexed as [block, process, dimension]
-    cnpts_per_block_per_process = np.array(get_npts_per_block(mat.codomain)) # global variable, indexed as [block, process, dimension]
+    dnpts_per_block_per_process = xp.array(get_npts_per_block(mat.domain)) # global variable, indexed as [block, process, dimension]
+    cnpts_per_block_per_process = xp.array(get_npts_per_block(mat.codomain)) # global variable, indexed as [block, process, dimension]
 
     # Get the index shift for each block and each process:
     dindex_shift = get_index_shift_per_block_per_process(mat.domain) # global variable, indexed as [block, process, dimension]
@@ -479,7 +479,7 @@ def mat_topetsc(mat):
     globalsize = mat.shape
 
     # Sum over the blocks to get the total local size
-    localsize = (np.sum(np.prod(cnpts_local, axis=1)), np.sum(np.prod(dnpts_local, axis=1)))
+    localsize = (xp.sum(xp.prod(cnpts_local, axis=1)), xp.sum(xp.prod(dnpts_local, axis=1)))
 
     gmat  = PETSc.Mat().create(comm=comm)
 

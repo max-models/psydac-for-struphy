@@ -25,7 +25,7 @@ def compute_global_starts_ends(domain_decomposition, npts):
 
         global_ends  [axis]     = ee.copy()
         global_ends  [axis][-1] = npts[axis]-1
-        global_starts[axis]     = np.array([0] + (global_ends[axis][:-1]+1).tolist())
+        global_starts[axis]     = xp.array([0] + (global_ends[axis][:-1]+1).tolist())
 
     return global_starts, global_ends
 
@@ -195,17 +195,17 @@ def test_2D_block_linear_operator_serial_init( dtype, n1, n2, p1, p2, P1, P2  ):
     coo4 = L4.tosparse().tocoo()
 
     # Check if the data are in the same place
-    assert np.array_equal( coo1.col , coo2.col  )
-    assert np.array_equal( coo1.row , coo2.row  )
-    assert np.array_equal( coo1.data, coo2.data )
+    assert xp.array_equal( coo1.col , coo2.col  )
+    assert xp.array_equal( coo1.row , coo2.row  )
+    assert xp.array_equal( coo1.data, coo2.data )
 
-    assert np.array_equal( coo1.col , coo3.col  )
-    assert np.array_equal( coo1.row , coo3.row  )
-    assert np.array_equal( coo1.data, coo3.data )
+    assert xp.array_equal( coo1.col , coo3.col  )
+    assert xp.array_equal( coo1.row , coo3.row  )
+    assert xp.array_equal( coo1.data, coo3.data )
 
-    assert np.array_equal( coo1.col , coo4.col  )
-    assert np.array_equal( coo1.row , coo4.row  )
-    assert np.array_equal( coo1.data, coo4.data )
+    assert xp.array_equal( coo1.col , coo4.col  )
+    assert xp.array_equal( coo1.row , coo4.row  )
+    assert xp.array_equal( coo1.data, coo4.data )
     
     dict_blocks = {(0,0):M1, (0,1):M2}
 
@@ -293,22 +293,22 @@ def test_block_serial_dimension( ndim, p, P1, P2, P3, dtype ):
 
     # Fill in vector with random values, then update ghost regions
     if ndim==1:
-        x1[:] = cst*2.0*np.random.random((npts[0]+2*p))
-        x2[:] = cst*5.0*np.random.random((npts[0]+2*p))
-        y1[:] = cst*2.0*np.random.random((npts[0]+2*p))
-        y2[:] = cst*3.0*np.random.random((npts[0]+2*p))
+        x1[:] = cst*2.0*xp.random.random((npts[0]+2*p))
+        x2[:] = cst*5.0*xp.random.random((npts[0]+2*p))
+        y1[:] = cst*2.0*xp.random.random((npts[0]+2*p))
+        y2[:] = cst*3.0*xp.random.random((npts[0]+2*p))
 
     elif ndim==2:
-        x1[:,:] = cst*2.0*np.random.random((npts[0]+2*p,npts[1]+2*p))
-        x2[:,:] = cst*5.0*np.random.random((npts[0]+2*p,npts[1]+2*p))
-        y1[:,:] = cst*2.0*np.random.random((npts[0]+2*p,npts[1]+2*p))
-        y2[:,:] = cst*3.0*np.random.random((npts[0]+2*p,npts[1]+2*p))
+        x1[:,:] = cst*2.0*xp.random.random((npts[0]+2*p,npts[1]+2*p))
+        x2[:,:] = cst*5.0*xp.random.random((npts[0]+2*p,npts[1]+2*p))
+        y1[:,:] = cst*2.0*xp.random.random((npts[0]+2*p,npts[1]+2*p))
+        y2[:,:] = cst*3.0*xp.random.random((npts[0]+2*p,npts[1]+2*p))
 
     else:
-        x1[:,:,:] = cst*2.0*np.random.random((npts[0]+2*p,npts[1]+2*p,npts[2]+2*p))
-        x2[:,:,:] = cst*5.0*np.random.random((npts[0]+2*p,npts[1]+2*p,npts[2]+2*p))
-        y1[:,:,:] = cst*2.0*np.random.random((npts[0]+2*p,npts[1]+2*p,npts[2]+2*p))
-        y2[:,:,:] = cst*3.0*np.random.random((npts[0]+2*p,npts[1]+2*p,npts[2]+2*p))
+        x1[:,:,:] = cst*2.0*xp.random.random((npts[0]+2*p,npts[1]+2*p,npts[2]+2*p))
+        x2[:,:,:] = cst*5.0*xp.random.random((npts[0]+2*p,npts[1]+2*p,npts[2]+2*p))
+        y1[:,:,:] = cst*2.0*xp.random.random((npts[0]+2*p,npts[1]+2*p,npts[2]+2*p))
+        y2[:,:,:] = cst*3.0*xp.random.random((npts[0]+2*p,npts[1]+2*p,npts[2]+2*p))
 
     x1.update_ghost_regions()
     x2.update_ghost_regions()
@@ -332,13 +332,13 @@ def test_block_serial_dimension( ndim, p, P1, P2, P3, dtype ):
     exact_inner = V.inner(x1, y1) + V.inner(x2, y2)
 
     assert X.dtype == dtype
-    assert np.allclose(W.inner(X, Y), exact_inner,  rtol=1e-14, atol=1e-14 )
+    assert xp.allclose(W.inner(X, Y), exact_inner,  rtol=1e-14, atol=1e-14 )
 
     # Test axpy product
-    axpy_exact = X + np.pi * cst * Y
-    X.mul_iadd(np.pi * cst, Y)
-    assert np.allclose(X[0]._data, axpy_exact[0]._data,  rtol=1e-10, atol=1e-10 )
-    assert np.allclose(X[1]._data, axpy_exact[1]._data,  rtol=1e-10, atol=1e-10 )
+    axpy_exact = X + xp.pi * cst * Y
+    X.mul_iadd(xp.pi * cst, Y)
+    assert xp.allclose(X[0]._data, axpy_exact[0]._data,  rtol=1e-10, atol=1e-10 )
+    assert xp.allclose(X[1]._data, axpy_exact[1]._data,  rtol=1e-10, atol=1e-10 )
 
     M1 = StencilMatrix(V, V)
     M2 = StencilMatrix(V, V)
@@ -377,7 +377,7 @@ def test_block_serial_dimension( ndim, p, P1, P2, P3, dtype ):
     Y[1] = M3.dot(x1)
 
     assert M.dtype == dtype
-    assert np.allclose((M.dot(X)).toarray(), Y.toarray(),  rtol=1e-14, atol=1e-14 )
+    assert xp.allclose((M.dot(X)).toarray(), Y.toarray(),  rtol=1e-14, atol=1e-14 )
 
 #===============================================================================
 @pytest.mark.parametrize( 'dtype', [float] )
@@ -406,11 +406,11 @@ def test_3D_block_serial_basic_operator( dtype, npts, p, P1, P2, P3 ):
 
     W = BlockVectorSpace(V, V)
     if dtype==complex:
-        x1[:,:,:] = 2.0*np.random.random((npts[0]+2*p[0],npts[1]+2*p[1],npts[2]+2*p[2]))+1j*np.random.random((npts[0]+2*p[0],npts[1]+2*p[1],npts[2]+2*p[2]))
-        x2[:,:,:] = 5.0*np.random.random((npts[0]+2*p[0],npts[1]+2*p[1],npts[2]+2*p[2]))+2j*np.random.random((npts[0]+2*p[0],npts[1]+2*p[1],npts[2]+2*p[2]))
+        x1[:,:,:] = 2.0*xp.random.random((npts[0]+2*p[0],npts[1]+2*p[1],npts[2]+2*p[2]))+1j*xp.random.random((npts[0]+2*p[0],npts[1]+2*p[1],npts[2]+2*p[2]))
+        x2[:,:,:] = 5.0*xp.random.random((npts[0]+2*p[0],npts[1]+2*p[1],npts[2]+2*p[2]))+2j*xp.random.random((npts[0]+2*p[0],npts[1]+2*p[1],npts[2]+2*p[2]))
     else:
-        x1[:,:,:] = 2.0*np.random.random((npts[0]+2*p[0],npts[1]+2*p[1],npts[2]+2*p[2]))
-        x2[:,:,:] = 5.0*np.random.random((npts[0]+2*p[0],npts[1]+2*p[1],npts[2]+2*p[2]))
+        x1[:,:,:] = 2.0*xp.random.random((npts[0]+2*p[0],npts[1]+2*p[1],npts[2]+2*p[2]))
+        x2[:,:,:] = 5.0*xp.random.random((npts[0]+2*p[0],npts[1]+2*p[1],npts[2]+2*p[2]))
 
 
     x1.update_ghost_regions()
@@ -431,43 +431,43 @@ def test_3D_block_serial_basic_operator( dtype, npts, p, P1, P2, P3 ):
 
     Y +=X
     assert Y.dtype == dtype
-    assert np.allclose(Y.blocks[0]._data, (x1)._data,  rtol=1e-14, atol=1e-14 )
-    assert np.allclose(Y.blocks[1]._data, (x2)._data,  rtol=1e-14, atol=1e-14 )
+    assert xp.allclose(Y.blocks[0]._data, (x1)._data,  rtol=1e-14, atol=1e-14 )
+    assert xp.allclose(Y.blocks[1]._data, (x2)._data,  rtol=1e-14, atol=1e-14 )
 
     Y -=2*X
-    assert np.allclose(Y.blocks[0]._data, -(x1)._data,  rtol=1e-14, atol=1e-14 )
-    assert np.allclose(Y.blocks[1]._data, -(x2)._data,  rtol=1e-14, atol=1e-14 )
+    assert xp.allclose(Y.blocks[0]._data, -(x1)._data,  rtol=1e-14, atol=1e-14 )
+    assert xp.allclose(Y.blocks[1]._data, -(x2)._data,  rtol=1e-14, atol=1e-14 )
 
     Y *=6
-    assert np.allclose(Y.blocks[0]._data, -6*(x1)._data,  rtol=1e-14, atol=1e-14 )
-    assert np.allclose(Y.blocks[1]._data, -6*(x2)._data,  rtol=1e-14, atol=1e-14 )
+    assert xp.allclose(Y.blocks[0]._data, -6*(x1)._data,  rtol=1e-14, atol=1e-14 )
+    assert xp.allclose(Y.blocks[1]._data, -6*(x2)._data,  rtol=1e-14, atol=1e-14 )
 
     Y /=-6
-    assert np.allclose(Y.blocks[0]._data, (x1)._data,  rtol=1e-14, atol=1e-14 )
-    assert np.allclose(Y.blocks[1]._data, (x2)._data,  rtol=1e-14, atol=1e-14 )
+    assert xp.allclose(Y.blocks[0]._data, (x1)._data,  rtol=1e-14, atol=1e-14 )
+    assert xp.allclose(Y.blocks[1]._data, (x2)._data,  rtol=1e-14, atol=1e-14 )
 
     Y[0]=x2
     Y[1]=-x1
 
     Z1=Y+X
     assert isinstance(Z1,BlockVector)
-    assert np.allclose(Z1.blocks[0]._data, (x1+x2)._data,  rtol=1e-14, atol=1e-14 )
-    assert np.allclose(Z1.blocks[1]._data, (x2-x1)._data,  rtol=1e-14, atol=1e-14 )
+    assert xp.allclose(Z1.blocks[0]._data, (x1+x2)._data,  rtol=1e-14, atol=1e-14 )
+    assert xp.allclose(Z1.blocks[1]._data, (x2-x1)._data,  rtol=1e-14, atol=1e-14 )
 
     Z2=Y-X
     assert isinstance(Z2,BlockVector)
-    assert np.allclose(Z2.blocks[0]._data, (x2-x1)._data,  rtol=1e-14, atol=1e-14 )
-    assert np.allclose(Z2.blocks[1]._data, (-x2-x1)._data,  rtol=1e-14, atol=1e-14 )
+    assert xp.allclose(Z2.blocks[0]._data, (x2-x1)._data,  rtol=1e-14, atol=1e-14 )
+    assert xp.allclose(Z2.blocks[1]._data, (-x2-x1)._data,  rtol=1e-14, atol=1e-14 )
 
     Z3=3*Y
     assert isinstance(Z3,BlockVector)
-    assert np.allclose(Z3.blocks[0]._data, 3*(x2)._data,  rtol=1e-14, atol=1e-14 )
-    assert np.allclose(Z3.blocks[1]._data, 3*(-x1)._data,  rtol=1e-14, atol=1e-14 )
+    assert xp.allclose(Z3.blocks[0]._data, 3*(x2)._data,  rtol=1e-14, atol=1e-14 )
+    assert xp.allclose(Z3.blocks[1]._data, 3*(-x1)._data,  rtol=1e-14, atol=1e-14 )
 
     Z4=Y/4
     assert isinstance(Z4,BlockVector)
-    assert np.allclose(Z4.blocks[0]._data, (x2)._data/4,  rtol=1e-14, atol=1e-14 )
-    assert np.allclose(Z4.blocks[1]._data, (-x1)._data/4,  rtol=1e-14, atol=1e-14 )
+    assert xp.allclose(Z4.blocks[0]._data, (x2)._data/4,  rtol=1e-14, atol=1e-14 )
+    assert xp.allclose(Z4.blocks[1]._data, (-x1)._data/4,  rtol=1e-14, atol=1e-14 )
 
 
     M1 = StencilMatrix(V, V)
@@ -495,56 +495,56 @@ def test_3D_block_serial_basic_operator( dtype, npts, p, P1, P2, P3 ):
 
     A +=M
     assert A.dtype == dtype
-    assert np.allclose(A.blocks[0][0]._data, (M1)._data,  rtol=1e-14, atol=1e-14 )
-    assert np.allclose(A.blocks[0][1]._data, (M2)._data,  rtol=1e-14, atol=1e-14 )
-    assert np.allclose(A.blocks[1][0]._data, (M3)._data,  rtol=1e-14, atol=1e-14 )
+    assert xp.allclose(A.blocks[0][0]._data, (M1)._data,  rtol=1e-14, atol=1e-14 )
+    assert xp.allclose(A.blocks[0][1]._data, (M2)._data,  rtol=1e-14, atol=1e-14 )
+    assert xp.allclose(A.blocks[1][0]._data, (M3)._data,  rtol=1e-14, atol=1e-14 )
     assert A.blocks[1][1]==None
 
     A -= 2*M
-    assert np.allclose(A.blocks[0][0]._data, -(M1)._data,  rtol=1e-14, atol=1e-14 )
-    assert np.allclose(A.blocks[0][1]._data, -(M2)._data,  rtol=1e-14, atol=1e-14 )
-    assert np.allclose(A.blocks[1][0]._data, -(M3)._data,  rtol=1e-14, atol=1e-14 )
+    assert xp.allclose(A.blocks[0][0]._data, -(M1)._data,  rtol=1e-14, atol=1e-14 )
+    assert xp.allclose(A.blocks[0][1]._data, -(M2)._data,  rtol=1e-14, atol=1e-14 )
+    assert xp.allclose(A.blocks[1][0]._data, -(M3)._data,  rtol=1e-14, atol=1e-14 )
     assert A.blocks[1][1]==None
 
     A *= 5
-    assert np.allclose(A.blocks[0][0]._data, -5*(M1)._data,  rtol=1e-14, atol=1e-14 )
-    assert np.allclose(A.blocks[0][1]._data, -5*(M2)._data,  rtol=1e-14, atol=1e-14 )
-    assert np.allclose(A.blocks[1][0]._data, -5*(M3)._data,  rtol=1e-14, atol=1e-14 )
+    assert xp.allclose(A.blocks[0][0]._data, -5*(M1)._data,  rtol=1e-14, atol=1e-14 )
+    assert xp.allclose(A.blocks[0][1]._data, -5*(M2)._data,  rtol=1e-14, atol=1e-14 )
+    assert xp.allclose(A.blocks[1][0]._data, -5*(M3)._data,  rtol=1e-14, atol=1e-14 )
     assert A.blocks[1][1]==None
 
     A /= -5
-    assert np.allclose(A.blocks[0][0]._data, (M1)._data,  rtol=1e-14, atol=1e-14 )
-    assert np.allclose(A.blocks[0][1]._data, (M2)._data,  rtol=1e-14, atol=1e-14 )
-    assert np.allclose(A.blocks[1][0]._data, (M3)._data,  rtol=1e-14, atol=1e-14 )
+    assert xp.allclose(A.blocks[0][0]._data, (M1)._data,  rtol=1e-14, atol=1e-14 )
+    assert xp.allclose(A.blocks[0][1]._data, (M2)._data,  rtol=1e-14, atol=1e-14 )
+    assert xp.allclose(A.blocks[1][0]._data, (M3)._data,  rtol=1e-14, atol=1e-14 )
     assert A.blocks[1][1]==None
 
     A= BlockLinearOperator(W, W, blocks=[[None, M3], [M2, M1]])
 
     A1=A+M
     assert isinstance(A1,BlockLinearOperator)
-    assert np.allclose(A1.blocks[0][0]._data, (M1)._data,  rtol=1e-14, atol=1e-14 )
-    assert np.allclose(A1.blocks[0][1]._data, (M2+M3)._data,  rtol=1e-14, atol=1e-14 )
-    assert np.allclose(A1.blocks[1][0]._data, (M3+M2)._data,  rtol=1e-14, atol=1e-14 )
-    assert np.allclose(A1.blocks[1][1]._data, (M1)._data,  rtol=1e-14, atol=1e-14 )
+    assert xp.allclose(A1.blocks[0][0]._data, (M1)._data,  rtol=1e-14, atol=1e-14 )
+    assert xp.allclose(A1.blocks[0][1]._data, (M2+M3)._data,  rtol=1e-14, atol=1e-14 )
+    assert xp.allclose(A1.blocks[1][0]._data, (M3+M2)._data,  rtol=1e-14, atol=1e-14 )
+    assert xp.allclose(A1.blocks[1][1]._data, (M1)._data,  rtol=1e-14, atol=1e-14 )
 
     A2=A-M
     assert isinstance(A2,BlockLinearOperator)
-    assert np.allclose(A2.blocks[0][0]._data, (-M1)._data,  rtol=1e-14, atol=1e-14 )
-    assert np.allclose(A2.blocks[0][1]._data, (M3-M2)._data,  rtol=1e-14, atol=1e-14 )
-    assert np.allclose(A2.blocks[1][0]._data, (M2-M3)._data,  rtol=1e-14, atol=1e-14 )
-    assert np.allclose(A2.blocks[1][1]._data, (M1)._data,  rtol=1e-14, atol=1e-14 )
+    assert xp.allclose(A2.blocks[0][0]._data, (-M1)._data,  rtol=1e-14, atol=1e-14 )
+    assert xp.allclose(A2.blocks[0][1]._data, (M3-M2)._data,  rtol=1e-14, atol=1e-14 )
+    assert xp.allclose(A2.blocks[1][0]._data, (M2-M3)._data,  rtol=1e-14, atol=1e-14 )
+    assert xp.allclose(A2.blocks[1][1]._data, (M1)._data,  rtol=1e-14, atol=1e-14 )
 
     A3=6*A
     assert isinstance(A3,BlockLinearOperator)
-    assert np.allclose(A3.blocks[0][1]._data, 6*(M3)._data,  rtol=1e-14, atol=1e-14 )
-    assert np.allclose(A3.blocks[1][0]._data, 6*(M2)._data,  rtol=1e-14, atol=1e-14 )
-    assert np.allclose(A3.blocks[1][1]._data, 6*(M1)._data,  rtol=1e-14, atol=1e-14 )
+    assert xp.allclose(A3.blocks[0][1]._data, 6*(M3)._data,  rtol=1e-14, atol=1e-14 )
+    assert xp.allclose(A3.blocks[1][0]._data, 6*(M2)._data,  rtol=1e-14, atol=1e-14 )
+    assert xp.allclose(A3.blocks[1][1]._data, 6*(M1)._data,  rtol=1e-14, atol=1e-14 )
 
     A4=A/5
     assert isinstance(A4,BlockLinearOperator)
-    assert np.allclose(A4.blocks[0][1]._data, (M3)._data/5,  rtol=1e-14, atol=1e-14 )
-    assert np.allclose(A4.blocks[1][0]._data, (M2)._data/5,  rtol=1e-14, atol=1e-14 )
-    assert np.allclose(A4.blocks[1][1]._data, (M1)._data/5,  rtol=1e-14, atol=1e-14 )
+    assert xp.allclose(A4.blocks[0][1]._data, (M3)._data/5,  rtol=1e-14, atol=1e-14 )
+    assert xp.allclose(A4.blocks[1][0]._data, (M2)._data/5,  rtol=1e-14, atol=1e-14 )
+    assert xp.allclose(A4.blocks[1][1]._data, (M1)._data/5,  rtol=1e-14, atol=1e-14 )
 
 #===============================================================================
 @pytest.mark.parametrize( 'dtype', [float] )
@@ -570,11 +570,11 @@ def test_2D_block_serial_math( dtype, npts, p, P1, P2 ):
 
     W = BlockVectorSpace(V, V)
     if dtype==complex:
-        x1[:,:,:] = 2.0*np.random.random((npts[0]+2*p[0],npts[1]+2*p[1]))+1j*np.random.random((npts[0]+2*p[0],npts[1]+2*p[1]))
-        x2[:,:,:] = 5.0*np.random.random((npts[0]+2*p[0],npts[1]+2*p[1]))+2j*np.random.random((npts[0]+2*p[0],npts[1]+2*p[1]))
+        x1[:,:,:] = 2.0*xp.random.random((npts[0]+2*p[0],npts[1]+2*p[1]))+1j*xp.random.random((npts[0]+2*p[0],npts[1]+2*p[1]))
+        x2[:,:,:] = 5.0*xp.random.random((npts[0]+2*p[0],npts[1]+2*p[1]))+2j*xp.random.random((npts[0]+2*p[0],npts[1]+2*p[1]))
     else:
-        x1[:,:,:] = 2.0*np.random.random((npts[0]+2*p[0],npts[1]+2*p[1]))
-        x2[:,:,:] = 5.0*np.random.random((npts[0]+2*p[0],npts[1]+2*p[1]))
+        x1[:,:,:] = 2.0*xp.random.random((npts[0]+2*p[0],npts[1]+2*p[1]))
+        x2[:,:,:] = 5.0*xp.random.random((npts[0]+2*p[0],npts[1]+2*p[1]))
 
 
     x1.update_ghost_regions()
@@ -593,12 +593,12 @@ def test_2D_block_serial_math( dtype, npts, p, P1, P2 ):
     X[1] = x2
 
     Xc=X.conjugate()
-    assert np.allclose(Xc.blocks[0].toarray(), x1a, rtol=1e-14, atol=1e-14 )
-    assert np.allclose(Xc.blocks[1].toarray(), x2a, rtol=1e-14, atol=1e-14 )
+    assert xp.allclose(Xc.blocks[0].toarray(), x1a, rtol=1e-14, atol=1e-14 )
+    assert xp.allclose(Xc.blocks[1].toarray(), x2a, rtol=1e-14, atol=1e-14 )
 
     Xc=X.conj()
-    assert np.allclose(Xc.blocks[0].toarray(), x1a, rtol=1e-14, atol=1e-14 )
-    assert np.allclose(Xc.blocks[1].toarray(), x2a, rtol=1e-14, atol=1e-14 )
+    assert xp.allclose(Xc.blocks[0].toarray(), x1a, rtol=1e-14, atol=1e-14 )
+    assert xp.allclose(Xc.blocks[1].toarray(), x2a, rtol=1e-14, atol=1e-14 )
 
 
     M1 = StencilMatrix(V, V)
@@ -632,14 +632,14 @@ def test_2D_block_serial_math( dtype, npts, p, P1, P2 ):
     M = BlockLinearOperator(W, W, blocks=[[M1, M2], [M3, None]])
 
     Mc = M.conjugate()
-    assert np.allclose(Mc.blocks[0][0].toarray(), M1a,  rtol=1e-14, atol=1e-14 )
-    assert np.allclose(Mc.blocks[0][1].toarray(), M2a,  rtol=1e-14, atol=1e-14 )
-    assert np.allclose(Mc.blocks[1][0].toarray(), M3a,  rtol=1e-14, atol=1e-14 )
+    assert xp.allclose(Mc.blocks[0][0].toarray(), M1a,  rtol=1e-14, atol=1e-14 )
+    assert xp.allclose(Mc.blocks[0][1].toarray(), M2a,  rtol=1e-14, atol=1e-14 )
+    assert xp.allclose(Mc.blocks[1][0].toarray(), M3a,  rtol=1e-14, atol=1e-14 )
 
     Mc = M.conj()
-    assert np.allclose(Mc.blocks[0][0].toarray(), M1a,  rtol=1e-14, atol=1e-14 )
-    assert np.allclose(Mc.blocks[0][1].toarray(), M2a,  rtol=1e-14, atol=1e-14 )
-    assert np.allclose(Mc.blocks[1][0].toarray(), M3a,  rtol=1e-14, atol=1e-14 )
+    assert xp.allclose(Mc.blocks[0][0].toarray(), M1a,  rtol=1e-14, atol=1e-14 )
+    assert xp.allclose(Mc.blocks[0][1].toarray(), M2a,  rtol=1e-14, atol=1e-14 )
+    assert xp.allclose(Mc.blocks[1][0].toarray(), M3a,  rtol=1e-14, atol=1e-14 )
 
 #===============================================================================
 @pytest.mark.parametrize( 'dtype', [float] )
@@ -722,8 +722,8 @@ def test_block_linear_operator_serial_dot( dtype, n1, n2, p1, p2, P1, P2  ):
     y2 = M3.dot(x1)
 
     # Check data in 1D array
-    assert np.allclose( Y.blocks[0].toarray(), y1.toarray(), rtol=1e-14, atol=1e-14 )
-    assert np.allclose( Y.blocks[1].toarray(), y2.toarray(), rtol=1e-14, atol=1e-14 )
+    assert xp.allclose( Y.blocks[0].toarray(), y1.toarray(), rtol=1e-14, atol=1e-14 )
+    assert xp.allclose( Y.blocks[1].toarray(), y2.toarray(), rtol=1e-14, atol=1e-14 )
 #===============================================================================
 @pytest.mark.parametrize( 'dtype', [float] )
 @pytest.mark.parametrize( 'n1', [8, 16] )
@@ -777,8 +777,8 @@ def test_block_2d_serial_array_to_psydac( dtype, n1, n2, p1, p2, P1, P2 ):
     v  = array_to_psydac(xa, W)
     v2  = array_to_psydac(x2a, W2)
 
-    assert np.allclose( xa , v.toarray() )
-    assert np.allclose( x2a , v2.toarray() )
+    assert xp.allclose( xa , v.toarray() )
+    assert xp.allclose( x2a , v2.toarray() )
 
 #===============================================================================
 @pytest.mark.parametrize( 'dtype', [float] )
@@ -827,7 +827,7 @@ def test_block_vector_2d_serial_topetsc( dtype, n1, n2, p1, p2, P1, P2 ):
     v = petsc_to_psydac(v, W)
 
     # The vectors can only be compared in the serial case
-    assert np.allclose( x.toarray() , v.toarray() )
+    assert xp.allclose( x.toarray() , v.toarray() )
 
 #===============================================================================
 @pytest.mark.parametrize( 'dtype', [float] )
@@ -976,8 +976,8 @@ def test_block_linear_operator_dot_backend( dtype, n1, n2, p1, p2, P1, P2, backe
     # y2 = M3.dot(x1) + M4.dot(x2)
 
     # # Check data in 1D array
-    # assert np.allclose( Y.blocks[0].toarray(), y1.toarray(), rtol=1e-13, atol=1e-13 )
-    # assert np.allclose( Y.blocks[1].toarray(), y2.toarray(), rtol=1e-13, atol=1e-13 )
+    # assert xp.allclose( Y.blocks[0].toarray(), y1.toarray(), rtol=1e-13, atol=1e-13 )
+    # assert xp.allclose( Y.blocks[1].toarray(), y2.toarray(), rtol=1e-13, atol=1e-13 )
 #===============================================================================
 # PARALLEL TESTS
 #===============================================================================
@@ -1063,8 +1063,8 @@ def test_block_linear_operator_parallel_dot( dtype, n1, n2, p1, p2, P1, P2 ):
     y2 = M3.dot(x1) + M4.dot(x2)
 
     # Check data in 1D array
-    assert np.allclose( Y.blocks[0].toarray(), y1.toarray(), rtol=1e-14, atol=1e-14 )
-    assert np.allclose( Y.blocks[1].toarray(), y2.toarray(), rtol=1e-14, atol=1e-14 )
+    assert xp.allclose( Y.blocks[0].toarray(), y1.toarray(), rtol=1e-14, atol=1e-14 )
+    assert xp.allclose( Y.blocks[1].toarray(), y2.toarray(), rtol=1e-14, atol=1e-14 )
 
     # Test copy with an out 
     # Create random matrix 
@@ -1097,8 +1097,8 @@ def test_block_linear_operator_parallel_dot( dtype, n1, n2, p1, p2, P1, P2 ):
     K.dot(X, out= Y)
 
     # Check data in 1D array
-    assert np.allclose( Y.blocks[0].toarray(), y1.toarray(), rtol=1e-14, atol=1e-14 )
-    assert np.allclose( Y.blocks[1].toarray(), y2.toarray(), rtol=1e-14, atol=1e-14 )
+    assert xp.allclose( Y.blocks[0].toarray(), y1.toarray(), rtol=1e-14, atol=1e-14 )
+    assert xp.allclose( Y.blocks[1].toarray(), y2.toarray(), rtol=1e-14, atol=1e-14 )
 
     # Test transpose with an out, check that we overwrite the random entries
     L.transpose(out = N)
@@ -1111,8 +1111,8 @@ def test_block_linear_operator_parallel_dot( dtype, n1, n2, p1, p2, P1, P2 ):
     y2 = M2.T.dot(x1) + M4.T.dot(x2)
 
     # Check data in 1D array
-    assert np.allclose( Z.blocks[0].toarray(), y1.toarray(), rtol=1e-14, atol=1e-14 )
-    assert np.allclose( Z.blocks[1].toarray(), y2.toarray(), rtol=1e-14, atol=1e-14 )
+    assert xp.allclose( Z.blocks[0].toarray(), y1.toarray(), rtol=1e-14, atol=1e-14 )
+    assert xp.allclose( Z.blocks[1].toarray(), y2.toarray(), rtol=1e-14, atol=1e-14 )
 
 # ===============================================================================
 @pytest.mark.parametrize('dtype', [float])
@@ -1171,12 +1171,12 @@ def test_block_vector_2d_parallel_array_to_psydac(dtype, n1, n2, p1, p2, s1, s2,
 
 
     # Apply array_to_psydac first, and toarray next
-    xa_r_inv = np.array(np.random.rand(xa.size), dtype=dtype)*xa # the vector must be distributed as xa
+    xa_r_inv = xp.array(xp.random.rand(xa.size), dtype=dtype)*xa # the vector must be distributed as xa
     x_r_inv = array_to_psydac(xa_r_inv, W)
     x_r_inv.update_ghost_regions()
     va_r_inv = x_r_inv.toarray()
 
-    x2a_r_inv = np.array(np.random.rand(x2a.size), dtype=dtype)*x2a # the vector must be distributed as xa
+    x2a_r_inv = xp.array(xp.random.rand(x2a.size), dtype=dtype)*x2a # the vector must be distributed as xa
     x2_r_inv = array_to_psydac(x2a_r_inv, W2)
     x2_r_inv.update_ghost_regions()
     v2a_r_inv = x2_r_inv.toarray()
@@ -1188,16 +1188,16 @@ def test_block_vector_2d_parallel_array_to_psydac(dtype, n1, n2, p1, p2, s1, s2,
     assert isinstance(w2, BlockVector)
     assert w2.space is W2    
     for i in range(2):
-        assert np.array_equal(x[i]._data, w[i]._data)
+        assert xp.array_equal(x[i]._data, w[i]._data)
         for j in range(2):
-            assert np.array_equal(x2[i][j]._data, w2[i][j]._data)
-            assert np.array_equal(x2[i][j]._data, w2[i][j]._data)
+            assert xp.array_equal(x2[i][j]._data, w2[i][j]._data)
+            assert xp.array_equal(x2[i][j]._data, w2[i][j]._data)
 
-    assert np.array_equal(x2[2]._data, w2[2]._data)
+    assert xp.array_equal(x2[2]._data, w2[2]._data)
 
     # right inverse:
-    assert np.array_equal(xa_r_inv, va_r_inv)
-    assert np.array_equal(x2a_r_inv, v2a_r_inv)
+    assert xp.array_equal(xa_r_inv, va_r_inv)
+    assert xp.array_equal(x2a_r_inv, v2a_r_inv)
 
 #===============================================================================    
 @pytest.mark.parametrize( 'dtype', [float] )
@@ -1253,7 +1253,7 @@ def test_block_vector_2d_parallel_topetsc( dtype, n1, n2, p1, p2, P1, P2 ):
 
     v = petsc_to_psydac(x.topetsc(), W)
 
-    assert np.allclose( x.toarray() , v.toarray(), rtol=1e-12, atol=1e-12 )
+    assert xp.allclose( x.toarray() , v.toarray(), rtol=1e-12, atol=1e-12 )
 
 #=============================================================================== 
 @pytest.mark.parametrize( 'dtype', [float] )
@@ -1323,7 +1323,7 @@ def test_block_linear_operator_1d_parallel_topetsc( dtype, n1, p1, P1):
     # Cast result back to Psydac BlockVector format
     y_p = petsc_to_psydac(y_petsc, V)
     
-    assert np.allclose(y_p.toarray(), y.toarray(), rtol=1e-12, atol=1e-12)
+    assert xp.allclose(y_p.toarray(), y.toarray(), rtol=1e-12, atol=1e-12)
 
 #===============================================================================    
 @pytest.mark.parametrize( 'dtype', [float] )
@@ -1402,7 +1402,7 @@ def test_block_linear_operator_2d_parallel_topetsc( dtype, n1, n2, p1, p2, P1, P
     # Cast result back to Psydac BlockVector format
     y_p = petsc_to_psydac(y_petsc, L.codomain)
     
-    assert np.allclose(y_p.toarray(), y.toarray(), rtol=1e-12, atol=1e-12)
+    assert xp.allclose(y_p.toarray(), y.toarray(), rtol=1e-12, atol=1e-12)
 
 #===============================================================================
 
@@ -1492,11 +1492,11 @@ def test_block_matrix_operator_parallel_dot_backend( dtype, n1, n2, p1, p2, P1, 
     # X.mul_iadd(5 * factor, Y)
 
     # # Test exact value and symetry of the scalar product
-    # assert np.allclose(X[0]._data, z3[0]._data)
+    # assert xp.allclose(X[0]._data, z3[0]._data)
 
     # # Check data in 1D array
-    # assert np.allclose( Y.blocks[0].toarray(), y1.toarray(), rtol=1e-13, atol=1e-13 )
-    # assert np.allclose( Y.blocks[1].toarray(), y2.toarray(), rtol=1e-13, atol=1e-13 )
+    # assert xp.allclose( Y.blocks[0].toarray(), y1.toarray(), rtol=1e-13, atol=1e-13 )
+    # assert xp.allclose( Y.blocks[1].toarray(), y2.toarray(), rtol=1e-13, atol=1e-13 )
 
 #===============================================================================
 # SCRIPT FUNCTIONALITY

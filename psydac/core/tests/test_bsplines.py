@@ -28,8 +28,8 @@ from psydac.fem.tests.utilities import random_grid
 
 def test_find_span( lims, nc, p, eps=1e-12 ):
 
-    grid  = np.linspace( *lims, num=nc+1 )
-    knots = np.r_[ [grid[0]]*p, grid, [grid[-1]]*p ]
+    grid  = xp.linspace( *lims, num=nc+1 )
+    knots = xp.r_[ [grid[0]]*p, grid, [grid[-1]]*p ]
 
     for i,xi in enumerate( grid ):
         assert find_span( knots, p, x=xi-eps ) == p + max( 0,  i-1 )
@@ -43,15 +43,15 @@ def test_find_span( lims, nc, p, eps=1e-12 ):
 
 def test_basis_funs( lims, nc, p, tol=1e-14 ):
 
-    grid  = np.linspace( *lims, num=nc+1 )
-    knots = np.r_[ [grid[0]]*p, grid, [grid[-1]]*p ]
+    grid  = xp.linspace( *lims, num=nc+1 )
+    knots = xp.r_[ [grid[0]]*p, grid, [grid[-1]]*p ]
 
-    xx = np.linspace( *lims, num=101 )
+    xx = xp.linspace( *lims, num=101 )
     for x in xx:
         span  =  find_span( knots, p, x )
         basis = basis_funs( knots, p, x, span )
         assert len( basis ) == p+1
-        assert np.all( basis >= 0 )
+        assert xp.all( basis >= 0 )
         assert abs( sum( basis ) - 1.0 ) < tol
 
 #==============================================================================
@@ -61,10 +61,10 @@ def test_basis_funs( lims, nc, p, tol=1e-14 ):
 
 def test_basis_funs_1st_der( lims, nc, p, tol=1e-14 ):
 
-    grid  = np.linspace( *lims, num=nc+1 )
-    knots = np.r_[ [grid[0]]*p, grid, [grid[-1]]*p ]
+    grid  = xp.linspace( *lims, num=nc+1 )
+    knots = xp.r_[ [grid[0]]*p, grid, [grid[-1]]*p ]
 
-    xx = np.linspace( *lims, num=101 )
+    xx = xp.linspace( *lims, num=101 )
     for x in xx:
         span = find_span( knots, p, x )
         ders = basis_funs_1st_der( knots, p, x, span )
@@ -81,33 +81,33 @@ def test_basis_funs_all_ders( lims, nc, p, tol=1e-14 ):
     # Maximum derivative required
     n = p+2
 
-    grid, dx = np.linspace( *lims, num=nc+1, retstep=True )
-    knots = np.r_[ [grid[0]]*p, grid, [grid[-1]]*p ]
+    grid, dx = xp.linspace( *lims, num=nc+1, retstep=True )
+    knots = xp.r_[ [grid[0]]*p, grid, [grid[-1]]*p ]
 
-    xx = np.linspace( *lims, num=101 )
+    xx = xp.linspace( *lims, num=101 )
     for x in xx:
         span = find_span( knots, p, x )
         ders = basis_funs_all_ders( knots, p, x, span, n )
 
         # Test output array
         assert ders.shape == (1+n,1+p)
-        assert ders.dtype == np.dtype( float )
+        assert ders.dtype == xp.dtype( float )
 
         # Test 0th derivative
         der0 = basis_funs( knots, p, x, span )
-        assert np.allclose( ders[0,:], der0, rtol=1e-15, atol=1e-15 )
-        assert np.all( ders[0,:] >= 0.0 )
+        assert xp.allclose( ders[0,:], der0, rtol=1e-15, atol=1e-15 )
+        assert xp.all( ders[0,:] >= 0.0 )
 
         # Test 1st derivative
         der1 = basis_funs_1st_der( knots, p, x, span )
-        assert np.allclose( ders[1,:], der1, rtol=1e-15, atol=1e-15/dx )
+        assert xp.allclose( ders[1,:], der1, rtol=1e-15, atol=1e-15/dx )
 
         # Test 2nd to n-th derivatives
         for i in range(2,n+1):
             assert abs( ders[i,:].sum() ) <= tol * abs( ders[i,:] ).max()
 
         # Test that all derivatives of degree > p are zero
-        assert np.all( ders[p+1:,:] == 0.0 )
+        assert xp.all( ders[p+1:,:] == 0.0 )
 
 #==============================================================================
 @pytest.mark.parametrize( 'lims', ([0,1], [-2,3]) )
@@ -154,9 +154,9 @@ def test_histopolation_matrix(lims, nc, p, periodic, tol=1e-13):
                                               ([0.1, 0.1, 0.0, 0.4, 0.4, 0.9, 0.9], [0, 1, 0, 3, 4, 8, 9]),
                                               ([0., 0.1, 0.1, 1], [0, 0, 1, 9])])
 def test_cell_index(i_grid, expected):
-    breaks = np.array([0. , 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.])
-    out = cell_index(breaks, np.asarray(i_grid))
-    assert np.array_equal(expected, out)
+    breaks = xp.array([0. , 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.])
+    out = cell_index(breaks, xp.asarray(i_grid))
+    assert xp.array_equal(expected, out)
 
 #==============================================================================
 # SCRIPT FUNCTIONALITY: PLOT BASIS FUNCTIONS
@@ -164,7 +164,7 @@ def test_cell_index(i_grid, expected):
 if __name__ == '__main__':
 
     import matplotlib.pyplot as plt
-    np.set_printoptions(linewidth=130)
+    xp.set_printoptions(linewidth=130)
 
     # Domain limits, number of cells and spline degree
     lims = [0, 1]
@@ -176,24 +176,24 @@ if __name__ == '__main__':
     m = 2
 
     # Grid (breakpoints) and clamped knot sequence
-    grid  = np.linspace( *lims, num=nc+1 )
-    grid[1:-1] += 0.1*np.random.random_sample(nc-1) - 0.05  # Perturb internal breakpoints
-    knots = np.r_[ [grid[0]]*p, grid, [grid[-1]]*p ]
+    grid  = xp.linspace( *lims, num=nc+1 )
+    grid[1:-1] += 0.1*xp.random.random_sample(nc-1) - 0.05  # Perturb internal breakpoints
+    knots = xp.r_[ [grid[0]]*p, grid, [grid[-1]]*p ]
 
     # Insert repeated internal knot
     knots = list( knots )
     knots = knots[:k] + [knots[k]]*m + knots[k+1:]
-    knots = np.array( knots )
+    knots = xp.array( knots )
 
     # Number of basis functions
     nb = len(knots)-p-1
 
     # Evaluation grid
-    xx = np.linspace( *lims, num=501 )
+    xx = xp.linspace( *lims, num=501 )
 
     # Compute values of each basis function on evaluation grid
-    yy = np.zeros( (len(xx), nb) )
-    zz = np.zeros( (len(xx), nb) )
+    yy = xp.zeros( (len(xx), nb) )
+    zz = xp.zeros( (len(xx), nb) )
     for i,x in enumerate( xx ):
         span = find_span( knots, p, x )
         yy[i,span-p:span+1] = basis_funs        ( knots, p, x, span )
@@ -209,7 +209,7 @@ if __name__ == '__main__':
     #
     #   \int B(i) dx = length(support(B)) / (p + 1) = (T[i + p + 1] - T[i]) / (p + 1)
     #
-    integrals_theory = np.array([(knots[i+p+1] - knots[i]) / (p+1) for i in range(nb)])
+    integrals_theory = xp.array([(knots[i+p+1] - knots[i]) / (p+1) for i in range(nb)])
 
     # Integrals of each B-spline over domain (Gaussian quadrature)
     from psydac.utilities.quadratures import gauss_legendre
@@ -219,9 +219,9 @@ if __name__ == '__main__':
     u, w = gauss_legendre(p + 1)
     quad_x, quad_w = quadrature_grid(grid, u, w)
     quad_basis = basis_ders_on_quad_grid(knots, p, quad_x, nders=0, normalization='B')
-    integrals  = np.zeros(nb)
+    integrals  = xp.zeros(nb)
     for ie, span in enumerate(elements_spans(knots, p)):
-        integrals[span-p:span+1] += np.dot(quad_basis[ie, :, 0, :], quad_w[ie, :])
+        integrals[span-p:span+1] += xp.dot(quad_basis[ie, :, 0, :], quad_w[ie, :])
 
     # Compare theory results with computed integrals
     print("\nIntegrals of basis functions over domain:")
@@ -245,8 +245,8 @@ if __name__ == '__main__':
     axes[1].set_ylabel( 'z', rotation='horizontal' )
 
     # Plot knot sequence and add grid
-    values, counts = np.unique( knots, return_counts=True )
-    y = np.concatenate( [np.linspace(0,1,c,endpoint=True) for c in counts] )
+    values, counts = xp.unique( knots, return_counts=True )
+    y = xp.concatenate( [xp.linspace(0,1,c,endpoint=True) for c in counts] )
     for ax in axes:
         ax.plot( knots, y, 'ko', mew=1.0, mfc='None' )
         ax.grid()

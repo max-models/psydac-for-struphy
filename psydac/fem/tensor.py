@@ -237,14 +237,14 @@ class TensorFemSpace(FemSpace):
             field.coeffs.update_ghost_regions()
 
         # Check if `x` is iterable and loop over elements
-        if isinstance(eta[0], (list, np.ndarray)) and np.ndim(eta[0]) > 0:
+        if isinstance(eta[0], (list, xp.ndarray)) and xp.ndim(eta[0]) > 0:
             for dim in range(1, self.ldim):
                 assert len(eta[0]) == len(eta[dim])
             res_list = []
             for i in range(len(eta[0])):
                 x = [eta[j][i] for j in range(self.ldim)]
                 res_list.append(self.eval_field(field, *x, weights=weights))
-            return np.array(res_list)
+            return xp.array(res_list)
 
         for (x, xlim, space) in zip( eta, self.eta_lims, self.spaces ):
 
@@ -288,15 +288,15 @@ class TensorFemSpace(FemSpace):
         #
         res = coeffs
         for basis in bases[::-1]:
-            res = np.dot( res, basis )
+            res = xp.dot( res, basis )
 
 #        # Option 2: cycle over each element of 'coeffs' (touched only once)
 #        #   - Pros: no temporary objects are created
 #        #   - Cons: large number of Python iterations = number of elements in 'coeffs'
 #        #
 #        res = 0.0
-#        for idx,c in np.ndenumerate( coeffs ):
-#            ndbasis = np.prod( [b[i] for i,b in zip( idx, bases )] )
+#        for idx,c in xp.ndenumerate( coeffs ):
+#            ndbasis = xp.prod( [b[i] for i,b in zip( idx, bases )] )
 #            res    += c * ndbasis
 
         return res
@@ -425,8 +425,8 @@ class TensorFemSpace(FemSpace):
 
             # Get the cell indexes
             cell_index_i = cell_index(self.breaks[i], grid_i)
-            min_idx = np.searchsorted(cell_index_i, starts[i], side='left')
-            max_idx = np.searchsorted(cell_index_i, ends[i], side='right')
+            min_idx = xp.searchsorted(cell_index_i, starts[i], side='left')
+            max_idx = xp.searchsorted(cell_index_i, ends[i], side='right')
             # We only care about the local cells.
             cell_index_i = cell_index_i[min_idx:max_idx]
             grid_local_i = grid_i[min_idx:max_idx]
@@ -484,7 +484,7 @@ class TensorFemSpace(FemSpace):
                 weights.coeffs.update_ghost_regions()
         
         assert len(grid) == self.ldim
-        grid = [np.asarray(grid[i]) for i in range(self.ldim)]
+        grid = [xp.asarray(grid[i]) for i in range(self.ldim)]
         assert all(grid[i].ndim == grid[i + 1].ndim for i in range(self.ldim - 1))
 
         # --------------------------
@@ -499,7 +499,7 @@ class TensorFemSpace(FemSpace):
         # -> grid is tensor-product, but npts_per_cell is not the same in each cell
         elif grid[0].ndim == 1 and npts_per_cell is None:
             out_fields = self.eval_fields_irregular_tensor_grid(grid, *fields, weights=weights, overlap=overlap)
-            return [np.ascontiguousarray(out_fields[..., i]) for i in range(len(fields))]
+            return [xp.ascontiguousarray(out_fields[..., i]) for i in range(len(fields))]
 
         # Case 3. 1D arrays of coordinates and npts_per_cell is a tuple or an integer
         # -> grid is tensor-product, and each cell has the same number of evaluation points
@@ -508,10 +508,10 @@ class TensorFemSpace(FemSpace):
                 npts_per_cell = (npts_per_cell,) * self.ldim
             for i in range(self.ldim):
                 ncells_i = len(self.breaks[i]) - 1
-                grid[i] = np.reshape(grid[i], (ncells_i, npts_per_cell[i]))
+                grid[i] = xp.reshape(grid[i], (ncells_i, npts_per_cell[i]))
             out_fields = self.eval_fields_regular_tensor_grid(grid, *fields, weights=weights, overlap=overlap)
             # return a list
-            return [np.ascontiguousarray(out_fields[..., i]) for i in range(len(fields))]
+            return [xp.ascontiguousarray(out_fields[..., i]) for i in range(len(fields))]
 
         # Case 4. (self.ldim)D arrays of coordinates and no npts_per_cell
         # -> unstructured grid
@@ -555,9 +555,9 @@ class TensorFemSpace(FemSpace):
         degree, global_basis, global_spans, local_shape = self.preprocess_regular_tensor_grid(grid, der=0, overlap=overlap)
         ncells = [local_shape[i][0] for i in range(self.ldim)]
         n_eval_points = [local_shape[i][1] for i in range(self.ldim)]
-        out_fields = np.zeros((*(tuple(ncells[i] * n_eval_points[i] for i in range(self.ldim))), len(fields)), dtype=self.dtype)
+        out_fields = xp.zeros((*(tuple(ncells[i] * n_eval_points[i] for i in range(self.ldim))), len(fields)), dtype=self.dtype)
 
-        global_arr_coeffs = np.zeros(shape=(*fields[0].coeffs._data.shape, len(fields)), dtype=self.dtype)
+        global_arr_coeffs = xp.zeros(shape=(*fields[0].coeffs._data.shape, len(fields)), dtype=self.dtype)
 
         for i in range(len(fields)):
             global_arr_coeffs[..., i] = fields[i].coeffs._data
@@ -608,9 +608,9 @@ class TensorFemSpace(FemSpace):
         """
         degree, global_basis, global_spans, cell_indexes, local_shape = \
             self.preprocess_irregular_tensor_grid(grid, overlap=overlap)
-        out_fields = np.zeros(tuple(local_shape) + (len(fields),), dtype=self.dtype)
+        out_fields = xp.zeros(tuple(local_shape) + (len(fields),), dtype=self.dtype)
 
-        global_arr_coeffs = np.zeros(shape=(*fields[0].coeffs._data.shape, len(fields)), dtype=self.dtype)
+        global_arr_coeffs = xp.zeros(shape=(*fields[0].coeffs._data.shape, len(fields)), dtype=self.dtype)
 
         npoints = local_shape
 
@@ -647,14 +647,14 @@ class TensorFemSpace(FemSpace):
         index   = []
 
         # Check if `x` is iterable and loop over elements
-        if isinstance(eta[0], (list, np.ndarray)) and np.ndim(eta[0]) > 0:
+        if isinstance(eta[0], (list, xp.ndarray)) and xp.ndim(eta[0]) > 0:
             for dim in range(1, self.ldim):
                 assert len(eta[0]) == len(eta[dim])
             res_list = []
             for i in range(len(eta[0])):
                 x = [eta[j][i] for j in range(self.ldim)]
                 res_list.append(self.eval_field_gradient(field, *x, weights=weights))
-            return np.array(res_list)
+            return xp.array(res_list)
 
         for (x, xlim, space) in zip( eta, self.eta_lims, self.spaces ):
 
@@ -699,7 +699,7 @@ class TensorFemSpace(FemSpace):
             bases = [(bases_1[d] if i==d else bases_0[i]) for i in range( self.ldim )]
             res   = coeffs
             for basis in bases[::-1]:
-                res = np.dot( res, basis )
+                res = xp.dot( res, basis )
             grad.append( res )
 
         return grad
@@ -734,7 +734,7 @@ class TensorFemSpace(FemSpace):
                 itertools.product(*[range(s, e+1) for s, e in zip(starts, ends)])
 
         # Shortcut: Numpy product of all elements in a list
-        np_prod = np.prod
+        np_prod = xp.prod
 
         # Perform Gaussian quadrature in multiple dimensions
         c = 0.0
@@ -743,7 +743,7 @@ class TensorFemSpace(FemSpace):
             x = [ points_i[k_i, :] for  points_i, k_i in zip( points, k)]
             w = [weights_i[k_i, :] for weights_i, k_i in zip(weights, k)]
 
-            for q in np.ndindex(*nq):
+            for q in xp.ndindex(*nq):
 
                 y  = [x_i[q_i] for x_i, q_i in zip(x, q)]
                 v  = [w_i[q_i] for w_i, q_i in zip(w, q)]
@@ -756,7 +756,7 @@ class TensorFemSpace(FemSpace):
             c = mpi_comm.allreduce(c)
 
         # convert to native python type if numpy to avoid errors with sympify
-        if isinstance(c, np.generic):
+        if isinstance(c, xp.generic):
             c = c.item()
         
         return c
@@ -989,8 +989,8 @@ class TensorFemSpace(FemSpace):
                                     dirichlet=space.dirichlet, basis=space.basis)
             spaces[axis] = new_space
             breaks = new_space.breaks.tolist()
-            elements_ends = np.array([breaks.index(bd) for bd in boundaries])-1
-            elements_starts = np.array([0] + (elements_ends[:-1]+1).tolist())
+            elements_ends = xp.array([breaks.index(bd) for bd in boundaries])-1
+            elements_starts = xp.array([0] + (elements_ends[:-1]+1).tolist())
 
             if periodic:
                 global_starts[axis] = elements_starts
@@ -1165,8 +1165,8 @@ class TensorFemSpace(FemSpace):
                 new_global_starts[-1].append(s)
                 new_global_ends  [-1].append(e-1)
 
-            new_global_starts[-1] = np.array(new_global_starts[-1])
-            new_global_ends  [-1] = np.array(new_global_ends  [-1])
+            new_global_starts[-1] = xp.array(new_global_starts[-1])
+            new_global_ends  [-1] = xp.array(new_global_ends  [-1])
 
         new_domain = domain.refine(ncells, new_global_starts, new_global_ends)
         new_space  = TensorFemSpace(new_domain, *spaces, dtype=self._coeff_space.dtype)
@@ -1240,14 +1240,14 @@ class TensorFemSpace(FemSpace):
         [sk1, sk2], [ek1, ek2] = self.local_domain
         eta1 = refine_array_1d(V1.breaks[sk1:ek1+2], N)
         eta2 = refine_array_1d(V2.breaks[sk2:ek2+2], N)
-        pcoords = np.array([[mapping(e1, e2) for e2 in eta2] for e1 in eta1])
+        pcoords = xp.array([[mapping(e1, e2) for e2 in eta2] for e1 in eta1])
 
         # Local domain as Matplotlib polygonal patch
         AB = pcoords[   :,    0, :] # eta2 = min
         BC = pcoords[  -1,    :, :] # eta1 = max
         CD = pcoords[::-1,   -1, :] # eta2 = max (points must be reversed)
         DA = pcoords[   0, ::-1, :] # eta1 = min (points must be reversed)
-        xy = np.concatenate([AB, BC, CD, DA], axis=0)
+        xy = xp.concatenate([AB, BC, CD, DA], axis=0)
         poly = Polygon(xy, edgecolor='None')
 
         # Gather polygons on master process
@@ -1262,7 +1262,7 @@ class TensorFemSpace(FemSpace):
         # Global grid, refined
         eta1    = refine_array_1d(V1.breaks, N)
         eta2    = refine_array_1d(V2.breaks, N)
-        pcoords = np.array([[mapping(e1, e2) for e2 in eta2] for e1 in eta1])
+        pcoords = xp.array([[mapping(e1, e2) for e2 in eta2] for e1 in eta1])
         xx      = pcoords[:, :, 0]
         yy      = pcoords[:, :, 1]
 

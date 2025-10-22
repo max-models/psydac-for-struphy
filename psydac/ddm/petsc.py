@@ -28,7 +28,7 @@ class PetscCart:
         self._local_shape = tuple( e-s+1 for s,e in zip( cart._starts, cart._ends ) )
 
         # Compute local size of local arrays in topology (without ghost regions)
-        self._local_size  = np.prod(self._local_shape)
+        self._local_size  = xp.prod(self._local_shape)
  
 
     @property
@@ -69,7 +69,7 @@ class PetscCart:
         cart    = self.cart
         indices = product(*cart._grids)
         npts    = cart.npts
-        array   = [np.ravel_multi_index(i, npts) for i in indices]
+        array   = [xp.ravel_multi_index(i, npts) for i in indices]
         return array
 
     def _create_extended_indices( self ):
@@ -79,7 +79,7 @@ class PetscCart:
         indices = product(*cart._extended_grids)
         npts    = cart.npts
         mode    = tuple('wrap' if P else 'clip' for P in cart.periods)
-        array   = [np.ravel_multi_index(i, npts, mode=mode) for i in indices]
+        array   = [xp.ravel_multi_index(i, npts, mode=mode) for i in indices]
         return array
 
     def _create_Ao( self ):

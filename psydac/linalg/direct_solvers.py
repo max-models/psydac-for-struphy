@@ -36,16 +36,16 @@ class BandedSolver(LinearSolver):
         self._transposed = transposed
 
         # ... LU factorization
-        if bmat.dtype == np.float32:
+        if bmat.dtype == xp.float32:
             self._factor_function = sgbtrf
             self._solver_function = sgbtrs
-        elif bmat.dtype == np.float64:
+        elif bmat.dtype == xp.float64:
             self._factor_function = dgbtrf
             self._solver_function = dgbtrs
-        elif bmat.dtype == np.complex64:
+        elif bmat.dtype == xp.complex64:
             self._factor_function = cgbtrf
             self._solver_function = cgbtrs
-        elif bmat.dtype == np.complex128:
+        elif bmat.dtype == xp.complex128:
             self._factor_function = zgbtrf
             self._solver_function = zgbtrs
         else:
@@ -55,12 +55,12 @@ class BandedSolver(LinearSolver):
         if hasattr(bmat, "get"):  # CuPy array
             bmat = bmat.get()
         else:
-            bmat = np.asanyarray(bmat)
+            bmat = xp.asanyarray(bmat)
         self._bmat, self._ipiv, self._finfo = self._factor_function(bmat, l, u)
 
         self._sinfo = None
 
-        self._space = np.ndarray
+        self._space = xp.ndarray
         self._dtype = bmat.dtype
 
     @property
@@ -160,7 +160,7 @@ class SparseSolver (LinearSolver):
 
         assert isinstance(spmat, spmatrix)
 
-        self._space = np.ndarray
+        self._space = xp.ndarray
         self._splu  = splu(spmat.tocsc())
         self._transposed = transposed
 
@@ -214,6 +214,6 @@ class SparseSolver (LinearSolver):
             else:
                 rhs_cpu = rhs.get()
                 result_cpu = self._splu.solve(rhs_cpu.T, trans='T' if transposed else 'N').T
-                out[:] = np.asarray(result_cpu)
+                out[:] = xp.asarray(result_cpu)
 
         return out

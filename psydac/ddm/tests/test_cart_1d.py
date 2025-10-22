@@ -45,7 +45,7 @@ def run_cart_1d( data_exchanger_type, verbose=False ):
 
     global_ends        = [ee]
     global_ends[0][-1] = n1-1
-    global_starts      = [np.array([0] + (global_ends[0][:-1]+1).tolist())]
+    global_starts      = [xp.array([0] + (global_ends[0][:-1]+1).tolist())]
 
     # Decomposition of Cartesian domain
     cart = CartDecomposition(
@@ -58,7 +58,7 @@ def run_cart_1d( data_exchanger_type, verbose=False ):
     )
 
     # Local 1D array (extended domain)
-    u = np.zeros( cart.shape, dtype=int )
+    u = xp.zeros( cart.shape, dtype=int )
 
     # Global indices of first and last elements of array
     s1, = cart.starts

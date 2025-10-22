@@ -76,7 +76,7 @@ class KroneckerStencilMatrix(LinearOperator):
     # ...
     def dot(self, x, out=None):
 
-        dot = np.dot
+        dot = xp.dot
 
         assert isinstance(x, StencilVector)
         assert x.space is self.domain
@@ -100,14 +100,14 @@ class KroneckerStencilMatrix(LinearOperator):
         nrows  = tuple(e-s+1 for s,e in zip(starts, ends))
         pnrows = tuple(2*p+1 for p in pads)
 
-        for ii in np.ndindex(*nrows):
+        for ii in xp.ndindex(*nrows):
             v = 0.
             xx = tuple(i+p*s for i,p,s in zip(ii, pads, shifts))
 
-            for jj in np.ndindex(*pnrows):
+            for jj in xp.ndindex(*pnrows):
                 i_mats = [mat._data[s, j] for s,j,mat in zip(xx, jj, mats)]
                 ii_jj = tuple(i+j+(s-1)*p for i,j,p,s in zip(ii, jj, pads, shifts))
-                v += x._data[ii_jj] * np.prod(i_mats)
+                v += x._data[ii_jj] * xp.prod(i_mats)
 
             out._data[xx] = v
 
@@ -145,7 +145,7 @@ class KroneckerStencilMatrix(LinearOperator):
         cols = key[self.ndim:]
         mats = self.mats
         elements = [A[i,j] for A,i,j in zip(mats, rows, cols)]
-        return np.prod(elements)
+        return xp.prod(elements)
 
     def tostencil(self):
 
@@ -176,14 +176,14 @@ class KroneckerStencilMatrix(LinearOperator):
         diff   = [xp-p for xp,p in zip(xpads, pads)]
         ndim   = len(nrows)
 
-        for xx in np.ndindex( *nrows ):
+        for xx in xp.ndindex( *nrows ):
 
             ii = tuple(xp + x for xp, x in zip(xpads, xx) )
 
-            for kk in np.ndindex( *ndiags ):
+            for kk in xp.ndindex( *ndiags ):
 
                 values        = [mat[i,k] for mat,i,k in zip(mats, ii, kk)]
-                M[(*ii, *kk)] = np.prod(values)
+                M[(*ii, *kk)] = xp.prod(values)
         
         # handle partly-multiplied rows
         new_nrows = nrows.copy()
@@ -193,7 +193,7 @@ class KroneckerStencilMatrix(LinearOperator):
             del rows[d]
 
             for n in range(er):
-                for xx in np.ndindex(*rows):
+                for xx in xp.ndindex(*rows):
                     xx = list(xx)
                     xx.insert(d, nrows[d]+n)
 
@@ -204,9 +204,9 @@ class KroneckerStencilMatrix(LinearOperator):
                     kk     = [slice(None,diag) for diag in ndiags]
                     ii_kk  = tuple( list(ii) + kk )
 
-                    for kk in np.ndindex( *ndiags ):
+                    for kk in xp.ndindex( *ndiags ):
                         values        = [mat[i,k] for mat,i,k in zip(mats, ii, kk)]
-                        M[(*ii, *kk)] = np.prod(values)
+                        M[(*ii, *kk)] = xp.prod(values)
             new_nrows[d] += er
 
     def tosparse(self):
@@ -244,14 +244,14 @@ class KroneckerDenseMatrix(LinearOperator):
         assert V.pads == W.pads
 
         for i,A in enumerate(args):
-            assert isinstance(A, np.ndarray)
+            assert isinstance(A, xp.ndarray)
             if with_pads:
                 assert A.shape[1] == V.npts[i] + 2*V.pads[i]
             else:
                 assert A.shape[1] == V.npts[i]
 
         if not with_pads:
-            args = [np.pad(a,p) for a,p in zip(args, W.pads)]
+            args = [xp.pad(a,p) for a,p in zip(args, W.pads)]
 
         self._domain   = V
         self._codomain = W
@@ -288,7 +288,7 @@ class KroneckerDenseMatrix(LinearOperator):
     # ...
     def dot(self, x, out=None):
 
-        dot = np.dot
+        dot = xp.dot
 
         assert isinstance(x, StencilVector)
         assert x.space is self.domain
@@ -316,10 +316,10 @@ class KroneckerDenseMatrix(LinearOperator):
         x_data   = x._data.ravel()
         out_data = out._data
 
-        for xx in np.ndindex(*nrows):
+        for xx in xp.ndindex(*nrows):
             ii     = tuple(x+p for x,p in zip(xx,pads))
             i_mats = [mat[i+s, k] for i,s,k,mat in zip(ii, c_starts, kk, mats)]
-            out_data[ii] = np.dot(x_data, np.outer(*i_mats).ravel())
+            out_data[ii] = xp.dot(x_data, xp.outer(*i_mats).ravel())
 
         # IMPORTANT: flag that ghost regions are not up-to-date
         out.ghost_regions_in_sync = False
@@ -435,14 +435,14 @@ class KroneckerLinearSolver(LinearOperator):
         (which potentially utilize MPI).
         """
         # slice sizes
-        starts = np.array(self._domain.starts)
-        ends = np.array(self._domain.ends) + 1
+        starts = xp.array(self._domain.starts)
+        ends = xp.array(self._domain.ends) + 1
         self._slice = tuple([slice(s, e) for s,e in zip(starts, ends)])
 
         # local and global sizes
         nglobals = self._domain.npts
         nlocals = ends - starts
-        self._localsize = np.prod(nlocals)
+        self._localsize = xp.prod(nlocals)
         mglobals = self._localsize // nlocals
         self._nlocals = nlocals
 
@@ -485,7 +485,7 @@ class KroneckerLinearSolver(LinearOperator):
 
         # we use a single permutation for all steps
         # it is: (n, 1, 2, ..., n-1)
-        self._perm = np.arange(self._ndim)
+        self._perm = xp.arange(self._ndim)
         self._perm[1:] = self._perm[:-1]
         self._perm[0] = self._ndim - 1
 
@@ -502,13 +502,13 @@ class KroneckerLinearSolver(LinearOperator):
         """
         Allocates all temporary data needed for the solve operation.
         """
-        temp1 = np.empty((int(self._tempsize),), dtype=self._dtype)
+        temp1 = xp.empty((int(self._tempsize),), dtype=self._dtype)
         if self._ndim <= 1 and self._allserial:
             # if ndim==1 and we have no parallelism,
             # we can avoid allocating a second temp array
             temp2 = None
         else:
-            temp2 = np.empty((int(self._tempsize),), dtype=self._dtype)
+            temp2 = xp.empty((int(self._tempsize),), dtype=self._dtype)
         return temp1, temp2
 
     @property
@@ -793,14 +793,14 @@ class KroneckerLinearSolver(LinearOperator):
             # where N = floor(mglobaldata / comm.size)
             mlocal_pre = mglobal // comm.size
             mlocal_add = mglobal % comm.size
-            sourcesizes = np.full((comm.size,), mlocal_pre, dtype=int)
+            sourcesizes = xp.full((comm.size,), mlocal_pre, dtype=int)
             sourcesizes[:mlocal_add] += 1
             mlocal = sourcesizes[comm.rank]
             sourcesizes *= nlocal
 
             # disps, created from the sizes
-            sourcedisps = np.zeros((comm.size+1,), dtype=int)
-            np.cumsum(sourcesizes, out=sourcedisps[1:])
+            sourcedisps = xp.zeros((comm.size+1,), dtype=int)
+            xp.cumsum(sourcesizes, out=sourcedisps[1:])
             sourcedisps = sourcedisps[:-1]
 
             # target MPI sizes and disps

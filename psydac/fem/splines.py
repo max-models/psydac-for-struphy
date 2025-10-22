@@ -89,10 +89,10 @@ class SplineSpace( FemSpace ):
         if grid is None:
             grid = breakpoints(knots, degree)
 
-        indices = np.where(np.diff(knots[degree:len(knots)-degree])>1e-15)[0]
+        indices = xp.where(xp.diff(knots[degree:len(knots)-degree])>1e-15)[0]
 
         if len(indices)>0:
-            multiplicity = max(np.diff(indices), default=1)
+            multiplicity = max(xp.diff(indices), default=1)
         else:
             multiplicity = max(1,len(knots[degree+1:-degree-1]))
 
@@ -137,7 +137,7 @@ class SplineSpace( FemSpace ):
 
         # Create space of spline coefficients
         domain_decomposition = DomainDecomposition([self._ncells], [periodic])
-        cart     = CartDecomposition(domain_decomposition, [nbasis], [np.array([0])],[np.array([nbasis-1])], [self._pads], [multiplicity])
+        cart     = CartDecomposition(domain_decomposition, [nbasis], [xp.array([0])],[xp.array([nbasis-1])], [self._pads], [multiplicity])
         self._coeff_space = StencilVectorSpace(cart)
 
         # Store flag: object NOT YET prepared for interpolation / histopolation
@@ -171,7 +171,7 @@ class SplineSpace( FemSpace ):
 
         """        
         if self.greville.size == 1:
-            imat = np.ones((1, 1), dtype=float)
+            imat = xp.ones((1, 1), dtype=float)
         else:
             imat = collocation_matrix(
                 knots    = self.knots,
@@ -186,7 +186,7 @@ class SplineSpace( FemSpace ):
             # Convert to CSC format and compute sparse LU decomposition
             
             # Convert to LAPACK banded format (see DGBTRF function)
-            if "cupy" in np.__name__:  # CuPy array
+            if "cupy" in xp.__name__:  # CuPy array
                 imat = imat.get()
             else:
                 imat = _np.asanyarray(imat)
@@ -195,7 +195,7 @@ class SplineSpace( FemSpace ):
         else:
 
             # Convert to LAPACK banded format (see DGBTRF function)
-            if "cupy" in np.__name__:  # CuPy array
+            if "cupy" in xp.__name__:  # CuPy array
                 imat = imat.get()
             else:
                 imat = _np.asanyarray(imat)
@@ -203,7 +203,7 @@ class SplineSpace( FemSpace ):
             l = abs( dmat.offsets.min() )
             u =      dmat.offsets.max()
             cmat = csr_matrix( dmat )
-            bmat = np.zeros( (1+u+2*l, cmat.shape[1]), dtype=dtype )
+            bmat = xp.zeros( (1+u+2*l, cmat.shape[1]), dtype=dtype )
             for i,j in zip( *cmat.nonzero() ):
                 bmat[u+l+i-j,j] = cmat[i,j]
             self._interpolator = BandedSolver( u, l, bmat )
@@ -228,7 +228,7 @@ class SplineSpace( FemSpace ):
             xgrid    = self.ext_greville,
             multiplicity = self._multiplicity
         )
-        if "cupy" in np.__name__:  # CuPy array
+        if "cupy" in xp.__name__:  # CuPy array
             imat = imat.get()
         else:
             imat = _np.asanyarray(imat)
@@ -243,7 +243,7 @@ class SplineSpace( FemSpace ):
             l = abs( dmat.offsets.min() )
             u =      dmat.offsets.max()
             cmat = csr_matrix( dmat )
-            bmat = np.zeros( (1+u+2*l, cmat.shape[1]), dtype=dtype)
+            bmat = xp.zeros( (1+u+2*l, cmat.shape[1]), dtype=dtype)
             for i,j in zip( *cmat.nonzero() ):
                 bmat[u+l+i-j,j] = cmat[i,j]
             self._histopolator = BandedSolver( u, l, bmat )
@@ -340,7 +340,7 @@ class SplineSpace( FemSpace ):
         if weights:
             coeffs *= weights[index]
 
-        return np.dot(coeffs,basis_array)
+        return xp.dot(coeffs,basis_array)
 
     # ...
     def eval_field_gradient( self, field, *eta , weights=None):
@@ -565,7 +565,7 @@ class SplineSpace( FemSpace ):
         n = self.nbasis + d*self.periodic
         knots = self.knots
         fig, ax = plt.subplots()
-        xx = np.linspace(knots[0], knots[-1], 200)
+        xx = xp.linspace(knots[0], knots[-1], 200)
         for i in range(n):
             c = [0]*n
             c[i] = 1

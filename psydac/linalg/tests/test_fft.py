@@ -18,7 +18,7 @@ def compute_global_starts_ends(domain_decomposition, npts):
 
         global_ends  [axis]     = ee.copy()
         global_ends  [axis][-1] = npts[axis]-1
-        global_starts[axis]     = np.array([0] + (global_ends[axis][:-1]+1).tolist())
+        global_starts[axis]     = xp.array([0] + (global_ends[axis][:-1]+1).tolist())
 
     return global_starts, global_ends
 #===============================================================================
@@ -39,7 +39,7 @@ def decode_fft_type(ffttype):
         raise NotImplementedError()
 
 def method_test(seed, comm, config, dtype, classtype, comparison, verbose=False):
-    np.random.seed(seed)
+    xp.random.seed(seed)
 
     if comm is None:
         rank = -1
@@ -66,10 +66,10 @@ def method_test(seed, comm, config, dtype, classtype, comparison, verbose=False)
     if verbose:
         print(f'[{rank}] Vector spaces built', flush=True)
 
-    if np.dtype(dtype).kind == 'c':
-        Y_glob = np.random.random(V.npts) + np.random.random(V.npts) * 1j
+    if xp.dtype(dtype).kind == 'c':
+        Y_glob = xp.random.random(V.npts) + xp.random.random(V.npts) * 1j
     else:
-        Y_glob = np.random.random(V.npts)
+        Y_glob = xp.random.random(V.npts)
 
     # vector to solve for (Y)
     Y = StencilVector(V)
@@ -87,7 +87,7 @@ def method_test(seed, comm, config, dtype, classtype, comparison, verbose=False)
     if verbose:
         print(f'[{rank}] Functions have been run', flush=True)
 
-    assert np.allclose(X_glob[localslice], X[localslice], 1e-10, 1e-10)
+    assert xp.allclose(X_glob[localslice], X[localslice], 1e-10, 1e-10)
 
 @pytest.mark.parametrize( 'seed', [0, 2] )
 @pytest.mark.parametrize( 'params', [([8], [2], [False]), ([8,9], [2,3], [False,True]), ([8,9,17], [2,3,7], [False,True,False])] )

@@ -56,7 +56,7 @@ def run_cart_3d( data_exchanger_type, verbose=False ):
 
         global_ends  [axis]     = (ee+1)-1
         global_ends  [axis][-1] = npts[axis]-1
-        global_starts[axis]     = np.array([0] + (global_ends[axis][:-1]+1).tolist())
+        global_starts[axis]     = xp.array([0] + (global_ends[axis][:-1]+1).tolist())
 
     # Decomposition of Cartesian domain
     cart = CartDecomposition(
@@ -70,7 +70,7 @@ def run_cart_3d( data_exchanger_type, verbose=False ):
 
     # Local 3D array with 3D vector data (extended domain)
     shape = list( cart.shape ) + [3]
-    u = np.zeros( shape, dtype=int )
+    u = xp.zeros( shape, dtype=int )
 
     # Global indices of first and last elements of array
     s1,s2,s3 = cart.starts

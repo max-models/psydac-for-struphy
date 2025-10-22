@@ -12,7 +12,7 @@ from psydac.linalg.tests.test_linalg import get_StencilVectorSpace, get_positive
 
 def get_random_StencilMatrix(domain, codomain):
 
-    np.random.seed(2)
+    xp.random.seed(2)
     V = domain
     W = codomain
     assert isinstance(V, StencilVectorSpace)
@@ -32,22 +32,22 @@ def get_random_StencilMatrix(domain, codomain):
     for i in range(0, q1+1):
         if i != 0:
             for j in range(-q2, q2+1):
-                S[:, :, i, j] = 2*np.random.random()-1
+                S[:, :, i, j] = 2*xp.random.random()-1
         else:
             for j in range(1, q2+1):
-                S[:, :, i, j] = 2*np.random.random()-1
+                S[:, :, i, j] = 2*xp.random.random()-1
     S.remove_spurious_entries()
 
     return S
 
 def get_random_StencilVector(V):
-    np.random.seed(3)
+    xp.random.seed(3)
     assert isinstance(V, StencilVectorSpace)
     [n1, n2] = V._npts
     v = StencilVector(V)
     for i in range(n1):
         for j in range(n2):
-            v[i,j] = np.random.random()
+            v[i,j] = xp.random.random()
     return v
 
 #===============================================================================
@@ -75,11 +75,11 @@ def test_fake_matrix_free(n1, n2, p1, p2):
     tol = 1e-10
     y = S.dot(v)
     x = O.dot(v)
-    print(f'error = {np.linalg.norm( (x - y).toarray() )}')
-    assert np.linalg.norm( (x - y).toarray() ) < tol
+    print(f'error = {xp.linalg.norm( (x - y).toarray() )}')
+    assert xp.linalg.norm( (x - y).toarray() ) < tol
     O.dot(v, out=x)
-    print(f'error = {np.linalg.norm( (x - y).toarray() )}')
-    assert np.linalg.norm( (x - y).toarray() ) < tol
+    print(f'error = {xp.linalg.norm( (x - y).toarray() )}')
+    assert xp.linalg.norm( (x - y).toarray() ) < tol
 
 @pytest.mark.parametrize('solver', ['cg', 'pcg', 'bicg', 'minres', 'lsmr'])
 
@@ -111,13 +111,13 @@ def test_solvers_matrix_free(solver):
 
     AA = A_inv._A
     xx = AA.dot(b)
-    print(f'norm(xx) = {np.linalg.norm( xx.toarray() )}')
-    print(f'norm(x)  = {np.linalg.norm( x.toarray() )}')
+    print(f'norm(xx) = {xp.linalg.norm( xx.toarray() )}')
+    print(f'norm(x)  = {xp.linalg.norm( x.toarray() )}')
 
     # Apply inverse and check
     y = A_inv @ x
-    error = np.linalg.norm( (b - y).toarray())
-    assert np.linalg.norm( (b - y).toarray() ) < tol
+    error = xp.linalg.norm( (b - y).toarray())
+    assert xp.linalg.norm( (b - y).toarray() ) < tol
 
 #===============================================================================
 # SCRIPT FUNCTIONALITY

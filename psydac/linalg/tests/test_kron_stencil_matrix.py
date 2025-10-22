@@ -20,7 +20,7 @@ def compute_global_starts_ends(domain_decomposition, npts):
 
         global_ends  [axis]     = ee.copy()
         global_ends  [axis][-1] = npts[axis]-1
-        global_starts[axis]     = np.array([0] + (global_ends[axis][:-1]+1).tolist())
+        global_starts[axis]     = xp.array([0] + (global_ends[axis][:-1]+1).tolist())
 
     return tuple(global_starts), tuple(global_ends)
 
@@ -111,4 +111,4 @@ def test_KroneckerStencilMatrix(dtype, npts, pads, periodic):
     assert (M_sp.T - M.T.tosparse().tocsr()).count_nonzero() == 0
 
     # Test dot product
-    assert np.array_equal(M_sp.dot(w.toarray()), M.dot(w).toarray())
+    assert xp.array_equal(M_sp.dot(w.toarray()), M.dot(w).toarray())
