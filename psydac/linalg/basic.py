@@ -14,6 +14,10 @@ from inspect import signature
 import numpy as np
 from scipy.sparse import coo_matrix
 
+import itertools
+from scipy import sparse
+from psydac.linalg.kernels.toarray_kernels import write_out_stencil_dense_3D, write_out_stencil_dense_2D, write_out_stencil_dense_1D, write_out_block_dense_3D, write_out_block_dense_2D, write_out_block_dense_1D
+
 from psydac.utilities.utils import is_real
 
 __all__ = (
@@ -280,13 +284,331 @@ class LinearOperator(ABC):
         upon convertion to matrix.
         """
 
-    @abstractmethod
-    def tosparse(self):
-        """ Convert to a sparse matrix in any of the formats supported by scipy.sparse."""
+    def __tosparse_array(self, out=None, is_sparse=False):
+        """
+        Transforms the linear operator into a matrix, which is either stored in dense or sparse format.
 
-    @abstractmethod
-    def toarray(self):
-        """ Convert to Numpy 2D array. """
+        Parameters
+        ----------
+        out : Numpy.ndarray, optional
+            If given, the output will be written in-place into this array.
+        is_sparse : bool, optional
+            If set to True the method returns the matrix as a Scipy sparse matrix, if set to false
+            it returns the full matrix as a Numpy.ndarray
+
+        Returns
+        -------
+        out : Numpy.ndarray or scipy.sparse.csr.csr_matrix
+            The matrix form of the linear operator. If ran in parallel each rank gets the full
+            matrix representation of the linear operator.
+        """
+        # v will be the unit vector with which we compute Av = ith column of A.
+        v = self.domain.zeros()
+        # We define a temporal vector
+        tmp2 = self.codomain.zeros()
+
+        #We need to determine if we are a blockvector or a stencilvector but we are not able to use 
+        #the BlockVectorSpace and StencilVectorSpace classes in here. So we check if domain has the spaces
+        #attribute in which case the domain would be a BlockVectorSpace. If that is not the case we check
+        #if the domain has the cart atrribute, in which case it will be a StencilVectorSpace.
+        if  hasattr(self.domain, 'spaces'):
+            BoS = "b"
+            comm = self.domain.spaces[0].cart.comm
+            
+            # we collect all starts and ends in two big lists
+            starts = [vi.starts for vi in v]
+            ends = [vi.ends for vi in v]
+            # We collect the dimension of the BlockVector
+            npts = [sp.npts for sp in self.domain.spaces]
+            # We get the number of space we have
+            nsp = len(self.domain.spaces)
+            # We get the number of dimensions each space has.
+            ndim = [sp.ndim for sp in self.domain.spaces]
+            
+        elif hasattr(self.domain, 'cart'):
+            BoS = "s"
+            comm = self.domain.cart.comm
+            
+            # We get the start and endpoint for each sublist in v
+            starts = [v.starts]
+            ends = [v.ends]
+            # We get the dimensions of the StencilVector
+            npts = [self.domain.npts]
+            # We get the number of space we have
+            nsp = 1
+            # We get the number of dimensions the StencilVectorSpace has.
+            ndim = [self.domain.ndim]
+        else:
+            raise Exception(
+                'The domain of the LinearOperator must be a BlockVectorSpace or a StencilVectorSpace.')
+               
+        #We also need to know if the codomain is a StencilVectorSpace or a BlockVectorSpace
+        if  hasattr(self.codomain, 'spaces'):
+            BoS2 = "b"
+            
+            # Before we begin computing the dot products we need to know which entries of the output vector tmp2 belong to our rank.
+            # we collect all starts and ends in two big lists
+            starts2 = [vi.starts for vi in tmp2]
+            ends2 = [vi.ends for vi in tmp2]
+            # We collect the dimension of the BlockVector
+            npts2 = np.array([sp.npts for sp in self.codomain.spaces])
+            # We get the number of space we have
+            nsp2 = len(self.codomain.spaces)
+            # We get the number of dimensions each space has.
+            ndim2 = [sp.ndim for sp in self.codomain.spaces]
+            #We build the range of iteration
+            itterables2 = []
+            # since the size of npts changes denpending on h we need to compute a starting point for
+            # our row index
+            spoint2 = 0
+            if (is_sparse == False):
+                #We also get the BlockVector's pads
+                pds = np.array([vi.pads for vi in tmp2])
+                spoint2list = [np.int64(spoint2)]
+                for hh in range(nsp2):
+                    itterables2aux = []
+                    for ii in range(ndim2[hh]):
+                        itterables2aux.append(
+                            [starts2[hh][ii], ends2[hh][ii]+1])
+                    itterables2.append(itterables2aux)
+                    cummulative2 = 1
+                    for ii in range(ndim2[hh]):
+                        cummulative2 *= npts2[hh][ii]
+                    spoint2 += cummulative2
+                    spoint2list.append(spoint2) 
+            else:
+                spoint2list = [spoint2]
+                for hh in range(nsp2):
+                    itterables2aux = []
+                    for ii in range(ndim2[hh]):
+                        itterables2aux.append(
+                            range(starts2[hh][ii], ends2[hh][ii]+1))
+                    itterables2.append(itterables2aux)
+                    cummulative2 = 1
+                    for ii in range(ndim2[hh]):
+                        cummulative2 *= npts2[hh][ii]
+                    spoint2 += cummulative2
+                    spoint2list.append(spoint2)
+                    
+        elif hasattr(self.codomain, 'cart'):
+            BoS2 = "s"
+            
+            # Before we begin computing the dot products we need to know which entries of the output vector tmp2 belong to our rank.
+            # We get the start and endpoint for each sublist in tmp2
+            starts2 = tmp2.starts
+            ends2 = tmp2.ends
+            # We get the dimensions of the StencilVector
+            npts2 = np.array(self.codomain.npts)
+            # We get the number of space we have
+            nsp2 = 1
+            # We get the number of dimensions the StencilVectorSpace has.
+            ndim2 = self.codomain.ndim
+            #We build our ranges of iteration
+            itterables2 = []
+            if (is_sparse == False):
+                for ii in range(ndim2):
+                    itterables2.append([starts2[ii], ends2[ii]+1])
+                itterables2 = np.array(itterables2)
+                #We also get the StencilVector's pads
+                pds = np.array(tmp2.pads)
+            else:
+                for ii in range(ndim2):
+                    itterables2.append(
+                        range(starts2[ii], ends2[ii]+1))
+        else:
+            raise Exception(
+                'The codomain of the LinearOperator must be a BlockVectorSpace or a StencilVectorSpace.')
+            
+        rank = comm.Get_rank()
+        size = comm.Get_size()
+
+        if (is_sparse == False):
+            if out is None:
+                # We declare the matrix form of our linear operator
+                out = np.zeros(
+                    [self.codomain.dimension, self.domain.dimension], dtype=self.dtype)
+            else:
+                assert isinstance(out, np.ndarray)
+                assert out.shape[0] == self.codomain.dimension
+                assert out.shape[1] == self.domain.dimension
+        else:
+            if out is not None:
+                raise Exception(
+                    'If is_sparse is True then out must be set to None.')
+            numrows = self.codomain.dimension
+            numcols = self.domain.dimension
+            # We define a list to store the non-zero data, a list to sotre the row index of said data and a list to store the column index.
+            data = []
+            row = []
+            colarr = []
+   
+        # First each rank is going to need to know the starts and ends of all other ranks
+        startsarr = np.array([starts[i][j] for i in range(nsp)
+                                for j in range(ndim[i])], dtype=int)
+        
+        endsarr = np.array([ends[i][j] for i in range(nsp)
+                            for j in range(ndim[i])], dtype=int) 
+            
+        # Create an array to store gathered data from all ranks
+        allstarts = np.empty(size * len(startsarr), dtype=int)
+
+        # Use Allgather to gather 'starts' from all ranks into 'allstarts'
+        comm.Allgather(startsarr, allstarts)
+
+        # Reshape 'allstarts' to have 9 columns and 'size' rows
+        allstarts = allstarts.reshape((size, len(startsarr)))
+
+        # Create an array to store gathered data from all ranks
+        allends = np.empty(size * len(endsarr), dtype=int)
+
+        # Use Allgather to gather 'ends' from all ranks into 'allends'
+        comm.Allgather(endsarr, allends)
+
+        # Reshape 'allends' to have 9 columns and 'size' rows
+        allends = allends.reshape((size, len(endsarr)))
+
+        currentrank = 0
+        # Each rank will take care of setting to 1 each one of its entries while all other entries remain zero.
+        while (currentrank < size):
+            # since the size of npts changes denpending on h we need to compute a starting point for
+            # our column index
+            spoint = 0
+            npredim = 0
+            # We iterate over the stencil vectors inside the BlockVector
+            for h in range(nsp):
+                itterables = []
+                for i in range(ndim[h]):
+                    itterables.append(
+                        range(allstarts[currentrank][i+npredim], allends[currentrank][i+npredim]+1))
+                # We iterate over all the entries that belong to rank number currentrank
+                for i in itertools.product(*itterables):
+                    
+                    #########################################
+                    if BoS == "b":
+                        if (rank == currentrank):
+                            v[h][i] = 1.0
+                        v[h].update_ghost_regions()
+                    elif BoS == "s":
+                        if (rank == currentrank):
+                            v[i] = 1.0
+                        v.update_ghost_regions()
+                    #########################################
+                    
+                    # Compute dot product with the linear operator.
+                    self.dot(v, out=tmp2)
+                    # Compute to which column this iteration belongs
+                    col = spoint
+                    col += np.ravel_multi_index(i, npts[h])
+                    
+                    # Case in which tmp2 is a StencilVector
+                    if BoS2 == "s":
+                        if is_sparse == False:
+                            #We iterate over the entries of tmp2 that belong to our rank
+                            #The pyccel kernels are tantamount to this for loop.
+                            #for ii in itertools.product(*itterables2):
+                                #if (tmp2[ii] != 0):
+                                    #out[np.ravel_multi_index(
+                                        #ii, npts2), col] = tmp2[ii]
+                            if (ndim2 == 3):
+                                write_out_stencil_dense_3D(itterables2, tmp2._data, out, npts2, col, pds)
+                            elif (ndim2 == 2):
+                                write_out_stencil_dense_2D(itterables2, tmp2._data, out, npts2, col, pds)
+                            elif (ndim2 == 1):
+                                write_out_stencil_dense_1D(itterables2, tmp2._data, out, npts2, col, pds)
+                            else:
+                                raise Exception("The codomain dimension must be 3, 2 or 1.")
+                            
+                        else:
+                            #We iterate over the entries of tmp2 that belong to our rank
+                            for ii in itertools.product(*itterables2):
+                                if (tmp2[ii] != 0):
+                                    data.append(tmp2[ii])
+                                    colarr.append(col)
+                                    row.append(
+                                        np.ravel_multi_index(ii, npts2))
+                    elif BoS2 =="b":
+                        # We iterate over the stencil vectors inside the BlockVector
+                        for hh in range(nsp2):
+                            
+                            
+                            if is_sparse == False:
+                                itterables2aux = np.array(itterables2[hh])
+                                # We iterate over all the tmp2 entries that belong to rank number currentrank
+                                #The pyccel kernels are tantamount to this for loop.
+                                #for ii in itertools.product(*itterables2aux):
+                                    #if (tmp2[hh][ii] != 0):
+                                        #out[spoint2list[hh]+np.ravel_multi_index(
+                                            #ii, npts2[hh]), col] = tmp2[hh][ii]
+                                if (ndim2[hh] == 3):
+                                    write_out_block_dense_3D(itterables2aux, tmp2[hh]._data, out, npts2[hh], col, pds[hh], spoint2list[hh])
+                                elif (ndim2[hh] == 2):
+                                    write_out_block_dense_2D(itterables2aux, tmp2[hh]._data, out, npts2[hh], col, pds[hh], spoint2list[hh])
+                                elif (ndim2[hh] == 1):
+                                    write_out_block_dense_1D(itterables2aux, tmp2[hh]._data, out, npts2[hh], col, pds[hh], spoint2list[hh])
+                                else:
+                                    raise Exception("The codomain dimension must be 3, 2 or 1.")
+                            else:
+                                itterables2aux = itterables2[hh]
+                                for ii in itertools.product(*itterables2aux):
+                                    if (tmp2[hh][ii] != 0):
+                                        data.append(tmp2[hh][ii])
+                                        colarr.append(col)
+                                        row.append(
+                                            spoint2list[hh]+np.ravel_multi_index(ii, npts2[hh]))        
+                    #################################
+                    if BoS == "b":
+                        if (rank == currentrank):
+                            v[h][i] = 0.0
+                        v[h].update_ghost_regions()
+                    elif BoS == "s":
+                        if (rank == currentrank):
+                            v[i] = 0.0
+                        v.update_ghost_regions()
+                    ##################################
+                cummulative = 1
+                for i in range(ndim[h]):
+                    cummulative *= npts[h][i]
+                spoint += cummulative
+                npredim += ndim[h]
+            currentrank += 1
+        
+        if is_sparse == False:
+            return out
+        else:
+            return sparse.csr_matrix((data, (row, colarr)), shape=(numrows, numcols))
+    
+    
+    # Function that returns the local matrix corresponding to the linear operator. Returns a scipy.sparse.csr.csr_matrix.
+    def tosparse(self):
+        """
+        Transforms the linear operator into a matrix, which is stored in sparse csr format.
+
+        Returns
+        -------
+        out : Numpy.ndarray or scipy.sparse.csr.csr_matrix
+            The matrix form of the linear operator. If ran in parallel each rank gets the local
+            matrix representation of the linear operator.
+        """
+        return self.__tosparse_array(is_sparse=True)
+    
+    
+    # Function that returns the matrix corresponding to the linear operator. Returns a numpy array.
+    def toarray(self, out=None):
+        """
+        Transforms the linear operator into a matrix, which is stored in dense format.
+
+        Parameters
+        ----------
+        out : Numpy.ndarray, optional
+            If given, the output will be written in-place into this array.
+            
+        Returns
+        -------
+        out : Numpy.ndarray
+            The matrix form of the linear operator. If ran in parallel each rank gets the local
+            matrix representation of the linear operator.
+        """
+        return self.__tosparse_array(out=out, is_sparse=False)
 
     @abstractmethod
     def dot(self, v, out=None):
