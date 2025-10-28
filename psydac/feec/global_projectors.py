@@ -163,11 +163,12 @@ class GlobalProjector(metaclass=ABCMeta):
                     solvercells += [V._interpolator]
                     
                     # make 1D collocation matrix in stencil format
-                    if 'cupy' in xp.__name__:
+                    if array_backend.backend == "cupy":
                         V_imat = xp.asarray(V.imat)  # converts to cupy array if not already
                     else:
                         V_imat = V.imat
 
+                    
                     row_indices, col_indices = xp.nonzero(V_imat)
 
                     for row_i, col_i in zip(row_indices, col_indices):
