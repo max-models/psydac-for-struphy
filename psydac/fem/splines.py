@@ -3,6 +3,7 @@
 
 import numpy as _np
 import cunumpy as xp
+from cunumpy.xp import array_backend
 from scipy.sparse import csc_matrix, csr_matrix, dia_matrix
 
 from psydac.linalg.stencil        import StencilVectorSpace
@@ -186,7 +187,7 @@ class SplineSpace( FemSpace ):
             # Convert to CSC format and compute sparse LU decomposition
             
             # Convert to LAPACK banded format (see DGBTRF function)
-            if "cupy" in xp.__name__:  # CuPy array
+            if array_backend.backend == "cupy":
                 imat = imat.get()
             else:
                 imat = _np.asanyarray(imat)
@@ -195,7 +196,7 @@ class SplineSpace( FemSpace ):
         else:
 
             # Convert to LAPACK banded format (see DGBTRF function)
-            if "cupy" in xp.__name__:  # CuPy array
+            if array_backend.backend == "cupy":
                 imat = imat.get()
             else:
                 imat = _np.asanyarray(imat)
@@ -228,7 +229,7 @@ class SplineSpace( FemSpace ):
             xgrid    = self.ext_greville,
             multiplicity = self._multiplicity
         )
-        if "cupy" in xp.__name__:  # CuPy array
+        if array_backend.backend == "cupy":
             imat = imat.get()
         else:
             imat = _np.asanyarray(imat)

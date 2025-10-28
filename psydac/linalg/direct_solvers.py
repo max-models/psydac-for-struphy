@@ -3,7 +3,7 @@
 
 from abc                 import abstractmethod
 import cunumpy as xp
-from psydac.arrays import array_backend
+from cunumpy.xp import array_backend
 from scipy.linalg.lapack import dgbtrf, dgbtrs, sgbtrf, sgbtrs, cgbtrf, cgbtrs, zgbtrf, zgbtrs
 from scipy.sparse        import spmatrix
 from scipy.sparse.linalg import splu
@@ -132,7 +132,7 @@ class BandedSolver(LinearSolver):
             # TODO: handle non-contiguous views?
 
             # we want FORTRAN-contiguous data (default is assumed to be C contiguous)
-            from psydac.arrays import array_backend
+            from cunumpy.xp import array_backend
             if array_backend.backend == "numpy":
                 _, self._sinfo = self._solver_function(self._bmat, self._l, self._u, out.T, self._ipiv, overwrite_b=True,
                                                    trans=transposed)

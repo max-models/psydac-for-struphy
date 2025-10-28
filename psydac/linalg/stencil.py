@@ -6,7 +6,7 @@ import os
 import warnings
 
 import cunumpy as xp
-
+from cunumpy.xp import array_backend
 from types        import MappingProxyType
 from scipy.sparse import coo_matrix, diags as sp_diags
 
@@ -1602,7 +1602,7 @@ class StencilMatrix(LinearOperator):
         ind = stencil2coo(self._data, data, rows, cols, *nrl, *ncl, *ss, *nr, *nc, *dm, *cm, *cpads, *pp)
         
         
-        if "cupy" in xp.__name__:
+        if array_backend.backend == "cupy":
             M = coo_matrix(
                 (data[:ind].get(), (rows[:ind].get(), cols[:ind].get())),
                 shape=[int(_np.prod(nr)), int(_np.prod(nc))],

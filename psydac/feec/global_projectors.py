@@ -1,7 +1,7 @@
 # -*- coding: UTF-8 -*-
 
 import cunumpy as xp
-
+from cunumpy.xp import array_backend
 from psydac.linalg.kron           import KroneckerLinearSolver, KroneckerStencilMatrix
 from psydac.linalg.stencil        import StencilMatrix, StencilVectorSpace
 from psydac.linalg.block          import BlockLinearOperator
@@ -204,7 +204,7 @@ class GlobalProjector(metaclass=ABCMeta):
                     solvercells += [V._histopolator]
                     
                     # make 1D collocation matrix in stencil format
-                    if "cupy" in xp.__name__:
+                    if array_backend.backend == "cupy":
                         row_indices, col_indices = xp.nonzero(xp.array(V.hmat))
                     else:
                         row_indices, col_indices = xp.nonzero(V.hmat)

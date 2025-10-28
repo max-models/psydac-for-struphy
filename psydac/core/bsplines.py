@@ -15,6 +15,7 @@ References:
 
 """
 import cunumpy as xp
+from cunumpy.xp import array_backend
 
 from psydac.core.bsplines_kernels import (find_span_p,
                                           find_spans_p,
@@ -751,7 +752,7 @@ def quadrature_grid(breaks, quad_rule_x, quad_rule_w):
 
     breaks = xp.ascontiguousarray(breaks, dtype=float)
 
-    if "cupy" in xp.__name__:
+    if array_backend.backend == "cupy":
         quad_rule_x = xp.ascontiguousarray(xp.array(quad_rule_x), dtype=float)
         quad_rule_w = xp.ascontiguousarray( xp.array(quad_rule_w), dtype=float )
     else:
