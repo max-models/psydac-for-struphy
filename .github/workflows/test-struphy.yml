@@ -1,0 +1,160 @@
+on:
+  push:
+    branches: [ devel-tiny, devel, main ]
+  pull_request:
+    branches: [ devel-tiny, devel, main ]
+
+jobs:
+  test_struphy:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest ]
+        # TODO: Make sure that struphy works with python > 3.11, keep the lower bound to 3.10
+        python-version: [ '3.10', '3.12', '3.13' ]
+        compile_language: ['c', 'fortran']
+        isMerge:
+          - ${{ github.event_name == 'push' && github.ref == 'refs/heads/devel' }}
+        # exclude:
+        #  - { isMerge: false, python-version: '3.10' }
+        #  - { isMerge: false, python-version: '3.11' }
+        # include:
+        #   - os: macos-14
+        #     python-version: '3.10'
+        #   - os: macos-14
+        #     python-version: '3.13'
+
+    name: Test Struphy on ${{ matrix.os }} / Python ${{ matrix.python-version }} / ${{ matrix.compile_language }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+          cache-dependency-path: |
+            pyproject.toml
+            requirements.txt
+
+      - name: Install non-Python dependencies on Ubuntu
+        if: matrix.os == 'ubuntu-latest'
+        uses: awalsh128/cache-apt-pkgs-action@latest
+        with:
+          packages: gfortran openmpi-bin libopenmpi-dev libhdf5-openmpi-dev g++ liblapack3 cmake cmake-curses-gui zlib1g-dev libnetcdf-dev libnetcdff-dev
+          version: 1.0
+          execute_install_scripts: true
+
+      # When loading cached apt packages, the default MPI compiler isn't set.
+      # Workaround is to 'reinstall' openmpi-bin, which doesn't actually perform
+      # installation (since openmpi-bin already exists), but instead reruns
+      # `update-alternatives` which fixes the symlinks to mpicc/mpif90.
+      - name: Reconfigure non-Python dependencies on Ubuntu
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --reinstall openmpi-bin libhdf5-openmpi-dev liblapack-dev libblas-dev liblapack3
+
+      - name: Install non-Python dependencies on macOS
+        if: matrix.os == 'macos-14'
+        run: |
+          brew install open-mpi
+          brew install hdf5-mpi
+          brew install libomp
+          brew update
+          brew install python3
+          brew install gcc
+          brew install openblas
+          brew install lapack
+          brew install git
+          brew install pandoc
+          brew install cmake
+          brew install netcdf-fortran
+          brew install pkgconf
+          GFORTRAN_HOME=$(which gfortran || true)
+          echo "GFORTRAN_HOME : $GFORTRAN_HOME"
+          if [[ ! -f "$GFORTRAN_HOME" ]]; then
+            gfort=$(find ${PATH//:/\/ } -name 'gfortran-*' -exec basename {} \; | sort | tail -n 1 || true)
+            echo "Found $gfort"
+            gfort_path=$(which ${gfort})
+            folder=$(dirname ${gfort_path})
+            ln -s ${gfort_path} ${folder}/gfortran
+          fi
+          echo "MPI_OPTS=--oversubscribe" >> $GITHUB_ENV
+
+      - name: Print information on MPI and HDF5 libraries
+        run: |
+          ompi_info
+          h5pcc -showconfig -echo || true
+
+      - name: Upgrade pip
+        run: |
+          python -m pip install --upgrade pip
+
+      - name: Install project without mpi
+        run: |
+          python -m pip install ".[test]" --no-cache-dir
+          python -m pip freeze
+      
+      - name: Set up environment variables
+        run: |
+          echo "PSYDAC_DIR=$GITHUB_WORKSPACE" >> $GITHUB_ENV
+          echo "STRUPHY_DIR=$GITHUB_WORKSPACE/struphy" >> $GITHUB_ENV
+
+      - name: Clone struphy from GitLab
+        run: |
+          git clone https://gitlab.mpcdf.mpg.de/struphy/struphy.git $STRUPHY_DIR
+      
+      - name: Install struphy without mpi #TODO: Set branch to devel
+        working-directory: ${{ env.STRUPHY_DIR }}
+        run: |
+          echo "Psydac location for this branch"
+          pip show psydac
+          pip uninstall psydac -y
+          python -m pip install ".[phys]" --no-cache-dir
+          echo "Psydac location after installing struphy"
+          pip show psydac
+          
+      - name: Re-install Psydac from the current branch
+        run: |
+          echo "Uninstall psydac"
+          psydac-accelerate --cleanup --yes
+          pip show psydac
+          pip uninstall psydac -y
+          python -m pip install ${{ env.PSYDAC_DIR }} --force-reinstall --no-cache-dir
+          echo "Psydac location after installing psydac from the current branch (should be the same as in the previous step)"
+          pip show psydac
+          
+      - name: Compile struphy
+        working-directory: ${{ env.STRUPHY_DIR }}
+        run: |
+          pip show psydac
+          struphy -h
+          struphy compile -y --language ${{ matrix.compile_language }}
+
+      - name: Run struphy unit tests
+        working-directory: ${{ env.STRUPHY_DIR }}
+        run: |
+            struphy test unit
+      
+      - name: Run struphy model tests
+        working-directory: ${{ env.STRUPHY_DIR }}
+        run: |
+            struphy test models --fast
+
+      - name: Install mpi4py
+        working-directory: ${{ env.STRUPHY_DIR }}
+        run: |
+            pip install -U mpi4py
+
+      - name: Run struphy unit tests with mpi
+        working-directory: ${{ env.STRUPHY_DIR }}
+        run: |
+            struphy test unit --mpi 2
+
+      - name: Remove test directory
+        if: always()
+        run: |
+          rm -rf pytest
