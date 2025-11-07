@@ -1,10 +1,8 @@
 name: Test struphy
 
 on:
-  push:
-    branches: [ devel-tiny, devel, main ]
   pull_request:
-    branches: [ devel-tiny, devel, main ]
+    branches: [devel-tiny]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
