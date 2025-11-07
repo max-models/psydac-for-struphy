@@ -28,70 +28,8 @@ jobs:
     name: Test Struphy on ${{ matrix.os }} / Python ${{ matrix.python-version }} / ${{ matrix.compile_language }}
 
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-          cache: 'pip'
-          cache-dependency-path: |
-            pyproject.toml
-            requirements.txt
-
-      - name: Install non-Python dependencies on Ubuntu
-        if: matrix.os == 'ubuntu-latest'
-        uses: awalsh128/cache-apt-pkgs-action@latest
-        with:
-          packages: gfortran openmpi-bin libopenmpi-dev libhdf5-openmpi-dev g++ liblapack3 cmake cmake-curses-gui zlib1g-dev libnetcdf-dev libnetcdff-dev
-          version: 1.0
-          execute_install_scripts: true
-
-      # When loading cached apt packages, the default MPI compiler isn't set.
-      # Workaround is to 'reinstall' openmpi-bin, which doesn't actually perform
-      # installation (since openmpi-bin already exists), but instead reruns
-      # `update-alternatives` which fixes the symlinks to mpicc/mpif90.
-      - name: Reconfigure non-Python dependencies on Ubuntu
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          sudo apt-get update
-          sudo apt-get install --reinstall openmpi-bin libhdf5-openmpi-dev liblapack-dev libblas-dev liblapack3
-
-      - name: Install non-Python dependencies on macOS
-        if: matrix.os == 'macos-14'
-        run: |
-          brew install open-mpi
-          brew install hdf5-mpi
-          brew install libomp
-          brew update
-          brew install python3
-          brew install gcc
-          brew install openblas
-          brew install lapack
-          brew install git
-          brew install pandoc
-          brew install cmake
-          brew install netcdf-fortran
-          brew install pkgconf
-          GFORTRAN_HOME=$(which gfortran || true)
-          echo "GFORTRAN_HOME : $GFORTRAN_HOME"
-          if [[ ! -f "$GFORTRAN_HOME" ]]; then
-            gfort=$(find ${PATH//:/\/ } -name 'gfortran-*' -exec basename {} \; | sort | tail -n 1 || true)
-            echo "Found $gfort"
-            gfort_path=$(which ${gfort})
-            folder=$(dirname ${gfort_path})
-            ln -s ${gfort_path} ${folder}/gfortran
-          fi
-          echo "MPI_OPTS=--oversubscribe" >> $GITHUB_ENV
-
-      - name: Print information on MPI and HDF5 libraries
-        run: |
-          ompi_info
-          h5pcc -showconfig -echo || true
-
-      - name: Upgrade pip
-        run: |
-          python -m pip install --upgrade pip
+      - name: Install prerequisites
+        uses: ./.github/actions/install/psydac-req
 
       - name: Install project without mpi
         run: |
