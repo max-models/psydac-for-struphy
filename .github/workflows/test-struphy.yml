@@ -48,9 +48,9 @@ jobs:
           echo "PSYDAC_DIR=$GITHUB_WORKSPACE" >> $GITHUB_ENV
           echo "STRUPHY_DIR=$GITHUB_WORKSPACE/struphy" >> $GITHUB_ENV
 
-      - name: Clone struphy from GitLab
+      - name: Clone struphy from Github
         run: |
-          git clone https://gitlab.mpcdf.mpg.de/struphy/struphy.git $STRUPHY_DIR
+          git clone https://github.com/struphy-hub/struphy.git $STRUPHY_DIR
       
       - name: Install struphy without mpi #TODO: Set branch to devel
         working-directory: ${{ env.STRUPHY_DIR }}
@@ -87,7 +87,7 @@ jobs:
       - name: Run struphy model tests
         working-directory: ${{ env.STRUPHY_DIR }}
         run: |
-            struphy test models --fast
+            struphy test models 
 
       - name: Install mpi4py
         working-directory: ${{ env.STRUPHY_DIR }}
