@@ -9,8 +9,8 @@ runs:
           python-version: ${{ matrix.python-version }}
           cache: 'pip'
           cache-dependency-path: |
-          pyproject.toml
-          requirements.txt
+            pyproject.toml
+            requirements.txt
 
     - name: Install non-Python dependencies on Ubuntu
       if: matrix.os == 'ubuntu-latest'
