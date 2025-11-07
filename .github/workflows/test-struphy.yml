@@ -28,6 +28,9 @@ jobs:
     name: Test Struphy on ${{ matrix.os }} / Python ${{ matrix.python-version }} / ${{ matrix.compile_language }}
 
     steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
       - name: Install prerequisites
         uses: ./.github/actions/install/psydac-req
 
