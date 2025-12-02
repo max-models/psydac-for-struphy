@@ -64,7 +64,7 @@ jobs:
           ls .testmon* || echo "No .testmondata"
 
       - name: Install Psydac in container
-        uses: ./.github/actions/install/psydac_in_container
+        uses: ./.github/actions/install/psydac-in-container
         with:
           compile_language: ${{ matrix.compile_language }}
       
