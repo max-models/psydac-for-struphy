@@ -2,7 +2,7 @@ name: Test struphy
 
 on:
   push:
-    branches: [devel-tiny]
+    # branches: [devel-tiny]
   workflow_dispatch:
 
 concurrency:
@@ -24,6 +24,11 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
+
+      - name: Set up environment variables
+        run: |
+          echo "PSYDAC_DIR=$GITHUB_WORKSPACE" >> $GITHUB_ENV
+          echo "STRUPHY_DIR=$GITHUB_WORKSPACE/struphy" >> $GITHUB_ENV
 
       - name: Check .testmondata 1
         run: |
@@ -53,11 +58,6 @@ jobs:
         run: |
           python -m pip install ".[test]" --no-cache-dir
           python -m pip freeze
-      
-      - name: Set up environment variables
-        run: |
-          echo "PSYDAC_DIR=$GITHUB_WORKSPACE" >> $GITHUB_ENV
-          echo "STRUPHY_DIR=$GITHUB_WORKSPACE/struphy" >> $GITHUB_ENV
 
       - name: Clone struphy from Github
         run: |
@@ -84,40 +84,30 @@ jobs:
           pip show psydac
           
       - name: Compile struphy
-        working-directory: ${{ env.STRUPHY_DIR }}
         run: |
           pip show psydac
           struphy -h
           struphy compile -y --language ${{ matrix.compile_language }}
 
       - name: Run struphy unit tests
-        working-directory: ${{ env.STRUPHY_DIR }}
         env:
           TESTMON_DATAFILE: ${{ github.workspace }}/.testmondata-struphy
         run: |
             struphy test unit
       
       - name: Run struphy model tests
-        working-directory: ${{ env.STRUPHY_DIR }}
         env:
           TESTMON_DATAFILE: ${{ github.workspace }}/.testmondata-struphy
         run: |
             struphy test models 
 
       - name: Install mpi4py
-        working-directory: ${{ env.STRUPHY_DIR }}
         run: |
             pip install -U mpi4py
 
       - name: Run struphy model tests with mpi
-        working-directory: ${{ env.STRUPHY_DIR }}
         env:
           TESTMON_DATAFILE: ${{ github.workspace }}/.testmondata-struphy-mpi
         run: |
             struphy test Maxwell
             struphy test models --mpi 2
-
-      - name: Remove test directory
-        if: always()
-        run: |
-          rm -rf pytest
