@@ -63,49 +63,39 @@ jobs:
         run: |
           ls .testmon* || echo "No .testmondata"
 
-      - name: Install Psydac without mpi
-        run: |
-          ls 
-          cd struphy_${{ matrix.compile_language }}_
-          source env_${{ matrix.compile_language }}_/bin/activate
-          pip show psydac
-          psydac-accelerate --cleanup --yes
-          pip uninstall psydac -y
-          python3 -m pip install . --force-reinstall --no-cache-dir
+      - name: Install Psydac in container
+        uses: ./.github/actions/install/psydac_in_container
+        with:
+          compile_language: ${{ matrix.compile_language }}
       
       - name: Compile psydac kernels
         run: |
-          cd struphy_${{ matrix.compile_language }}_
-          source env_${{ matrix.compile_language }}_/bin/activate
+          source /struphy_${{ matrix.compile_language }}_(env_${{ matrix.compile_language }}_/bin/activate
           psydac-accelerate --language ${{ matrix.compile_language }}
 
       - name: Run struphy unit tests
         env:
           TESTMON_DATAFILE: ${{ github.workspace }}/.testmondata-struphy
         run: |
-          cd struphy_${{ matrix.compile_language }}_
-          source env_${{ matrix.compile_language }}_/bin/activate
+          source /struphy_${{ matrix.compile_language }}_(env_${{ matrix.compile_language }}_/bin/activate
           struphy test unit
       
       - name: Run struphy model tests
         env:
           TESTMON_DATAFILE: ${{ github.workspace }}/.testmondata-struphy
         run: |
-          cd struphy_${{ matrix.compile_language }}_
-          source env_${{ matrix.compile_language }}_/bin/activate
+          source /struphy_${{ matrix.compile_language }}_(env_${{ matrix.compile_language }}_/bin/activate
           struphy test models 
 
       - name: Install mpi4py
         run: |
-          cd struphy_${{ matrix.compile_language }}_
-          source env_${{ matrix.compile_language }}_/bin/activate
+          source /struphy_${{ matrix.compile_language }}_(env_${{ matrix.compile_language }}_/bin/activate
           pip install -U mpi4py
 
       - name: Run struphy model tests with mpi
         env:
           TESTMON_DATAFILE: ${{ github.workspace }}/.testmondata-struphy-mpi
         run: |
-          cd struphy_${{ matrix.compile_language }}_
-          source env_${{ matrix.compile_language }}_/bin/activate
+          source /struphy_${{ matrix.compile_language }}_(env_${{ matrix.compile_language }}_/bin/activate
           struphy test Maxwell
           struphy test models --mpi 2
