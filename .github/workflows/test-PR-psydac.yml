@@ -44,10 +44,10 @@ jobs:
 
       - name: Install project without mpi
         run: |
-          python -m venv env
+          python3 -m venv env
           source env/bin/activate
-          python -m pip install ".[test]" --no-cache-dir
-          python -m pip freeze
+          python3 -m pip install ".[test]" --no-cache-dir
+          python3 -m pip freeze
       
       - name: Compile psydac kernels
         run: |
@@ -67,19 +67,19 @@ jobs:
         run: |
           source env/bin/activate
           cd pytest
-          python -m pytest -n auto --pyargs psydac -m "not parallel and not petsc"
+          python3 -m pytest -n auto --pyargs psydac -m "not parallel and not petsc"
 
       - name: Install project with mpi
         run: |
           source env/bin/activate
-          python -m pip install ".[mpi]" 
-          python -m pip freeze
+          python3 -m pip install ".[mpi]" 
+          python3 -m pip freeze
 
       - name: Run MPI tests with Pytest
         run: |
           source env/bin/activate
           cd pytest
-          python mpi_tester.py --mpirun="mpiexec -n 4 ${MPI_OPTS}" --pyargs psydac -m "parallel and not petsc"
+          python3 mpi_tester.py --mpirun="mpiexec -n 4 ${MPI_OPTS}" --pyargs psydac -m "parallel and not petsc"
 
       - name: Remove test directory
         if: always()
