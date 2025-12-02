@@ -1,0 +1,110 @@
+name: PR - test Struphy in container
+
+on:
+  pull_request:
+    branches: [devel-tiny]
+  push:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+permissions:
+  contents: read
+
+jobs:
+  test_struphy:
+    runs-on: ubuntu-latest
+
+    container:
+      image: ghcr.io/struphy-hub/struphy/ubuntu-with-struphy:latest
+      credentials:
+        username: spossann
+        password: ${{ secrets.GHCR_PROJECT_TOKEN }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        # TODO: Make sure that struphy works with python > 3.11, keep the lower bound to 3.10
+        python-version: [ '3.12' ]
+        compile_language: ['c', 'fortran']
+
+    name: Test Struphy for Python ${{ matrix.python-version }} / ${{ matrix.compile_language }}
+
+    steps:
+      - name: Check for dockerenv file
+        run: (ls /.dockerenv && echo Found dockerenv) || (echo No dockerenv)
+
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Check .testmondata 1
+        run: |
+          ls .testmon* || echo "No .testmondata"
+
+      - name: Setup cache for testmon
+        uses: actions/cache@v4
+        with:
+          path: |
+            struphy_${{ matrix.compile_language }}_/.testmondata-struphy
+            struphy_${{ matrix.compile_language }}_/.testmondata-struphy-mpi
+          key: testmon-struphy-${{ github.ref_name }}-${{ github.event.number }}-${{ github.run_number }}
+          restore-keys: |
+            testmon-struphy-${{ github.ref_name }}-${{ github.event.number }}-
+            testmon-struphy-${{ github.ref_name }}
+            testmon-struphy-devel
+            testmon-struphy-
+
+      - name: Check .testmondata 2
+        run: |
+          ls .testmon* || echo "No .testmondata"
+
+      - name: Install Psydac without mpi
+        working-directory: struphy_${{ matrix.compile_language }}_
+        run: |
+          source env_${{ matrix.compile_language }}_/bin/activate
+          pip show psydac
+          psydac-accelerate --cleanup --yes
+          pip uninstall psydac -y
+          python3 -m pip install . --force-reinstall --no-cache-dir
+      
+      - name: Compile psydac kernels
+        working-directory: struphy_${{ matrix.compile_language }}_
+        run: |
+          source env_${{ matrix.compile_language }}_/bin/activate
+          psydac-accelerate --language ${{ matrix.compile_language }}
+
+      - name: Run struphy unit tests
+        working-directory: struphy_${{ matrix.compile_language }}_
+        env:
+          TESTMON_DATAFILE: ${{ github.workspace }}/.testmondata-struphy
+        run: |
+            source env_${{ matrix.compile_language }}_/bin/activate
+            struphy test unit
+      
+      - name: Run struphy model tests
+        working-directory: struphy_${{ matrix.compile_language }}_
+        env:
+          TESTMON_DATAFILE: ${{ github.workspace }}/.testmondata-struphy
+        run: |
+            source env_${{ matrix.compile_language }}_/bin/activate
+            struphy test models 
+
+      - name: Install mpi4py
+        working-directory: struphy_${{ matrix.compile_language }}_
+        run: |
+            source env_${{ matrix.compile_language }}_/bin/activate
+            pip install -U mpi4py
+
+      - name: Run struphy model tests with mpi
+        working-directory: struphy_${{ matrix.compile_language }}_
+        env:
+          TESTMON_DATAFILE: ${{ github.workspace }}/.testmondata-struphy-mpi
+        run: |
+            source env_${{ matrix.compile_language }}_/bin/activate
+            struphy test Maxwell
+            struphy test models --mpi 2
