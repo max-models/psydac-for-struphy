@@ -50,8 +50,8 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            .testmondata-struphy
-            .testmondata-struphy-mpi
+            .testmondata-struphy-${{ matrix.compile_language }}
+            .testmondata-struphy-${{ matrix.compile_language }}-mpi
           key: testmon-struphy-${{ github.ref_name }}-${{ github.event.number }}-${{ github.run_number }}
           restore-keys: |
             testmon-struphy-${{ github.ref_name }}-${{ github.event.number }}-
@@ -75,7 +75,7 @@ jobs:
 
       - name: Run struphy unit tests
         env:
-          TESTMON_DATAFILE: ${{ github.workspace }}/.testmondata-struphy
+          TESTMON_DATAFILE: ${{ github.workspace }}/.testmondata-struphy-${{ matrix.compile_language }}
         run: |
           source /struphy_${{ matrix.compile_language }}_/env_${{ matrix.compile_language }}_/bin/activate
           struphy test Maxwell
@@ -83,7 +83,7 @@ jobs:
       
       - name: Run struphy model tests
         env:
-          TESTMON_DATAFILE: ${{ github.workspace }}/.testmondata-struphy
+          TESTMON_DATAFILE: ${{ github.workspace }}/.testmondata-struphy-${{ matrix.compile_language }}
         run: |
           source /struphy_${{ matrix.compile_language }}_/env_${{ matrix.compile_language }}_/bin/activate
           struphy test models 
@@ -95,7 +95,7 @@ jobs:
 
       - name: Run struphy model tests with mpi
         env:
-          TESTMON_DATAFILE: ${{ github.workspace }}/.testmondata-struphy-mpi
+          TESTMON_DATAFILE: ${{ github.workspace }}/.testmondata-struphy-${{ matrix.compile_language }}-mpi
         run: |
           source /struphy_${{ matrix.compile_language }}_/env_${{ matrix.compile_language }}_/bin/activate
           struphy test Maxwell
