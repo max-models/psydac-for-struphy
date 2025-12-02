@@ -1,8 +1,9 @@
 name: Test psydac
 
 on:
-  pull_request:
+  push:
     branches: [devel-tiny]
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
