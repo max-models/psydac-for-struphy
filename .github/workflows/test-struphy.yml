@@ -2,7 +2,7 @@ name: Test struphy
 
 on:
   push:
-    # branches: [devel-tiny]
+    branches: [devel-tiny]
   workflow_dispatch:
 
 concurrency:

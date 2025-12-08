@@ -3,7 +3,6 @@ name: PR - test Struphy in container
 on:
   pull_request:
     branches: [devel-tiny]
-  push:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
