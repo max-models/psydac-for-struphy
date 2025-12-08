@@ -40,11 +40,12 @@ jobs:
           path: |
             .testmondata-struphy-${{ matrix.compile_language }}
             .testmondata-struphy-${{ matrix.compile_language }}-mpi
-          key: testmon-struphy-${{ github.ref_name }}-${{ github.event.number }}-${{ github.run_number }}
+          key: testmon-struphy-${{ matrix.compile_language }}-${{ github.ref_name }}-${{ github.event.number }}-${{ github.run_number }}
           restore-keys: |
-            testmon-struphy-${{ github.ref_name }}-${{ github.event.number }}-
-            testmon-struphy-${{ github.ref_name }}
-            testmon-struphy-devel
+            testmon-struphy-${{ matrix.compile_language }}-${{ github.ref_name }}-${{ github.event.number }}-
+            testmon-struphy-${{ matrix.compile_language }}-${{ github.ref_name }}
+            testmon-struphy-${{ matrix.compile_language }}-devel
+            testmon-struphy-${{ matrix.compile_language }}-
             testmon-struphy-
 
       - name: Check .testmondata 2
