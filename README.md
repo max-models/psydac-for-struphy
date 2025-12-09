@@ -4,6 +4,6 @@ This is a fork of [Psydac](https://github.com/pyccel/psydac) that provides Finit
 
 The latest version can be installed with
 ```
-pip install -U slimfeec
+pip install -U feectools
 ```
 See the [Struphy documentation](https://struphy-hub.github.io/struphy/index.html) for details on how to use.

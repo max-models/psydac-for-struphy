@@ -3,7 +3,7 @@ requires = ["setuptools >= 64.0, != 67.2.0", "wheel", "numpy", "pyccel >= 2.0.1"
 build-backend = "setuptools.build_meta"
 
 [project]
-name            = "slimfeec"
+name            = "feectools"
 version         = "0.1.0"
 description     = "Fork of Psydac (https://github.com/pyccel/psydac) with less functionality and fewer dependencies."
 readme          = "README.md"
