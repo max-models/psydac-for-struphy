@@ -3,9 +3,9 @@ requires = ["setuptools >= 64.0, != 67.2.0", "wheel", "numpy", "pyccel >= 2.0.1"
 build-backend = "setuptools.build_meta"
 
 [project]
-name            = "psydac"
-version         = "3.0.0.dev0"
-description     = "Python package for isogeometric analysis (IGA)"
+name            = "slimfeec"
+version         = "0.1.0"
+description     = "Fork of Psydac (https://github.com/pyccel/psydac) with less functionality and fewer dependencies."
 readme          = "README.md"
 requires-python = ">= 3.10"
 license         = {file = "LICENSE"}
@@ -16,6 +16,8 @@ maintainers = [
     {name = "Yaman Güçlü", email = "yaman.guclu@gmail.com"},
     {name = "Martin Campos Pinto", email = "martin.campos-pinto@ipp.mpg.de"},
     {name = "Ahmed Ratnani", email = "ratnaniahmed@gmail.com"},
+    {name = "Stefan Possanner", email = "stefan.possanner@ipp.mpg.de"},
+    {name = "Max Lindqvist", email = "max.lindqvist@ipp.mpg.de"},
 ]
 keywords     = ["FEM", "IGA", "B-spline", "NURBS"]
 classifiers  = ["Programming Language :: Python :: 3"]
@@ -51,9 +53,9 @@ mpi = [
 ]
 
 [project.urls]
-Homepage      = "https://github.com/pyccel/psydac"
-Documentation = "https://pyccel.github.io/psydac"
-Repository    = "https://github.com/pyccel/psydac.git"
+Homepage      = "https://github.com/struphy-hub/psydac-for-struphy"
+Documentation = "https://github.com/struphy-hub/psydac-for-struphy"
+Repository    = "https://github.com/struphy-hub/psydac-for-struphy"
 
 [project.scripts]
 psydac-mesh = "psydac.cmd.mesh:main"
