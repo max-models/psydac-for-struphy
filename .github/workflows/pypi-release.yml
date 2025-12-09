@@ -13,7 +13,7 @@ jobs:
 
     environment:
       name: testpypi
-      url: https://test.pypi.org/project/feec-test/
+      url: https://test.pypi.org/project/slimfeec-test/
 
     permissions:
       id-token: write  # IMPORTANT: this permission is mandatory for trusted publishing
