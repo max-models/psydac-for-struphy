@@ -63,6 +63,13 @@ jobs:
         run: |
           ls .testmon* || echo "No .testmondata"
 
+      # temporary - remove after feectools merge
+      - name: Install Struphy in container
+        uses: ./.github/actions/install/struphy-in-container
+        with:
+          compile_language: ${{ matrix.compile_language }}
+          struphy_branch: 146-install-feectools
+
       - name: Install Psydac in container
         uses: ./.github/actions/install/psydac-in-container
         with:
