@@ -120,7 +120,7 @@ def psydac_compile(language, compiler_family, compiler_config, omp, delete, stat
     cmd = [
         "make",
         "-f",
-        "compile_feectools.mk",
+        "compile_psydac.mk",
         "sources=" + sources,
         "flags=" + flags,
         "flags_openmp=" + flag_omp,
@@ -145,7 +145,7 @@ def cleanup_files(root_path: str):
         "make",
         "clean",
         "-f",
-        "compile_feectools.mk",
+        "compile_psydac.mk",
         "sources=" + sources,
     ]
     subp_run(cmd, cwd=psydac_makefile_dir)

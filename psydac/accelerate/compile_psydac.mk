@@ -6,7 +6,7 @@
 PYTHON  := python3
 SO_EXT  := $(shell $(PYTHON) -c "import sysconfig; print(sysconfig.get_config_var('EXT_SUFFIX'))")
 LIBDIR  := $(shell $(PYTHON) -c "import sysconfig; print(sysconfig.get_config_var('LIBDIR'))")
-psydac_path := $(shell $(PYTHON) -c "import psydac as _; print(_.__path__[0])")
+psydac_path := $(shell $(PYTHON) -c "import feectools as _; print(_.__path__[0])")
 
 # Arguments to this script are: 
 PSYDAC_SOURCES := $(sources)

@@ -61,13 +61,13 @@ Repository    = "https://github.com/struphy-hub/psydac-for-struphy"
 psydac-mesh = "feectools.cmd.mesh:main"
 psydac-accelerate = "feectools.accelerate.accelerate:main"
 [tool.setuptools.packages.find]
-include = ["psydac*"]
+include = ["feectools*"]
 exclude = ["*__psydac__*"]
 namespaces = false
 
 [tool.setuptools.package-data]
 "*" = ["*.txt"]
-psydac = ['accelerate/compile_feectools.mk']
+psydac = ['accelerate/compile_psydac.mk']
 
 [tool.coverage.run]
 branch = true
