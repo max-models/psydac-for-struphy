@@ -75,10 +75,11 @@ jobs:
         with:
           compile_language: ${{ matrix.compile_language }}
       
-      - name: Compile psydac kernels
+      - name: Compile all kernels
         run: |
           source /struphy_${{ matrix.compile_language }}_/env_${{ matrix.compile_language }}_/bin/activate
-          psydac-accelerate --language ${{ matrix.compile_language }}
+          struphy compile --language ${{ matrix.compile_language }}
+        # psydac-accelerate --language ${{ matrix.compile_language }}
 
       - name: Run struphy unit tests
         env:
