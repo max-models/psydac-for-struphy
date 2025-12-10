@@ -3,10 +3,10 @@
 import numpy as np
 from math import sqrt
 
-from psydac.linalg.basic   import Vector
-from psydac.linalg.stencil import StencilVector, StencilVectorSpace
-from psydac.linalg.block   import BlockVector, BlockVectorSpace
-from psydac.linalg.topetsc import petsc_local_to_psydac, get_npts_per_block
+from feectools.linalg.basic   import Vector
+from feectools.linalg.stencil import StencilVector, StencilVectorSpace
+from feectools.linalg.block   import BlockVector, BlockVectorSpace
+from feectools.linalg.topetsc import petsc_local_to_psydac, get_npts_per_block
 
 __all__ = (
     'array_to_psydac',
@@ -25,12 +25,12 @@ def array_to_psydac(x, V):
     x : numpy.ndarray
         Array to be converted. It only contains the true data, the ghost regions must not be included.
 
-    V : psydac.linalg.stencil.StencilVectorSpace or psydac.linalg.block.BlockVectorSpace
+    V : feectools.linalg.stencil.StencilVectorSpace or feectools.linalg.block.BlockVectorSpace
         Space of the final Psydac Vector.
 
     Returns
     -------
-    u : psydac.linalg.stencil.StencilVector or psydac.linalg.block.BlockVector
+    u : feectools.linalg.stencil.StencilVector or feectools.linalg.block.BlockVector
         Element of space V, the coefficients of which (excluding ghost regions) are the entries of x. The ghost regions of u are up to date.
 
     """
@@ -77,22 +77,22 @@ def _array_to_psydac_recursive(x, u):
 def petsc_to_psydac(x, Xh, out=None):
     """
     Convert a PETSc.Vec object to a StencilVector or BlockVector. It assumes that PETSc was installed with the configuration for complex numbers.
-    Uses the index conversion functions in psydac.linalg.topetsc.py.
+    Uses the index conversion functions in feectools.linalg.topetsc.py.
 
     Parameters
     ----------
     x : PETSc.Vec
       PETSc vector
 
-    Xh : psydac.linalg.stencil.StencilVectorSpace | psydac.linalg.block.BlockVectorSpace
+    Xh : feectools.linalg.stencil.StencilVectorSpace | feectools.linalg.block.BlockVectorSpace
       Space of the coefficients of the Psydac vector.
 
-    out : psydac.linalg.stencil.StencilVector | psydac.linalg.block.BlockVector, optional
+    out : feectools.linalg.stencil.StencilVector | feectools.linalg.block.BlockVector, optional
       The Psydac vector where to store the result.
 
     Returns
     -------
-    u : psydac.linalg.stencil.StencilVector | psydac.linalg.block.BlockVector
+    u : feectools.linalg.stencil.StencilVector | feectools.linalg.block.BlockVector
         Psydac vector. In the case of a BlockVector, the blocks must be StencilVector. The general case is not yet implemented.
     """
     

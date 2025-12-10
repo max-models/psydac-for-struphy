@@ -3,10 +3,10 @@
 import pytest
 import numpy as np
 
-from psydac.ddm.mpi import mpi as MPI
-from psydac.linalg.stencil import StencilVectorSpace, StencilVector, StencilMatrix
-from psydac.linalg.utilities import array_to_psydac, petsc_to_psydac
-from psydac.ddm.cart import DomainDecomposition, CartDecomposition
+from feectools.ddm.mpi import mpi as MPI
+from feectools.linalg.stencil import StencilVectorSpace, StencilVector, StencilMatrix
+from feectools.linalg.utilities import array_to_psydac, petsc_to_psydac
+from feectools.ddm.cart import DomainDecomposition, CartDecomposition
 
 # TODO : test update ghost region interface
 # TODO : add test exchange_assembly_data

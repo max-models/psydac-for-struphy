@@ -3,12 +3,12 @@
 import pytest
 from numpy import linspace
 
-from psydac.fem.basic   import FemField
-from psydac.fem.splines import SplineSpace
-from psydac.fem.tensor  import TensorFemSpace
-from psydac.fem.vector  import VectorFemSpace
-from psydac.ddm.cart    import DomainDecomposition
-from psydac.linalg.block import BlockVector, BlockVectorSpace
+from feectools.fem.basic   import FemField
+from feectools.fem.splines import SplineSpace
+from feectools.fem.tensor  import TensorFemSpace
+from feectools.fem.vector  import VectorFemSpace
+from feectools.ddm.cart    import DomainDecomposition
+from feectools.linalg.block import BlockVector, BlockVectorSpace
 
 
 def test_vector_space_2d():

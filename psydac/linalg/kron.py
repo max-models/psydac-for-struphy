@@ -5,8 +5,8 @@ import numpy as np
 from scipy.sparse import kron
 from scipy.sparse import coo_matrix
 
-from psydac.linalg.basic   import LinearOperator, LinearSolver
-from psydac.linalg.stencil import StencilVectorSpace, StencilVector, StencilMatrix
+from feectools.linalg.basic   import LinearOperator, LinearSolver
+from feectools.linalg.stencil import StencilVectorSpace, StencilVector, StencilMatrix
 
 __all__ = ('KroneckerStencilMatrix',
            'KroneckerLinearSolver',

@@ -7,7 +7,7 @@ from scipy.linalg.lapack import dgbtrf, dgbtrs, sgbtrf, sgbtrs, cgbtrf, cgbtrs, 
 from scipy.sparse        import spmatrix
 from scipy.sparse.linalg import splu
 
-from psydac.linalg.basic    import LinearSolver
+from feectools.linalg.basic    import LinearSolver
 
 __all__ = ('BandedSolver', 'SparseSolver')
 

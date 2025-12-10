@@ -3,13 +3,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.integrate import quad
 
-from psydac.fem.basic   import FemField
-from psydac.fem.splines import SplineSpace
-#from psydac.fem.tensor  import TensorFemSpace
+from feectools.fem.basic   import FemField
+from feectools.fem.splines import SplineSpace
+#from feectools.fem.tensor  import TensorFemSpace
 
-from psydac.fem.tests.utilities              import horner, random_grid
-from psydac.fem.tests.splines_error_bounds   import spline_1d_error_bound
-from psydac.fem.tests.analytical_profiles_1d import AnalyticalProfile1D_Cos
+from feectools.fem.tests.utilities              import horner, random_grid
+from feectools.fem.tests.splines_error_bounds   import spline_1d_error_bound
+from feectools.fem.tests.analytical_profiles_1d import AnalyticalProfile1D_Cos
 
 #==============================================================================
 def histopolate_polynomial(basis, ncells, degree):

@@ -3,7 +3,7 @@
 import pytest
 import numpy as np
 
-from psydac.core.bsplines import ( find_span,
+from feectools.core.bsplines import ( find_span,
         basis_funs,
         basis_funs_1st_der,
         basis_funs_all_ders,
@@ -14,7 +14,7 @@ from psydac.core.bsplines import ( find_span,
         histopolation_matrix,
         cell_index)
 
-from psydac.fem.tests.utilities import random_grid
+from feectools.fem.tests.utilities import random_grid
 
 # TODO: add unit tests for
 #  - make_knots
@@ -212,9 +212,9 @@ if __name__ == '__main__':
     integrals_theory = np.array([(knots[i+p+1] - knots[i]) / (p+1) for i in range(nb)])
 
     # Integrals of each B-spline over domain (Gaussian quadrature)
-    from psydac.utilities.quadratures import gauss_legendre
-    from psydac.core.bsplines import quadrature_grid, basis_ders_on_quad_grid
-    from psydac.core.bsplines import elements_spans
+    from feectools.utilities.quadratures import gauss_legendre
+    from feectools.core.bsplines import quadrature_grid, basis_ders_on_quad_grid
+    from feectools.core.bsplines import elements_spans
 
     u, w = gauss_legendre(p + 1)
     quad_x, quad_w = quadrature_grid(grid, u, w)

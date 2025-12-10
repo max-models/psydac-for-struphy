@@ -6,9 +6,9 @@ This module provides iterative solvers and preconditioners.
 import numpy as np
 from math import sqrt
 
-from psydac.utilities.utils  import is_real
-from psydac.linalg.utilities import _sym_ortho
-from psydac.linalg.basic     import (Vector, LinearOperator,
+from feectools.utilities.utils  import is_real
+from feectools.linalg.utilities import _sym_ortho
+from feectools.linalg.basic     import (Vector, LinearOperator,
         InverseLinearOperator, IdentityOperator, ScaledLinearOperator)
 
 __all__ = (
@@ -36,7 +36,7 @@ def inverse(A, solver, **kwargs):
     
     Parameters
     ----------
-    A : psydac.linalg.basic.LinearOperator
+    A : feectools.linalg.basic.LinearOperator
         Left-hand-side matrix A of linear system; individual entries A[i,j]
         can't be accessed, but A has 'shape' attribute and provides 'dot(p)'
         function (e.g. a matrix-vector product A*p).
@@ -47,9 +47,9 @@ def inverse(A, solver, **kwargs):
 
     Returns
     -------
-    obj : psydac.linalg.basic.InverseLinearOperator
+    obj : feectools.linalg.basic.InverseLinearOperator
         A linear operator acting as the inverse of A, of the chosen subclass
-        (for example psydac.linalg.solvers.ConjugateGradient).
+        (for example feectools.linalg.solvers.ConjugateGradient).
 
     """
 
@@ -97,12 +97,12 @@ class ConjugateGradient(InverseLinearOperator):
 
     Parameters
     ----------
-    A : psydac.linalg.basic.LinearOperator
+    A : feectools.linalg.basic.LinearOperator
         Left-hand-side matrix A of linear system; individual entries A[i,j]
         can't be accessed, but A has 'shape' attribute and provides 'dot(p)'
         function (i.e. matrix-vector product A*p).
 
-    x0 : psydac.linalg.basic.Vector
+    x0 : feectools.linalg.basic.Vector
         First guess of solution for iterative solver (optional).
 
     tol : float
@@ -140,18 +140,18 @@ class ConjugateGradient(InverseLinearOperator):
 
         Parameters
         ----------
-        b : psydac.linalg.basic.Vector
+        b : feectools.linalg.basic.Vector
             Right-hand-side vector of linear system Ax = b. Individual entries b[i] need
             not be accessed, but b has 'shape' attribute and provides 'copy()' and
             'inner(p)' functions (b.inner(p) is the vector inner product b*p); moreover,
             scalar multiplication and sum operations are available.
 
-        out : psydac.linalg.basic.Vector | NoneType
+        out : feectools.linalg.basic.Vector | NoneType
             The output vector, or None (optional).
 
         Returns
         -------
-        x : psydac.linalg.basic.Vector
+        x : feectools.linalg.basic.Vector
             Numerical solution of the linear system. To check the convergence of the solver,
             use the method InverseLinearOperator.get_info().
 
@@ -253,15 +253,15 @@ class PConjugateGradient(InverseLinearOperator):
 
     Parameters
     ----------
-    A : psydac.linalg.basic.LinearOperator
+    A : feectools.linalg.basic.LinearOperator
         Left-hand-side matrix A of the linear system. This should be symmetric
         and positive definite.
 
-    pc: psydac.linalg.basic.LinearOperator
+    pc: feectools.linalg.basic.LinearOperator
         Preconditioner which should approximate the inverse of A (optional).
         Like A, the preconditioner should be symmetric and positive definite.
 
-    x0 : psydac.linalg.basic.Vector
+    x0 : feectools.linalg.basic.Vector
         First guess of solution for iterative solver (optional).
 
     tol : float
@@ -304,15 +304,15 @@ class PConjugateGradient(InverseLinearOperator):
 
         Parameters
         ----------
-        b : psydac.linalg.stencil.StencilVector
+        b : feectools.linalg.stencil.StencilVector
             Right-hand-side vector of linear system.
 
-        out : psydac.linalg.basic.Vector | NoneType
+        out : feectools.linalg.basic.Vector | NoneType
             The output vector, or None (optional).
 
         Returns
         -------
-        x : psydac.linalg.basic.Vector
+        x : feectools.linalg.basic.Vector
             Numerical solution of the linear system. To check the convergence of the solver,
             use the method InverseLinearOperator.get_info().
 
@@ -419,12 +419,12 @@ class BiConjugateGradient(InverseLinearOperator):
 
     Parameters
     ----------
-    A : psydac.linalg.basic.LinearOperator
+    A : feectools.linalg.basic.LinearOperator
         Left-hand-side matrix A of linear system; individual entries A[i,j]
         can't be accessed, but A has 'shape' attribute and provides 'dot(p)'
         function (i.e. matrix-vector product A*p).
 
-    x0 : psydac.linalg.basic.Vector
+    x0 : feectools.linalg.basic.Vector
         First guess of solution for iterative solver (optional).
 
     tol : float
@@ -463,18 +463,18 @@ class BiConjugateGradient(InverseLinearOperator):
 
         Parameters
         ----------
-        b : psydac.linalg.basic.Vector
+        b : feectools.linalg.basic.Vector
             Right-hand-side vector of linear system. Individual entries b[i] need
             not be accessed, but b has 'shape' attribute and provides 'copy()' and
             'inner(p)' functions (b.inner(p) is the vector inner product b*p); moreover,
             scalar multiplication and sum operations are available.
 
-        out : psydac.linalg.basic.Vector | NoneType
+        out : feectools.linalg.basic.Vector | NoneType
             The output vector, or None (optional).
 
         Returns
         -------
-        x : psydac.linalg.basic.Vector
+        x : feectools.linalg.basic.Vector
             Numerical solution of linear system. To check the convergence of the solver,
             use the method InverseLinearOperator.get_info().
 
@@ -609,12 +609,12 @@ class BiConjugateGradientStabilized(InverseLinearOperator):
 
     Parameters
     ----------
-    A : psydac.linalg.basic.LinearOperator
+    A : feectools.linalg.basic.LinearOperator
         Left-hand-side matrix A of linear system; individual entries A[i,j]
         can't be accessed, but A has 'shape' attribute and provides 'dot(p)'
         function (i.e. matrix-vector product A*p).
 
-    x0 : psydac.linalg.basic.Vector
+    x0 : feectools.linalg.basic.Vector
         First guess of solution for iterative solver (optional).
 
     tol : float
@@ -651,17 +651,17 @@ class BiConjugateGradientStabilized(InverseLinearOperator):
 
         Parameters
         ----------
-        b : psydac.linalg.basic.Vector
+        b : feectools.linalg.basic.Vector
             Right-hand-side vector of linear system. Individual entries b[i] need
             not be accessed, but b has 'shape' attribute and provides 'copy()' and
             'inner(p)' functions (b.inner(p) is the vector inner product b*p); moreover,
             scalar multiplication and sum operations are available.
-        out : psydac.linalg.basic.Vector | NoneType
+        out : feectools.linalg.basic.Vector | NoneType
             The output vector, or None (optional).
 
         Returns
         -------
-        x : psydac.linalg.basic.Vector
+        x : feectools.linalg.basic.Vector
             Numerical solution of linear system. To check the convergence of the solver,
             use the method InverseLinearOperator.get_info().
         
@@ -807,13 +807,13 @@ class PBiConjugateGradientStabilized(InverseLinearOperator):
 
     Parameters
     ----------
-    A : psydac.linalg.basic.LinearOperator
+    A : feectools.linalg.basic.LinearOperator
         Left-hand-side matrix A of linear system; individual entries A[i,j]
         can't be accessed, but A has 'shape' attribute and provides 'dot(p)'
         function (i.e. matrix-vector product A*p).
-    pc: psydac.linalg.basic.LinearOperator
+    pc: feectools.linalg.basic.LinearOperator
         Preconditioner for A, it should approximate the inverse of A (can be None).
-    x0 : psydac.linalg.basic.Vector
+    x0 : feectools.linalg.basic.Vector
         First guess of solution for iterative solver (optional).
     tol : float
         Absolute tolerance for 2-norm of residual r = A*x - b.
@@ -850,17 +850,17 @@ class PBiConjugateGradientStabilized(InverseLinearOperator):
 
         Parameters
         ----------
-        b : psydac.linalg.basic.Vector
+        b : feectools.linalg.basic.Vector
             Right-hand-side vector of linear system. Individual entries b[i] need
             not be accessed, but b has 'shape' attribute and provides 'copy()' and
             'inner(p)' functions (b.inner(p) is the vector inner product b*p); moreover,
             scalar multiplication and sum operations are available.
-        out : psydac.linalg.basic.Vector | NoneType
+        out : feectools.linalg.basic.Vector | NoneType
             The output vector, or None (optional).
         
         Returns
         -------
-        x : psydac.linalg.basic.Vector
+        x : feectools.linalg.basic.Vector
             Numerical solution of linear system. To check the convergence of the solver,
             use the method InverseLinearOperator.get_info().
         
@@ -1043,12 +1043,12 @@ class MinimumResidual(InverseLinearOperator):
 
     Parameters
     ----------
-    A : psydac.linalg.basic.LinearOperator
+    A : feectools.linalg.basic.LinearOperator
         Left-hand-side matrix A of linear system; individual entries A[i,j]
         can't be accessed, but A has 'shape' attribute and provides 'dot(p)'
         function (i.e. matrix-vector product A*p).
 
-    x0 : psydac.linalg.basic.Vector
+    x0 : feectools.linalg.basic.Vector
         First guess of solution for iterative solver (optional).
 
     tol : float
@@ -1094,18 +1094,18 @@ class MinimumResidual(InverseLinearOperator):
 
         Parameters
         ----------
-        b : psydac.linalg.basic.Vector
+        b : feectools.linalg.basic.Vector
             Right-hand-side vector of linear system. Individual entries b[i] need
             not be accessed, but b has 'shape' attribute and provides 'copy()' and
             'inner(p)' functions (b.inner(p) is the vector inner product b*p); moreover,
             scalar multiplication and sum operations are available.
 
-        out : psydac.linalg.basic.Vector | NoneType
+        out : feectools.linalg.basic.Vector | NoneType
             The output vector, or None (optional).
 
         Returns
         -------
-        x : psydac.linalg.basic.Vector
+        x : feectools.linalg.basic.Vector
             Numerical solution of linear system. To check the convergence of the solver,
             use the method InverseLinearOperator.get_info().
 
@@ -1332,12 +1332,12 @@ class LSMR(InverseLinearOperator):
 
     Parameters
     ----------
-    A : psydac.linalg.basic.LinearOperator
+    A : feectools.linalg.basic.LinearOperator
         Left-hand-side matrix A of linear system; individual entries A[i,j]
         can't be accessed, but A has 'shape' attribute and provides 'dot(p)'
         function (i.e. matrix-vector product A*p).
 
-    x0 : psydac.linalg.basic.Vector
+    x0 : feectools.linalg.basic.Vector
         First guess of solution for iterative solver (optional).
 
     tol : float
@@ -1413,18 +1413,18 @@ class LSMR(InverseLinearOperator):
 
         Parameters
         ----------
-        b : psydac.linalg.basic.Vector
+        b : feectools.linalg.basic.Vector
             Right-hand-side vector of linear system. Individual entries b[i] need
             not be accessed, but b has 'shape' attribute and provides 'copy()' and
             'inner(p)' functions (b.inner(p) is the vector inner product b*p); moreover,
             scalar multiplication and sum operations are available.
 
-        out : psydac.linalg.basic.Vector | NoneType
+        out : feectools.linalg.basic.Vector | NoneType
             The output vector, or None (optional).
 
         Returns
         -------
-        x : psydac.linalg.basic.Vector
+        x : feectools.linalg.basic.Vector
             Numerical solution of linear system. To check the convergence of the solver,
             use the method InverseLinearOperator.get_info().
 
@@ -1702,12 +1702,12 @@ class GMRES(InverseLinearOperator):
 
     Parameters
     ----------
-    A : psydac.linalg.basic.LinearOperator
+    A : feectools.linalg.basic.LinearOperator
         Left-hand-side matrix A of linear system; individual entries A[i,j]
         can't be accessed, but A has 'shape' attribute and provides 'dot(p)'
         function (i.e. matrix-vector product A*p).
 
-    x0 : psydac.linalg.basic.Vector
+    x0 : feectools.linalg.basic.Vector
         First guess of solution for iterative solver (optional).
 
     tol : float
@@ -1748,18 +1748,18 @@ class GMRES(InverseLinearOperator):
 
         Parameters
         ----------
-        b : psydac.linalg.basic.Vector
+        b : feectools.linalg.basic.Vector
             Right-hand-side vector of linear system Ax = b. Individual entries b[i] need
             not be accessed, but b has 'shape' attribute and provides 'copy()' and
             'inner(p)' functions (b.inner(p) is the vector inner product b*p); moreover,
             scalar multiplication and sum operations are available.
 
-        out : psydac.linalg.basic.Vector | NoneType
+        out : feectools.linalg.basic.Vector | NoneType
             The output vector, or None (optional).
 
         Returns
         -------
-        x : psydac.linalg.basic.Vector
+        x : feectools.linalg.basic.Vector
             Numerical solution of the linear system. To check the convergence of the solver,
             use the method InverseLinearOperator.get_info().
         

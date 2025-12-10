@@ -1,9 +1,9 @@
 import pytest
 import numpy as np
 
-from psydac.ddm.mpi import mpi as MPI
-from psydac.linalg.stencil import StencilVectorSpace, StencilVector
-from psydac.ddm.cart import DomainDecomposition, CartDecomposition, find_mpi_type
+from feectools.ddm.mpi import mpi as MPI
+from feectools.linalg.stencil import StencilVectorSpace, StencilVector
+from feectools.ddm.cart import DomainDecomposition, CartDecomposition, find_mpi_type
 
 # ===============================================================================
 def compute_global_starts_ends(domain_decomposition, npts):

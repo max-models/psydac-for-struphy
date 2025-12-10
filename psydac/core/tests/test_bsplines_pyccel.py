@@ -1,8 +1,8 @@
 import numpy as np
 import pytest
 
-from psydac.utilities.quadratures import gauss_legendre
-from psydac.core.bsplines import (find_span,
+from feectools.utilities.quadratures import gauss_legendre
+from feectools.core.bsplines import (find_span,
                                   basis_funs,
                                   basis_funs_1st_der,
                                   basis_funs_all_ders,

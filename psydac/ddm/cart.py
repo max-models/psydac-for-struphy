@@ -4,9 +4,9 @@ import os
 import numpy as np
 from itertools import product
 
-from psydac.ddm.mpi import mpi as MPI
-from psydac.ddm.mpi import MockMPI
-from psydac.ddm.partition import compute_dims, partition_procs_per_patch
+from feectools.ddm.mpi import mpi as MPI
+from feectools.ddm.mpi import MockMPI
+from feectools.ddm.partition import compute_dims, partition_procs_per_patch
 
 
 __all__ = ('find_mpi_type',
@@ -644,7 +644,7 @@ class CartDecomposition():
         """ Convert the cart to a petsc cart.
         """
         if self._petsccart is None:
-            from psydac.ddm.petsc import PetscCart
+            from feectools.ddm.petsc import PetscCart
             self._petsccart = PetscCart(self)
         return self._petsccart
 

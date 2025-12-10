@@ -1,21 +1,21 @@
 # coding: utf-8
 # Copyright 2018 Yaman Güçlü
 
-from psydac.ddm.mpi import mpi as MPI
+from feectools.ddm.mpi import mpi as MPI
     
 import numpy as np
 import pytest
 import time
 
-from psydac.core.bsplines import make_knots
-from psydac.fem.basic     import FemField
-from psydac.fem.splines   import SplineSpace
-from psydac.fem.tensor    import TensorFemSpace
-from psydac.ddm.cart      import DomainDecomposition
+from feectools.core.bsplines import make_knots
+from feectools.fem.basic     import FemField
+from feectools.fem.splines   import SplineSpace
+from feectools.fem.tensor    import TensorFemSpace
+from feectools.ddm.cart      import DomainDecomposition
 
-from psydac.fem.tests.utilities              import horner, random_grid
-from psydac.fem.tests.splines_error_bounds   import spline_1d_error_bound
-from psydac.fem.tests.analytical_profiles_1d import (AnalyticalProfile1D_Cos, AnalyticalProfile1D_Poly)
+from feectools.fem.tests.utilities              import horner, random_grid
+from feectools.fem.tests.splines_error_bounds   import spline_1d_error_bound
+from feectools.fem.tests.analytical_profiles_1d import (AnalyticalProfile1D_Cos, AnalyticalProfile1D_Poly)
 #===============================================================================
 @pytest.mark.serial
 @pytest.mark.parametrize( "ncells", [1,5,10,23] )

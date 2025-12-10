@@ -16,7 +16,7 @@ References:
 """
 import numpy as np
 
-from psydac.core.bsplines_kernels import (find_span_p,
+from feectools.core.bsplines_kernels import (find_span_p,
                                           find_spans_p,
                                           basis_funs_p,
                                           basis_funs_array_p,
@@ -546,7 +546,7 @@ def elements_spans(knots, degree, out=None):
     Examples
     --------
     >>> import numpy as np
-    >>> from psydac.core.bsplines import make_knots, elements_spans
+    >>> from feectools.core.bsplines import make_knots, elements_spans
 
     >>> p = 3 ; n = 8
     >>> grid  = np.arange( n-p+1 )
@@ -1074,8 +1074,8 @@ def hrefinement_matrix(ts, p, knots):
     Examples
     --------
     >>> import numpy as np
-    >>> from psydac.core.bsplines import make_knots
-    >>> from psydac.core.bsplines import hrefinement_matrix
+    >>> from feectools.core.bsplines import make_knots
+    >>> from feectools.core.bsplines import hrefinement_matrix
     >>> grid = np.linspace(0.,1.,5)
     >>> degree = 2
     >>> knots = make_knots(grid, degree, periodic=False)

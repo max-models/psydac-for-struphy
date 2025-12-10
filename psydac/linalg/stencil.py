@@ -10,19 +10,19 @@ import numpy as np
 from types        import MappingProxyType
 from scipy.sparse import coo_matrix, diags as sp_diags
 
-from psydac.ddm.mpi import mpi as MPI
-from psydac.linalg.basic  import VectorSpace, Vector, LinearOperator
-from psydac.ddm.cart      import find_mpi_type, CartDecomposition, InterfaceCartDecomposition
-from psydac.ddm.utilities import get_data_exchanger
-from psydac.api.settings  import PSYDAC_BACKENDS
+from feectools.ddm.mpi import mpi as MPI
+from feectools.linalg.basic  import VectorSpace, Vector, LinearOperator
+from feectools.ddm.cart      import find_mpi_type, CartDecomposition, InterfaceCartDecomposition
+from feectools.ddm.utilities import get_data_exchanger
+from feectools.api.settings  import PSYDAC_BACKENDS
 
-from psydac.linalg.kernels.axpy_kernels        import axpy_1d, axpy_2d, axpy_3d
-from psydac.linalg.kernels.inner_kernels       import inner_1d, inner_2d, inner_3d
-from psydac.linalg.kernels.matvec_kernels      import matvec_1d, matvec_2d, matvec_3d
-from psydac.linalg.kernels.transpose_kernels   import transpose_1d, transpose_2d, transpose_3d
-from psydac.linalg.kernels.transpose_kernels   import interface_transpose_1d, interface_transpose_2d, interface_transpose_3d
-from psydac.linalg.kernels.stencil2coo_kernels import stencil2coo_1d_F, stencil2coo_2d_F, stencil2coo_3d_F
-from psydac.linalg.kernels.stencil2coo_kernels import stencil2coo_1d_C, stencil2coo_2d_C, stencil2coo_3d_C
+from feectools.linalg.kernels.axpy_kernels        import axpy_1d, axpy_2d, axpy_3d
+from feectools.linalg.kernels.inner_kernels       import inner_1d, inner_2d, inner_3d
+from feectools.linalg.kernels.matvec_kernels      import matvec_1d, matvec_2d, matvec_3d
+from feectools.linalg.kernels.transpose_kernels   import transpose_1d, transpose_2d, transpose_3d
+from feectools.linalg.kernels.transpose_kernels   import interface_transpose_1d, interface_transpose_2d, interface_transpose_3d
+from feectools.linalg.kernels.stencil2coo_kernels import stencil2coo_1d_F, stencil2coo_2d_F, stencil2coo_3d_F
+from feectools.linalg.kernels.stencil2coo_kernels import stencil2coo_1d_C, stencil2coo_2d_C, stencil2coo_3d_C
 
 
 __all__ = (
@@ -113,7 +113,7 @@ class StencilVectorSpace(VectorSpace):
     dtype : type
         Type of scalar entries.
 
-    cart : psydac.ddm.cart.CartDecomposition
+    cart : feectools.ddm.cart.CartDecomposition
         Tensor-product grid decomposition according to MPI Cartesian topology.
 
     """
@@ -432,7 +432,7 @@ class StencilVector(Vector):
 
     Parameters
     ----------
-    V : psydac.linalg.stencil.StencilVectorSpace
+    V : feectools.linalg.stencil.StencilVectorSpace
         Space to which the new vector belongs.
 
     """
@@ -701,7 +701,7 @@ class StencilVector(Vector):
     def topetsc(self):
         """ Convert to petsc data structure.
         """
-        from psydac.linalg.topetsc import vec_topetsc
+        from feectools.linalg.topetsc import vec_topetsc
         vec = vec_topetsc( self )
         return vec
 
@@ -887,10 +887,10 @@ class StencilMatrix(LinearOperator):
 
     Parameters
     ----------
-    V : psydac.linalg.stencil.StencilVectorSpace
+    V : feectools.linalg.stencil.StencilVectorSpace
         Domain of the new linear operator.
 
-    W : psydac.linalg.stencil.StencilVectorSpace
+    W : feectools.linalg.stencil.StencilVectorSpace
         Codomain of the new linear operator.
     
     pads: 
@@ -1473,7 +1473,7 @@ class StencilMatrix(LinearOperator):
     def topetsc(self):
         """ Convert to PETSc data structure.
         """
-        from psydac.linalg.topetsc import mat_topetsc
+        from feectools.linalg.topetsc import mat_topetsc
         mat = mat_topetsc(self)
         return mat
 
@@ -1818,8 +1818,8 @@ class StencilMatrix(LinearOperator):
 
             # print('Using precompiled matvec and transpose kernels ...')
             
-            from psydac.linalg import stencil_dot_kernels
-            from psydac.linalg import stencil_transpose_kernels
+            from feectools.linalg import stencil_dot_kernels
+            from feectools.linalg import stencil_transpose_kernels
 
             # matvec kernel
             dot_func_name = 'matvec_' + str(self._ndim) + 'd_kernel'
@@ -1869,7 +1869,7 @@ class StencilMatrix(LinearOperator):
                 self._transpose_args['p_out'] = np.array(self.domain.pads)
         else:
             raise AttributeError(f'This is the tiny-psydac version - must use precompiled kernels (but {precompiled = })!')
-            from psydac.api.ast.linalg import LinearOperatorDot
+            from feectools.api.ast.linalg import LinearOperatorDot
             if self.domain.parallel:
                 comm = self.codomain.cart.comm
                 if self.domain == self.codomain:
@@ -2007,10 +2007,10 @@ class StencilDiagonalMatrix(LinearOperator):
 
     Parameters
     ----------
-    V : psydac.linalg.stencil.StencilVectorSpace
+    V : feectools.linalg.stencil.StencilVectorSpace
         Domain of the new linear operator.
 
-    W : psydac.linalg.stencil.StencilVectorSpace
+    W : feectools.linalg.stencil.StencilVectorSpace
         Codomain of the new linear operator.
 
     """
@@ -2193,10 +2193,10 @@ class StencilInterfaceMatrix(LinearOperator):
 
     Parameters
     ----------
-    V   : psydac.linalg.stencil.StencilVectorSpace
+    V   : feectools.linalg.stencil.StencilVectorSpace
           Domain of the new linear operator.
 
-    W   : psydac.linalg.stencil.StencilVectorSpace
+    W   : feectools.linalg.stencil.StencilVectorSpace
           Codomain of the new linear operator.
 
     s_d : int
@@ -2822,7 +2822,7 @@ class StencilInterfaceMatrix(LinearOperator):
     # ...
     def set_backend(self, backend, precompiled=False):
         raise AttributeError(f'This is the tiny-psydac version - must use precompiled kernels (but {precompiled = })!')
-        from psydac.api.ast.linalg import LinearOperatorDot
+        from feectools.api.ast.linalg import LinearOperatorDot
 
         self._backend = backend
         self._args    = self._dotargs_null.copy()

@@ -7,7 +7,7 @@ be used to specify the used data structure for example.
 """
 
 from abc import ABCMeta, abstractmethod
-from psydac.linalg.basic import Vector, LinearOperator
+from feectools.linalg.basic import Vector, LinearOperator
 
 __all__ = ('FemSpace', 'FemField', 'FemLinearOperator')
 
@@ -54,7 +54,7 @@ class FemSpace( metaclass=ABCMeta ):
     def coeff_space( self ):
         """
         Vector space of the coefficients (mapping invariant).
-        :rtype: psydac.linalg.basic.VectorSpace
+        :rtype: feectools.linalg.basic.VectorSpace
         """
 
     @property
@@ -157,7 +157,7 @@ class FemSpace( metaclass=ABCMeta ):
         raise NotImplementedError('if this method __mul__ is used, it should not be implemented like this: TODO')
     # [MCP 27.03.2025]: commented because improper implementation. must be rewritten if needed
                       
-    #     from psydac.fem.vector import create_product_space
+    #     from feectools.fem.vector import create_product_space
 
     #     spaces = [*(self.spaces if self.is_product else [self]),
     #               *(   a.spaces if    a.is_product else    [a])]
@@ -171,7 +171,7 @@ class FemSpace( metaclass=ABCMeta ):
         raise NotImplementedError('if this method __rmul__ is used, it should not be implemented like this: TODO')
     # [MCP 27.03.2025]: commented because improper implementation. must be rewritten if needed
     
-    #     from psydac.fem.vector import create_product_space
+    #     from feectools.fem.vector import create_product_space
 
     #     spaces = [*(   a.spaces if    a.is_product else    [a]),
     #               *(self.spaces if self.is_product else [self]),]
@@ -246,10 +246,10 @@ class FemField:
 
     Parameters
     ----------
-    space : psydac.fem.basic.FemSpace
+    space : feectools.fem.basic.FemSpace
         Finite element space to which this field belongs.
 
-    coeffs : psydac.linalg.basic.Vector (optional)
+    coeffs : feectools.linalg.basic.Vector (optional)
         Vector of coefficients in finite element basis
         (by default assume zero vector).
 
@@ -391,13 +391,13 @@ class FemLinearOperator:
     used in the FEEC interfaces.
     Parameters
     ----------
-    fem_domain : psydac.fem.basic.FemSpace
+    fem_domain : feectools.fem.basic.FemSpace
         The discrete space of the domain
 
-    fem_codomain : psydac.fem.basic.FemSpace
+    fem_codomain : feectools.fem.basic.FemSpace
         The discrete space of the codomain
 
-    linop : <psydac.linalg.basic.LinearOperator> 
+    linop : <feectools.linalg.basic.LinearOperator> 
         Linear Operator. 
 
     """

@@ -4,10 +4,10 @@
 import numpy as np
 from scipy.sparse import csc_matrix, csr_matrix, dia_matrix
 
-from psydac.linalg.stencil        import StencilVectorSpace
-from psydac.linalg.direct_solvers import BandedSolver, SparseSolver
-from psydac.fem.basic             import FemSpace, FemField
-from psydac.core.bsplines         import (
+from feectools.linalg.stencil        import StencilVectorSpace
+from feectools.linalg.direct_solvers import BandedSolver, SparseSolver
+from feectools.fem.basic             import FemSpace, FemField
+from feectools.core.bsplines         import (
         find_span,
         basis_funs,
         collocation_matrix,
@@ -19,8 +19,8 @@ from psydac.core.bsplines         import (
         basis_integrals,
         )
 
-from psydac.utilities.utils import unroll_edges, refine_array_1d
-from psydac.ddm.cart        import DomainDecomposition, CartDecomposition
+from feectools.utilities.utils import unroll_edges, refine_array_1d
+from feectools.ddm.cart        import DomainDecomposition, CartDecomposition
 
 __all__ = ('SplineSpace',)
 
@@ -263,7 +263,7 @@ class SplineSpace( FemSpace ):
         """ Assume identity mapping for now.
         """
         # [YG, 28.03.2025]: not clear why there should be no mapping here...
-        # Clearly this property is never used in Psydac.
+        # Clearly this property is never used in feectools.
         return None
 
     @property

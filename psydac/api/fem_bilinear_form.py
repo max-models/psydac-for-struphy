@@ -21,16 +21,16 @@ from sympde.expr.expr            import BilinearForm
 from sympde.expr.evaluation      import KernelExpression, TerminalExpr
 from sympde.calculus.core        import PlusInterfaceOperator
 
-from psydac.cad.geometry      import Geometry
-from psydac.mapping.discrete  import SplineMapping, NurbsMapping
-from psydac.fem.basic         import FemSpace, FemField
-from psydac.fem.vector        import VectorFemSpace
-from psydac.linalg.stencil    import StencilMatrix
-from psydac.linalg.block      import BlockVectorSpace, BlockLinearOperator
-from psydac.api.grid          import QuadratureGrid, BasisValues
-from psydac.api.settings      import PSYDAC_BACKENDS
-from psydac.api.utilities     import flatten, random_string
-from psydac.api.fem_common    import (
+from feectools.cad.geometry      import Geometry
+from feectools.mapping.discrete  import SplineMapping, NurbsMapping
+from feectools.fem.basic         import FemSpace, FemField
+from feectools.fem.vector        import VectorFemSpace
+from feectools.linalg.stencil    import StencilMatrix
+from feectools.linalg.block      import BlockVectorSpace, BlockLinearOperator
+from feectools.api.grid          import QuadratureGrid, BasisValues
+from feectools.api.settings      import PSYDAC_BACKENDS
+from feectools.api.utilities     import flatten, random_string
+from feectools.api.fem_common    import (
     compute_imports,
     compute_max_nderiv,
     compute_free_arguments,
@@ -42,8 +42,8 @@ from psydac.api.fem_common    import (
     extract_stencil_mats,
 )
 
-# TODO [YG 01.08.2025]: Avoid importing anything from psydac.pyccel
-from psydac.pyccel.ast.core import _atomic, Assign
+# TODO [YG 01.08.2025]: Avoid importing anything from feectools.pyccel
+from feectools.pyccel.ast.core import _atomic, Assign
 
 __all__ = ('DiscreteBilinearForm',)
 
@@ -54,7 +54,7 @@ class DiscreteBilinearForm:
     """
     Discrete bilinear form ready to be assembled into a matrix.
 
-    This class represents the concept of a discrete bilinear form in Psydac.
+    This class represents the concept of a discrete bilinear form in feectools.
     Instances of this class generate an appropriate matrix assembly kernel,
     allocate the matrix if not provided, and prepare a list of arguments for
     the kernel.
@@ -71,17 +71,17 @@ class DiscreteBilinearForm:
     kernel_expr : list or tuple of sympde.expr.evaluation.KernelExpression
         The atomic representation of the bilinear form.
 
-    domain_h : psydac.cad.geometry.Geometry
+    domain_h : feectools.cad.geometry.Geometry
         The discretized domain.
 
-    spaces : list of psydac.fem.basic.FemSpace
+    spaces : list of feectools.fem.basic.FemSpace
         The discrete trial and test spaces.
 
     nquads : list or tuple of int
         The number of quadrature points used in the assembly kernel along each
         direction.
 
-    matrix : psydac.linalg.stencil.StencilMatrix or psydac.linalg.block.BlockLinearOperator, optional
+    matrix : feectools.linalg.stencil.StencilMatrix or feectools.linalg.block.BlockLinearOperator, optional
         The matrix that we assemble into. If not provided, a new matrix is
         created with the appropriate domain and codomain (default: None).
 

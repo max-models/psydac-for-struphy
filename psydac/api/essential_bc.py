@@ -1,9 +1,9 @@
 # coding: utf-8
-from psydac.linalg.basic   import ComposedLinearOperator
-from psydac.linalg.stencil import StencilVector, StencilMatrix
-from psydac.linalg.stencil import StencilInterfaceMatrix
-from psydac.linalg.kron    import KroneckerDenseMatrix
-from psydac.linalg.block   import BlockVector, BlockLinearOperator
+from feectools.linalg.basic   import ComposedLinearOperator
+from feectools.linalg.stencil import StencilVector, StencilMatrix
+from feectools.linalg.stencil import StencilInterfaceMatrix
+from feectools.linalg.kron    import KroneckerDenseMatrix
+from feectools.linalg.block   import BlockVector, BlockLinearOperator
 
 
 #==============================================================================

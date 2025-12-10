@@ -3,9 +3,9 @@ import os
 
 import numpy as np
 
-from psydac.ddm.cart       import CartDecomposition, InterfaceCartDecomposition, create_interfaces_cart
-from psydac.core.bsplines  import elements_spans
-from psydac.fem.vector     import VectorFemSpace
+from feectools.ddm.cart       import CartDecomposition, InterfaceCartDecomposition, create_interfaces_cart
+from feectools.core.bsplines  import elements_spans
+from feectools.fem.vector     import VectorFemSpace
 
 
 __all__ = (

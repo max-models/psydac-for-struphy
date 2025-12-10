@@ -4,11 +4,11 @@ import pytest
 import numpy as np
 from scipy.sparse import kron
 
-from psydac.ddm.cart       import DomainDecomposition, CartDecomposition
-from psydac.linalg.stencil import StencilVectorSpace
-from psydac.linalg.stencil import StencilVector
-from psydac.linalg.stencil import StencilMatrix
-from psydac.linalg.kron    import KroneckerStencilMatrix
+from feectools.ddm.cart       import DomainDecomposition, CartDecomposition
+from feectools.linalg.stencil import StencilVectorSpace
+from feectools.linalg.stencil import StencilVector
+from feectools.linalg.stencil import StencilMatrix
+from feectools.linalg.kron    import KroneckerStencilMatrix
 #===============================================================================
 def compute_global_starts_ends(domain_decomposition, npts):
     ndims         = len(npts)

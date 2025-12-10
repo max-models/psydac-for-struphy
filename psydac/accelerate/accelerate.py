@@ -10,7 +10,7 @@ import sysconfig
 import psydac
 
 # Get the absolute path to the psydac directory
-psydac_path = os.path.abspath(psydac.__path__[0])
+psydac_path = os.path.abspath(feectools.__path__[0])
 libdir = sysconfig.get_config_var("LIBDIR")
 psydac_makefile_dir = os.path.join(psydac_path, "accelerate")
 
@@ -120,7 +120,7 @@ def psydac_compile(language, compiler_family, compiler_config, omp, delete, stat
     cmd = [
         "make",
         "-f",
-        "compile_psydac.mk",
+        "compile_feectools.mk",
         "sources=" + sources,
         "flags=" + flags,
         "flags_openmp=" + flag_omp,
@@ -145,7 +145,7 @@ def cleanup_files(root_path: str):
         "make",
         "clean",
         "-f",
-        "compile_psydac.mk",
+        "compile_feectools.mk",
         "sources=" + sources,
     ]
     subp_run(cmd, cwd=psydac_makefile_dir)

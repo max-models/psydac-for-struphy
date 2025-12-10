@@ -2,8 +2,8 @@
 
 import numpy as np
 
-from psydac.ddm.blocking_data_exchanger    import BlockingCartDataExchanger
-from psydac.ddm.nonblocking_data_exchanger import NonBlockingCartDataExchanger
+from feectools.ddm.blocking_data_exchanger    import BlockingCartDataExchanger
+from feectools.ddm.nonblocking_data_exchanger import NonBlockingCartDataExchanger
 
 #===============================================================================
 # TEST CartDecomposition and CartDataExchanger in 1D
@@ -11,8 +11,8 @@ from psydac.ddm.nonblocking_data_exchanger import NonBlockingCartDataExchanger
 def run_cart_1d( data_exchanger_type, verbose=False ):
 
     import numpy as np
-    from psydac.ddm.mpi import mpi as MPI
-    from psydac.ddm.cart import DomainDecomposition, CartDecomposition
+    from feectools.ddm.mpi import mpi as MPI
+    from feectools.ddm.cart import DomainDecomposition, CartDecomposition
 
     #---------------------------------------------------------------------------
     # INPUT PARAMETERS

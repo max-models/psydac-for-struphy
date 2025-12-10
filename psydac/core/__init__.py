@@ -1,10 +1,10 @@
-from psydac.core import bsplines
+from feectools.core import bsplines
 
 __all__ = ['bsplines']
 
 try:
-    from psydac.core import bsp
-    from psydac.core import interface
+    from feectools.core import bsp
+    from feectools.core import interface
 except ImportError:
     pass
 else:

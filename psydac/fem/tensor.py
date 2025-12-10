@@ -5,7 +5,7 @@ We assume here that a tensor space is the product of fem spaces whom basis are
 of compact support
 
 """
-from psydac.ddm.mpi import mpi as MPI
+from feectools.ddm.mpi import mpi as MPI
     
 import numpy as np
 import itertools
@@ -14,15 +14,15 @@ import os
 
 from types import MappingProxyType
 
-from psydac.linalg.stencil   import StencilVectorSpace
-from psydac.linalg.kron      import kronecker_solve
-from psydac.fem.basic        import FemSpace, FemField
-from psydac.fem.splines      import SplineSpace
-from psydac.fem.grid         import FemAssemblyGrid
-from psydac.fem.partitioning import create_cart, partition_coefficients
-from psydac.ddm.cart         import DomainDecomposition, CartDecomposition
+from feectools.linalg.stencil   import StencilVectorSpace
+from feectools.linalg.kron      import kronecker_solve
+from feectools.fem.basic        import FemSpace, FemField
+from feectools.fem.splines      import SplineSpace
+from feectools.fem.grid         import FemAssemblyGrid
+from feectools.fem.partitioning import create_cart, partition_coefficients
+from feectools.ddm.cart         import DomainDecomposition, CartDecomposition
 
-from psydac.core.bsplines  import (find_span,
+from feectools.core.bsplines  import (find_span,
                                    basis_funs,
                                    basis_funs_1st_der,
                                    basis_ders_on_quad_grid,
@@ -30,7 +30,7 @@ from psydac.core.bsplines  import (find_span,
                                    cell_index,
                                    basis_ders_on_irregular_grid)
 
-from psydac.core.field_evaluation_kernels import (eval_fields_1d_no_weights,
+from feectools.core.field_evaluation_kernels import (eval_fields_1d_no_weights,
                                                   eval_fields_1d_irregular_no_weights,
                                                   eval_fields_1d_weighted,
                                                   eval_fields_1d_irregular_weighted,
@@ -52,15 +52,15 @@ class TensorFemSpace(FemSpace):
 
     Parameters
     ----------
-    domain_decomposition : psydac.ddm.cart.DomainDecomposition
+    domain_decomposition : feectools.ddm.cart.DomainDecomposition
 
-    *spaces : psydac.fem.splines.SplineSpace
+    *spaces : feectools.fem.splines.SplineSpace
         1D finite element spaces.
 
-    coeff_space : psydac.linalg.stencil.StencilVectorSpace or None
+    coeff_space : feectools.linalg.stencil.StencilVectorSpace or None
         The vector space to which the coefficients belong (optional).
 
-    cart : psydac.ddm.CartDecomposition or None
+    cart : feectools.ddm.CartDecomposition or None
         Object that contains all information about the Cartesian decomposition
         of a tensor-product grid of coefficients.
 
@@ -174,14 +174,14 @@ class TensorFemSpace(FemSpace):
     @property
     def mapping(self):
         # [YG, 28.03.2025]: not clear why there should be no mapping here...
-        # Clearly this property is never used in Psydac.
+        # Clearly this property is never used in feectools.
         return None
 
     @property
     def coeff_space(self):
         """
         Vector space of the coefficients (mapping invariant).
-        :rtype: psydac.linalg.stencil.StencilVectorSpace
+        :rtype: feectools.linalg.stencil.StencilVectorSpace
         """
         return self._coeff_space
 
@@ -453,10 +453,10 @@ class TensorFemSpace(FemSpace):
         grid : List of ndarray
             Grid on which to evaluate the fields
 
-        *fields : tuple of psydac.fem.basic.FemField
+        *fields : tuple of feectools.fem.basic.FemField
             Fields to evaluate
 
-        weights : psydac.fem.basic.FemField or None, optional
+        weights : feectools.fem.basic.FemField or None, optional
             Weights field.
 
         npts_per_cell: int or tuple of int or None, optional
@@ -538,10 +538,10 @@ class TensorFemSpace(FemSpace):
             number of cells in the domain in the direction xi and nv_xi is the number of
             evaluation points in the same direction.
 
-        *fields : tuple of psydac.fem.basic.FemField
+        *fields : tuple of feectools.fem.basic.FemField
             Fields to evaluate on `grid`.
 
-        weights : psydac.fem.basic.FemField or None, optional
+        weights : feectools.fem.basic.FemField or None, optional
             Weights to apply to our fields.
 
         overlap : int
@@ -592,10 +592,10 @@ class TensorFemSpace(FemSpace):
             number of cells in the domain in the direction xi and nv_xi is the number of
             evaluation points in the same direction.
 
-        *fields : tuple of psydac.fem.basic.FemField
+        *fields : tuple of feectools.fem.basic.FemField
             Fields to evaluate on `grid`.
 
-        weights : psydac.fem.basic.FemField or None, optional
+        weights : feectools.fem.basic.FemField or None, optional
             Weights to apply to our fields.
 
         overlap : int
@@ -1251,7 +1251,7 @@ class TensorFemSpace(FemSpace):
         import matplotlib.pyplot as plt
         from matplotlib.patches  import Polygon, Patch
         from sympde.topology.mapping import BasicCallableMapping
-        from psydac.utilities.utils import refine_array_1d
+        from feectools.utilities.utils import refine_array_1d
 
         # Sanity check
         assert self.ldim == 2, "Function only works in 2D"

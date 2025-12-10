@@ -3,10 +3,10 @@
 from scipy.sparse import sparray, csr_array, bsr_array
 from scipy.sparse import spmatrix, csr_matrix, bsr_matrix
 
-from psydac.linalg.basic   import LinearOperator
-from psydac.linalg.basic   import VectorSpace, Vector, LinearOperator
-from psydac.linalg.stencil import StencilVector
-from psydac.linalg.block   import BlockVector
+from feectools.linalg.basic   import LinearOperator
+from feectools.linalg.basic   import VectorSpace, Vector, LinearOperator
+from feectools.linalg.stencil import StencilVector
+from feectools.linalg.block   import BlockVector
 
 __all__ = (
     'SparseMatrixLinearOperator',

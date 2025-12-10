@@ -115,7 +115,7 @@ def split_field(uh, spaces, out=None):
     out : <list, FemField>
          List of fem fields.
     """
-    from psydac.fem.basic import FemField
+    from feectools.fem.basic import FemField
     if out is None:
         out = [FemField(S) for S in spaces]
 

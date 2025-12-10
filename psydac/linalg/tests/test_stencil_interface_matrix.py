@@ -4,9 +4,9 @@ import pytest
 import numpy as np
 from random import random
 
-from psydac.linalg.stencil import StencilVectorSpace, StencilVector, StencilMatrix, StencilInterfaceMatrix
-from psydac.api.settings   import *
-from psydac.ddm.cart import DomainDecomposition, CartDecomposition
+from feectools.linalg.stencil import StencilVectorSpace, StencilVector, StencilMatrix, StencilInterfaceMatrix
+from feectools.api.settings   import *
+from feectools.ddm.cart import DomainDecomposition, CartDecomposition
 
 #===============================================================================
 def compute_global_starts_ends(domain_decomposition, npts, pads):
@@ -226,9 +226,9 @@ def test_stencil_interface_matrix_3d_serial_init(dtype, n1, n2, n3, p1, p2, p3, 
 @pytest.mark.parallel
 def test_stencil_interface_matrix_2d_parallel_dot(n1, n2, p1, p2, expected):
 
-    from psydac.ddm.mpi import mpi as MPI
-    from psydac.ddm.cart     import MultiPatchDomainDecomposition, CartDecomposition, create_interfaces_cart
-    from psydac.linalg.block import BlockVectorSpace, BlockVector, BlockLinearOperator
+    from feectools.ddm.mpi import mpi as MPI
+    from feectools.ddm.cart     import MultiPatchDomainDecomposition, CartDecomposition, create_interfaces_cart
+    from feectools.linalg.block import BlockVectorSpace, BlockVector, BlockLinearOperator
 
     # Number of patches
     N = 2

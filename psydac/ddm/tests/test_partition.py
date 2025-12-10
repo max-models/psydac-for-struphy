@@ -1,6 +1,6 @@
 import pytest
 
-from psydac.ddm.partition import compute_dims
+from feectools.ddm.partition import compute_dims
 
 #==============================================================================
 @pytest.mark.parametrize( 'mpi_size', [1,2,5,10] )

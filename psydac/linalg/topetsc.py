@@ -2,10 +2,10 @@ from itertools import product as cartesian_prod
 
 import numpy as np
 
-from psydac.linalg.basic   import VectorSpace
-from psydac.linalg.block   import BlockVectorSpace, BlockVector, BlockLinearOperator
-from psydac.linalg.stencil import StencilVectorSpace, StencilVector, StencilMatrix
-from psydac.linalg.kernels.stencil2IJV_kernels import stencil2IJV_1d_C, stencil2IJV_2d_C, stencil2IJV_3d_C
+from feectools.linalg.basic   import VectorSpace
+from feectools.linalg.block   import BlockVectorSpace, BlockVector, BlockLinearOperator
+from feectools.linalg.stencil import StencilVectorSpace, StencilVector, StencilMatrix
+from feectools.linalg.kernels.stencil2IJV_kernels import stencil2IJV_1d_C, stencil2IJV_2d_C, stencil2IJV_3d_C
 
 __all__ = (
     'petsc_local_to_psydac',
@@ -337,7 +337,7 @@ def vec_topetsc(vec):
 
     Parameters
     ----------
-    vec : psydac.linalg.stencil.StencilVector | psydac.linalg.block.BlockVector
+    vec : feectools.linalg.stencil.StencilVector | feectools.linalg.block.BlockVector
       Psydac StencilVector or BlockVector. In the case of a BlockVector, only the case where the blocks are StencilVector is implemented.
 
     Returns
@@ -437,7 +437,7 @@ def mat_topetsc(mat):
 
     Parameters
     ----------
-    mat : psydac.linalg.stencil.StencilMatrix | psydac.linalg.block.BlockLinearOperator
+    mat : feectools.linalg.stencil.StencilMatrix | feectools.linalg.block.BlockLinearOperator
       Psydac operator. In the case of a BlockLinearOperator, only the case where the blocks are StencilMatrix is implemented.
 
     Returns

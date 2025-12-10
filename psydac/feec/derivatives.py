@@ -3,15 +3,15 @@
 import numpy as np
 import scipy.sparse as spa
 
-from psydac.linalg.stencil  import StencilVector, StencilMatrix, StencilVectorSpace
-from psydac.linalg.kron     import KroneckerStencilMatrix
-from psydac.linalg.block    import BlockVector, BlockLinearOperator
-from psydac.fem.vector      import VectorFemSpace
-from psydac.fem.tensor      import TensorFemSpace
-from psydac.linalg.basic    import IdentityOperator
-from psydac.fem.basic       import FemField, FemSpace, FemLinearOperator
-from psydac.linalg.basic    import LinearOperator
-from psydac.ddm.cart        import DomainDecomposition, CartDecomposition
+from feectools.linalg.stencil  import StencilVector, StencilMatrix, StencilVectorSpace
+from feectools.linalg.kron     import KroneckerStencilMatrix
+from feectools.linalg.block    import BlockVector, BlockLinearOperator
+from feectools.fem.vector      import VectorFemSpace
+from feectools.fem.tensor      import TensorFemSpace
+from feectools.linalg.basic    import IdentityOperator
+from feectools.fem.basic       import FemField, FemSpace, FemLinearOperator
+from feectools.linalg.basic    import LinearOperator
+from feectools.ddm.cart        import DomainDecomposition, CartDecomposition
 
 __all__ = (
     'DirectionalDerivativeOperator',

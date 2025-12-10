@@ -3,7 +3,7 @@
 import numpy as np
 from itertools import product
 
-from psydac.ddm.mpi import mpi as MPI
+from feectools.ddm.mpi import mpi as MPI
 from .cart import CartDecomposition, find_mpi_type
 from .basic import CartDataExchanger
 
@@ -20,7 +20,7 @@ class NonBlockingCartDataExchanger(CartDataExchanger):
 
     Parameters
     ----------
-    cart : psydac.ddm.CartDecomposition
+    cart : feectools.ddm.CartDecomposition
         Object that contains all information about the Cartesian decomposition
         of a tensor-product grid of coefficients.
 
@@ -187,7 +187,7 @@ class NonBlockingCartDataExchanger(CartDataExchanger):
 
         Parameters
         ----------
-        cart : psydac.ddm.CartDecomposition
+        cart : feectools.ddm.CartDecomposition
             Object that contains all information about the Cartesian decomposition
             of a tensor-product grid of coefficients.
 
@@ -268,7 +268,7 @@ class NonBlockingCartDataExchanger(CartDataExchanger):
         contiguous in memory.
         Parameters
         ----------
-        cart : psydac.ddm.CartDecomposition
+        cart : feectools.ddm.CartDecomposition
             Object that contains all information about the Cartesian decomposition
             of a tensor-product grid of coefficients.
         dtype : [type | str | numpy.dtype | mpi4py.MPI.Datatype]

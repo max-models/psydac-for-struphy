@@ -2,19 +2,19 @@
 
 import numpy as np
 
-from psydac.linalg.kron           import KroneckerLinearSolver, KroneckerStencilMatrix
-from psydac.linalg.stencil        import StencilMatrix, StencilVectorSpace
-from psydac.linalg.block          import BlockLinearOperator, BlockVector
-from psydac.core.bsplines         import quadrature_grid
-from psydac.utilities.quadratures import gauss_legendre
-from psydac.fem.basic             import FemField
-from psydac.feec                  import dof_kernels
+from feectools.linalg.kron           import KroneckerLinearSolver, KroneckerStencilMatrix
+from feectools.linalg.stencil        import StencilMatrix, StencilVectorSpace
+from feectools.linalg.block          import BlockLinearOperator, BlockVector
+from feectools.core.bsplines         import quadrature_grid
+from feectools.utilities.quadratures import gauss_legendre
+from feectools.fem.basic             import FemField
+from feectools.feec                  import dof_kernels
 
-from psydac.fem.tensor import TensorFemSpace
-from psydac.fem.vector import VectorFemSpace, MultipatchFemSpace
+from feectools.fem.tensor import TensorFemSpace
+from feectools.fem.vector import VectorFemSpace, MultipatchFemSpace
 
-from psydac.ddm.cart import DomainDecomposition, CartDecomposition
-from psydac.utilities.utils import roll_edges
+from feectools.ddm.cart import DomainDecomposition, CartDecomposition
+from feectools.utilities.utils import roll_edges
 
 from abc import ABCMeta, abstractmethod
 

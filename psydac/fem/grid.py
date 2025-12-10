@@ -4,12 +4,12 @@
 
 import numpy as np
 
-from psydac.core.bsplines         import elements_spans
-from psydac.core.bsplines         import quadrature_grid
-from psydac.core.bsplines         import basis_ders_on_quad_grid
-from psydac.core.bsplines         import elevate_knots
-from psydac.utilities.quadratures import gauss_legendre
-from psydac.fem.splines           import SplineSpace
+from feectools.core.bsplines         import elements_spans
+from feectools.core.bsplines         import quadrature_grid
+from feectools.core.bsplines         import basis_ders_on_quad_grid
+from feectools.core.bsplines         import elevate_knots
+from feectools.utilities.quadratures import gauss_legendre
+from feectools.fem.splines           import SplineSpace
 
 __all__ = ('FemAssemblyGrid',)
 

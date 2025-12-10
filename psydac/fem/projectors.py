@@ -6,12 +6,12 @@ from sympde.topology.mapping    import Mapping
 from sympde.calculus            import dot
 from sympde.expr.expr           import LinearForm, integral
 
-from psydac.api.settings        import PSYDAC_BACKENDS
+from feectools.api.settings        import PSYDAC_BACKENDS
 
-from psydac.linalg.kron         import KroneckerDenseMatrix
-from psydac.core.bsplines       import hrefinement_matrix
-from psydac.linalg.stencil      import StencilVectorSpace
-from psydac.fem.basic           import FemSpace
+from feectools.linalg.kron         import KroneckerDenseMatrix
+from feectools.core.bsplines       import hrefinement_matrix
+from feectools.linalg.stencil      import StencilVectorSpace
+from feectools.fem.basic           import FemSpace
 
 __all__ = ('knots_to_insert', 'knot_insertion_projection_operator')
 
@@ -138,7 +138,7 @@ def get_dual_dofs(Vh, f, domain_h, backend_language="python", return_format='ste
         The dual dofs
     """
 
-    from psydac.api.discretization  import discretize 
+    from feectools.api.discretization  import discretize 
 
     assert isinstance(Vh, FemSpace)
 

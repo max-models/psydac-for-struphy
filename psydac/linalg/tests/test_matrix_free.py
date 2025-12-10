@@ -1,14 +1,14 @@
 import pytest
 import numpy as np
 
-from psydac.linalg.block import BlockLinearOperator, BlockVector, BlockVectorSpace
-from psydac.linalg.basic import LinearOperator, ZeroOperator, IdentityOperator, ComposedLinearOperator, SumLinearOperator, PowerLinearOperator, ScaledLinearOperator
-from psydac.linalg.basic import MatrixFreeLinearOperator
-from psydac.linalg.stencil import StencilVectorSpace, StencilVector, StencilMatrix
-from psydac.linalg.solvers import ConjugateGradient, inverse
-from psydac.ddm.cart       import DomainDecomposition, CartDecomposition
+from feectools.linalg.block import BlockLinearOperator, BlockVector, BlockVectorSpace
+from feectools.linalg.basic import LinearOperator, ZeroOperator, IdentityOperator, ComposedLinearOperator, SumLinearOperator, PowerLinearOperator, ScaledLinearOperator
+from feectools.linalg.basic import MatrixFreeLinearOperator
+from feectools.linalg.stencil import StencilVectorSpace, StencilVector, StencilMatrix
+from feectools.linalg.solvers import ConjugateGradient, inverse
+from feectools.ddm.cart       import DomainDecomposition, CartDecomposition
 
-from psydac.linalg.tests.test_linalg import get_StencilVectorSpace, get_positive_definite_StencilMatrix, assert_pos_def
+from feectools.linalg.tests.test_linalg import get_StencilVectorSpace, get_positive_definite_StencilMatrix, assert_pos_def
 
 def get_random_StencilMatrix(domain, codomain):
 

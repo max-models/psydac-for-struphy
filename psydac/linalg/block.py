@@ -7,10 +7,10 @@ import numpy as np
 from types import MappingProxyType
 from scipy.sparse import bmat, lil_matrix
 
-from psydac.linalg.basic    import VectorSpace, Vector, LinearOperator
-from psydac.linalg.stencil  import StencilMatrix
-from psydac.ddm.cart        import InterfaceCartDecomposition
-from psydac.ddm.utilities   import get_data_exchanger
+from feectools.linalg.basic    import VectorSpace, Vector, LinearOperator
+from feectools.linalg.stencil  import StencilMatrix
+from feectools.ddm.cart        import InterfaceCartDecomposition
+from feectools.ddm.utilities   import get_data_exchanger
 
 __all__ = ('BlockVectorSpace', 'BlockVector', 'BlockLinearOperator')
 
@@ -21,7 +21,7 @@ class BlockVectorSpace(VectorSpace):
 
     Parameters
     ----------
-    *spaces : psydac.linalg.basic.VectorSpace
+    *spaces : feectools.linalg.basic.VectorSpace
         A list of Vector Spaces.
 
     """
@@ -195,10 +195,10 @@ class BlockVector(Vector):
 
     Parameters
     ----------
-    V : psydac.linalg.block.BlockVectorSpace
+    V : feectools.linalg.block.BlockVectorSpace
         Space to which the new vector belongs.
 
-    blocks : list or tuple (psydac.linalg.basic.Vector)
+    blocks : list or tuple (feectools.linalg.basic.Vector)
         List of Vector objects, belonging to the correct spaces (optional).
 
     """
@@ -484,7 +484,7 @@ class BlockVector(Vector):
     def topetsc(self):
         """ Convert to petsc data structure.
         """
-        from psydac.linalg.topetsc import vec_topetsc
+        from feectools.linalg.topetsc import vec_topetsc
         vec = vec_topetsc( self )
         return vec
 
@@ -497,10 +497,10 @@ class BlockLinearOperator(LinearOperator):
 
     Parameters
     ----------
-    V1 : psydac.linalg.block.VectorSpace
+    V1 : feectools.linalg.block.VectorSpace
         Domain of the new linear operator.
 
-    V2 : psydac.linalg.block.VectorSpace
+    V2 : feectools.linalg.block.VectorSpace
         Codomain of the new linear operator.
 
     blocks : dict | (list of lists) | (tuple of tuples)
@@ -1054,7 +1054,7 @@ class BlockLinearOperator(LinearOperator):
     def topetsc(self):
         """ Convert to petsc data structure.
         """
-        from psydac.linalg.topetsc import mat_topetsc
+        from feectools.linalg.topetsc import mat_topetsc
         mat = mat_topetsc( self )
         return mat
 
@@ -1064,8 +1064,8 @@ class BlockLinearOperator(LinearOperator):
         if not self.codomain.parallel:
             return blocks, blocks_T
 
-        from psydac.ddm.mpi import mpi as MPI
-        from psydac.linalg.stencil import StencilInterfaceMatrix
+        from feectools.ddm.mpi import mpi as MPI
+        from feectools.linalg.stencil import StencilInterfaceMatrix
 
         if not isinstance(self.codomain, BlockVectorSpace):
             return blocks, blocks_T
@@ -1280,8 +1280,8 @@ class BlockLinearOperator(LinearOperator):
         if backend is self._backend:return
         
         raise AttributeError(f'This is the tiny-psydac version - must use precompiled kernels (but {precompiled = })!')
-        from psydac.api.ast.linalg import LinearOperatorDot
-        from psydac.linalg.stencil import StencilInterfaceMatrix, StencilMatrix
+        from feectools.api.ast.linalg import LinearOperatorDot
+        from feectools.linalg.stencil import StencilInterfaceMatrix, StencilMatrix
 
         if not all(isinstance(b, (StencilMatrix, StencilInterfaceMatrix)) for b in self._blocks.values()):
             for b in self._blocks.values():

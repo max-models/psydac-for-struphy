@@ -15,7 +15,7 @@ class CartDataExchanger(ABC):
 
     Parameters
     ----------
-    cart : psydac.ddm.CartDecomposition
+    cart : feectools.ddm.CartDecomposition
         Object that contains all information about the Cartesian decomposition
         of a tensor-product grid of coefficients.
 

@@ -1,10 +1,10 @@
 
 import numpy as np
 import pytest
-from psydac.linalg.solvers import inverse
-from psydac.linalg.stencil import StencilVectorSpace, StencilMatrix, StencilVector
-from psydac.linalg.basic import LinearSolver
-from psydac.ddm.cart import DomainDecomposition, CartDecomposition
+from feectools.linalg.solvers import inverse
+from feectools.linalg.stencil import StencilVectorSpace, StencilMatrix, StencilVector
+from feectools.linalg.basic import LinearSolver
+from feectools.ddm.cart import DomainDecomposition, CartDecomposition
 
 
 def define_data_hermitian(n, p, dtype=float):

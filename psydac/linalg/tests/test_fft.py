@@ -2,10 +2,10 @@ import pytest
 import scipy.fft as scifft
 import numpy as np
 
-from psydac.ddm.mpi import mpi as MPI
-from psydac.linalg.fft import *
-from psydac.ddm.cart               import DomainDecomposition, CartDecomposition
-from psydac.linalg.stencil import StencilVector
+from feectools.ddm.mpi import mpi as MPI
+from feectools.linalg.fft import *
+from feectools.ddm.cart               import DomainDecomposition, CartDecomposition
+from feectools.linalg.stencil import StencilVector
 #===============================================================================
 def compute_global_starts_ends(domain_decomposition, npts):
     ndims         = len(npts)

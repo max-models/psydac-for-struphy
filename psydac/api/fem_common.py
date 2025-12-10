@@ -12,14 +12,14 @@ from sympde.topology.datatype    import H1SpaceType, L2SpaceType, UndefinedSpace
 from sympde.topology.derivatives import get_atom_logical_derivatives
 from sympde.topology.derivatives import _logical_partial_derivatives
 
-from psydac.fem.basic         import FemSpace
-from psydac.linalg.stencil    import StencilMatrix, StencilInterfaceMatrix
-from psydac.linalg.basic      import ComposedLinearOperator
-from psydac.api.utilities     import flatten
-from psydac.api.ast.utilities import math_atoms_as_str, get_max_partial_derivatives
+from feectools.fem.basic         import FemSpace
+from feectools.linalg.stencil    import StencilMatrix, StencilInterfaceMatrix
+from feectools.linalg.basic      import ComposedLinearOperator
+from feectools.api.utilities     import flatten
+from feectools.api.ast.utilities import math_atoms_as_str, get_max_partial_derivatives
 
-# TODO [YG 01.08.2025]: Avoid importing anything from psydac.pyccel
-from psydac.pyccel.ast.core import _atomic
+# TODO [YG 01.08.2025]: Avoid importing anything from feectools.pyccel
+from feectools.pyccel.ast.core import _atomic
 
 __all__ = (
     'compute_max_nderiv',
@@ -87,7 +87,7 @@ def compute_imports(expr: Expr,
         Functional. This is a pure SymPy expression where SymPDE partial
         derivatives have been converted to SymPy symbols. See Notes.
 
-    spaces : iterable of psydac.fem.FemSpace
+    spaces : iterable of feectools.fem.FemSpace
         The discrete spaces which define the finite element representation
         of a BilinearForm, LinearForm, or Functional.
 

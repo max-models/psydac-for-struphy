@@ -1,7 +1,7 @@
 # coding: utf-8
 
 import numpy as np
-from psydac.ddm.mpi import mpi as MPI
+from feectools.ddm.mpi import mpi as MPI
 
 from .cart import CartDecomposition, find_mpi_type
 from .basic import CartDataExchanger
@@ -19,7 +19,7 @@ class BlockingCartDataExchanger(CartDataExchanger):
 
     Parameters
     ----------
-    cart : psydac.ddm.CartDecomposition
+    cart : feectools.ddm.CartDecomposition
         Object that contains all information about the Cartesian decomposition
         of a tensor-product grid of coefficients.
 
@@ -201,7 +201,7 @@ class BlockingCartDataExchanger(CartDataExchanger):
 
         Parameters
         ----------
-        cart : psydac.ddm.CartDecomposition
+        cart : feectools.ddm.CartDecomposition
             Object that contains all information about the Cartesian decomposition
             of a tensor-product grid of coefficients.
 
@@ -275,7 +275,7 @@ class BlockingCartDataExchanger(CartDataExchanger):
 
         Parameters
         ----------
-        cart : psydac.ddm.CartDecomposition
+        cart : feectools.ddm.CartDecomposition
             Object that contains all information about the Cartesian decomposition
             of a tensor-product grid of coefficients.
 

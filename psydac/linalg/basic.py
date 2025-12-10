@@ -14,7 +14,7 @@ from inspect import signature
 import numpy as np
 from scipy.sparse import coo_matrix
 
-from psydac.utilities.utils import is_real
+from feectools.utilities.utils import is_real
 
 __all__ = (
     'VectorSpace',
@@ -549,7 +549,7 @@ class ZeroOperator(LinearOperator):
         assert isinstance(domain, VectorSpace)
         assert isinstance(codomain, VectorSpace)
 
-        from psydac.linalg.block import BlockVectorSpace, BlockLinearOperator
+        from feectools.linalg.block import BlockVectorSpace, BlockLinearOperator
         if isinstance(domain, BlockVectorSpace) or isinstance(codomain, BlockVectorSpace):
             if isinstance(domain, BlockVectorSpace):
                 domain_spaces = domain.spaces
@@ -1122,10 +1122,10 @@ class InverseLinearOperator(LinearOperator):
 
     Parameters
     ----------
-    A : psydac.linalg.basic.LinearOperator
+    A : feectools.linalg.basic.LinearOperator
         Left-hand-side matrix A of linear system.
         
-    x0 : psydac.linalg.basic.Vector
+    x0 : feectools.linalg.basic.Vector
         First guess of solution for iterative solver (optional).
         
     tol : float

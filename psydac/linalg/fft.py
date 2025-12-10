@@ -1,6 +1,6 @@
-from psydac.linalg.basic import LinearOperator, LinearSolver
-from psydac.linalg.stencil import StencilVectorSpace
-from psydac.linalg.kron import KroneckerLinearSolver
+from feectools.linalg.basic import LinearOperator, LinearSolver
+from feectools.linalg.stencil import StencilVectorSpace
+from feectools.linalg.kron import KroneckerLinearSolver
 
 import numpy as np
 import scipy.fft as scifft

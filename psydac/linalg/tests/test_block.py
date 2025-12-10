@@ -5,15 +5,15 @@ import numpy as np
 from scipy.sparse import csr_matrix
 from random import random, seed
 
-from psydac.ddm.mpi import mpi as MPI
-from psydac.linalg.direct_solvers import SparseSolver
-from psydac.linalg.stencil        import StencilVectorSpace, StencilVector, StencilMatrix
-from psydac.linalg.block          import BlockVectorSpace, BlockVector
-from psydac.linalg.block          import BlockLinearOperator
-from psydac.linalg.utilities      import array_to_psydac, petsc_to_psydac
-from psydac.linalg.sparse         import SparseMatrixLinearOperator
-from psydac.api.settings          import PSYDAC_BACKEND_GPYCCEL
-from psydac.ddm.cart              import DomainDecomposition, CartDecomposition
+from feectools.ddm.mpi import mpi as MPI
+from feectools.linalg.direct_solvers import SparseSolver
+from feectools.linalg.stencil        import StencilVectorSpace, StencilVector, StencilMatrix
+from feectools.linalg.block          import BlockVectorSpace, BlockVector
+from feectools.linalg.block          import BlockLinearOperator
+from feectools.linalg.utilities      import array_to_psydac, petsc_to_psydac
+from feectools.linalg.sparse         import SparseMatrixLinearOperator
+from feectools.api.settings          import PSYDAC_BACKEND_GPYCCEL
+from feectools.ddm.cart              import DomainDecomposition, CartDecomposition
 
 #===============================================================================
 def compute_global_starts_ends(domain_decomposition, npts):

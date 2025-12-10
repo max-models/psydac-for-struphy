@@ -6,10 +6,10 @@ import numpy as np
 from functools import reduce
 from typing import Optional
 
-from psydac.linalg.basic   import Vector
-from psydac.linalg.stencil import StencilVectorSpace
-from psydac.linalg.block   import BlockVectorSpace
-from psydac.fem.basic      import FemSpace, FemField
+from feectools.linalg.basic   import Vector
+from feectools.linalg.stencil import StencilVectorSpace
+from feectools.linalg.block   import BlockVectorSpace
+from feectools.fem.basic      import FemSpace, FemField
 
 __all__ = ('VectorFemSpace', 'MultipatchFemSpace')
 
@@ -126,7 +126,7 @@ class VectorFemSpace(FemSpace):
     def coeff_space(self):
         """
         Vector space of the coefficients (mapping invariant).
-        :rtype: psydac.linalg.block.BlockVectorSpace
+        :rtype: feectools.linalg.block.BlockVectorSpace
         """
         return self._coeff_space
 
@@ -180,10 +180,10 @@ class VectorFemSpace(FemSpace):
             Grid on which to evaluate the fields.
             Each array in this list corresponds to one logical coordinate.
 
-        *fields : tuple of psydac.fem.basic.FemField
+        *fields : tuple of feectools.fem.basic.FemField
             Fields to evaluate.
 
-        weights : psydac.fem.basic.FemField or None, optional
+        weights : feectools.fem.basic.FemField or None, optional
             Weights field used to weight the basis functions thus
             turning them into NURBS. The same weights field is used
             for all of fields and they thus have to use the same basis functions.
@@ -203,7 +203,7 @@ class VectorFemSpace(FemSpace):
 
         See Also
         --------
-        psydac.fem.tensor.TensorFemSpace.eval_fields : More information about the grid parameter.
+        feectools.fem.tensor.TensorFemSpace.eval_fields : More information about the grid parameter.
         """
         result = []
         if weights is not None:
@@ -236,10 +236,10 @@ class VectorFemSpace(FemSpace):
             number of cells in the domain in the direction xi and nv_xi is the number of
             evaluation points in the same direction.
 
-        *fields : tuple of psydac.fem.basic.FemField
+        *fields : tuple of feectools.fem.basic.FemField
             Fields to evaluate.
 
-        weights : psydac.fem.basic.FemField or None, optional
+        weights : feectools.fem.basic.FemField or None, optional
             Weights field used to weight the basis functions thus
             turning them into NURBS. The same weights field is used
             for all of fields and they thus have to use the same basis functions.
@@ -255,7 +255,7 @@ class VectorFemSpace(FemSpace):
 
         See Also
         --------
-        psydac.fem.tensor.TensorFemSpace.eval_fields : More information about the grid parameter.
+        feectools.fem.tensor.TensorFemSpace.eval_fields : More information about the grid parameter.
         """
         for f in fields:
             # Necessary if vector coeffs is distributed across processes
@@ -293,10 +293,10 @@ class VectorFemSpace(FemSpace):
         grid : List of ndarray
             List of 1D arrays representing each direction of the grid.
 
-        *fields : tuple of psydac.fem.basic.FemField
+        *fields : tuple of feectools.fem.basic.FemField
             Fields to evaluate.
 
-        weights : psydac.fem.basic.FemField or None, optional
+        weights : feectools.fem.basic.FemField or None, optional
             Weights field used to weight the basis functions thus
             turning them into NURBS. The same weights field is used
             for all of fields and they thus have to use the same basis functions.
@@ -312,7 +312,7 @@ class VectorFemSpace(FemSpace):
 
         See Also
         --------
-        psydac.fem.tensor.TensorFemSpace.eval_fields : More information about the grid parameter.
+        feectools.fem.tensor.TensorFemSpace.eval_fields : More information about the grid parameter.
         """
         for f in fields:
             # Necessary if vector coeffs is distributed across processes
@@ -463,7 +463,7 @@ class MultipatchFemSpace(FemSpace):
     def coeff_space(self):
         """
         Vector space of the coefficients (mapping invariant).
-        :rtype: psydac.linalg.basic.BlockVectorSpace
+        :rtype: feectools.linalg.basic.BlockVectorSpace
         """
         return self._coeff_space
 
@@ -523,10 +523,10 @@ class MultipatchFemSpace(FemSpace):
             Grid on which to evaluate the fields.
             Each array in this list corresponds to one logical coordinate.
 
-        *fields : tuple of psydac.fem.basic.FemField
+        *fields : tuple of feectools.fem.basic.FemField
             Fields to evaluate.
 
-        weights : psydac.fem.basic.FemField or None, optional
+        weights : feectools.fem.basic.FemField or None, optional
             Weights field used to weight the basis functions thus
             turning them into NURBS. The same weights field is used
             for all of fields and they thus have to use the same basis functions.
@@ -546,7 +546,7 @@ class MultipatchFemSpace(FemSpace):
 
         See Also
         --------
-        psydac.fem.tensor.TensorFemSpace.eval_fields : More information about the grid parameter.
+        feectools.fem.tensor.TensorFemSpace.eval_fields : More information about the grid parameter.
         """
         result = []
         if weights is not None:
@@ -579,10 +579,10 @@ class MultipatchFemSpace(FemSpace):
             number of cells in the domain in the direction xi and nv_xi is the number of
             evaluation points in the same direction.
 
-        *fields : tuple of psydac.fem.basic.FemField
+        *fields : tuple of feectools.fem.basic.FemField
             Fields to evaluate.
 
-        weights : psydac.fem.basic.FemField or None, optional
+        weights : feectools.fem.basic.FemField or None, optional
             Weights field used to weight the basis functions thus
             turning them into NURBS. The same weights field is used
             for all of fields and they thus have to use the same basis functions.
@@ -598,7 +598,7 @@ class MultipatchFemSpace(FemSpace):
 
         See Also
         --------
-        psydac.fem.tensor.TensorFemSpace.eval_fields : More information about the grid parameter.
+        feectools.fem.tensor.TensorFemSpace.eval_fields : More information about the grid parameter.
         """
         for f in fields:
             # Necessary if vector coeffs is distributed across processes
@@ -636,10 +636,10 @@ class MultipatchFemSpace(FemSpace):
         grid : List of ndarray
             List of 1D arrays representing each direction of the grid.
 
-        *fields : tuple of psydac.fem.basic.FemField
+        *fields : tuple of feectools.fem.basic.FemField
             Fields to evaluate.
 
-        weights : psydac.fem.basic.FemField or None, optional
+        weights : feectools.fem.basic.FemField or None, optional
             Weights field used to weight the basis functions thus
             turning them into NURBS. The same weights field is used
             for all of fields and they thus have to use the same basis functions.
@@ -655,7 +655,7 @@ class MultipatchFemSpace(FemSpace):
 
         See Also
         --------
-        psydac.fem.tensor.TensorFemSpace.eval_fields : More information about the grid parameter.
+        feectools.fem.tensor.TensorFemSpace.eval_fields : More information about the grid parameter.
         """
         for f in fields:
             # Necessary if vector coeffs is distributed across processes

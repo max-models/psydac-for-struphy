@@ -4,7 +4,7 @@ import pytest
 import numpy as np
 
 
-from psydac.core.bsplines_kernels import cell_index_p
+from feectools.core.bsplines_kernels import cell_index_p
 
 def test_cell_index_p():
     breaks = np.array([0. , 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.])

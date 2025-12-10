@@ -7,7 +7,7 @@ from sympde.calculus import dot
 from sympde.expr.expr import BilinearForm
 from sympde.expr.expr import integral
 
-from psydac.api.settings import PSYDAC_BACKENDS
+from feectools.api.settings import PSYDAC_BACKENDS
 
 # ===============================================================================
 class HodgeOperator:
@@ -63,8 +63,8 @@ class HodgeOperator:
         the Hodge matrix is the patch-wise multi-patch mass matrix
         it is not stored by default but assembled on demand
         """
-        from psydac.api.discretization import discretize
-        from psydac.fem.basic          import FemLinearOperator
+        from feectools.api.discretization import discretize
+        from feectools.fem.basic          import FemLinearOperator
 
         if self._linop is None:
             Vh = self._fem_domain
@@ -91,9 +91,9 @@ class HodgeOperator:
         the dual Hodge matrix is the patch-wise inverse of the multi-patch mass matrix
         it is not stored by default but computed on demand, by approximate local (patch-wise) inversion of the mass matrix
         """
-        from psydac.linalg.solvers import inverse
-        from psydac.linalg.block   import BlockLinearOperator
-        from psydac.fem.basic      import FemLinearOperator
+        from feectools.linalg.solvers import inverse
+        from feectools.linalg.block   import BlockLinearOperator
+        from feectools.fem.basic      import FemLinearOperator
         
         if self._dual_linop is None:
             if not self._linop:

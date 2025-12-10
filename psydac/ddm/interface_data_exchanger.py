@@ -1,6 +1,6 @@
 # coding: utf-8
 
-from psydac.ddm.mpi import mpi as MPI
+from feectools.ddm.mpi import mpi as MPI
 
 from .cart import InterfaceCartDecomposition, find_mpi_type
 
@@ -14,7 +14,7 @@ class InterfaceCartDataExchanger:
 
     Parameters
     ----------
-    cart : psydac.ddm.InterfaceCartDecomposition
+    cart : feectools.ddm.InterfaceCartDecomposition
         Object that contains all information about the Cartesian decomposition
         of a tensor-product grid of coefficients.
 

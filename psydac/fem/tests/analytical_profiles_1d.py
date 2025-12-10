@@ -4,8 +4,8 @@
 import math
 import numpy as np
 
-from psydac.fem.tests.analytical_profiles_base import AnalyticalProfile
-from psydac.fem.tests.utilities                import horner, falling_factorial
+from feectools.fem.tests.analytical_profiles_base import AnalyticalProfile
+from feectools.fem.tests.utilities                import horner, falling_factorial
 
 __all__ = ('AnalyticalProfile_1d_cos', 'AnalyticalProfile1D_Poly')
 

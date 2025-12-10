@@ -1,3 +1,3 @@
 __all__ = ['cart']
 
-from psydac.ddm import cart
+from feectools.ddm import cart
