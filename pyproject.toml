@@ -67,7 +67,7 @@ namespaces = false
 
 [tool.setuptools.package-data]
 "*" = ["*.txt"]
-psydac = ['accelerate/compile_psydac.mk']
+feectools = ['accelerate/compile_psydac.mk']
 
 [tool.coverage.run]
 branch = true
