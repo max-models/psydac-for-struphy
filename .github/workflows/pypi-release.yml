@@ -2,8 +2,8 @@ name: Publish feectools to PyPI
 
 on:
   push:
-    # branches:
-    #   - devel-tiny
+    branches:
+      - devel-tiny
 
 jobs:
   pypi-publish:
@@ -12,9 +12,9 @@ jobs:
     runs-on: ubuntu-latest
 
     environment:
-      name: testpypi
-    #   url: https://pypi.org/project/feectools/
-      url: https://test.pypi.org/project/feectools/
+      name: pypi
+      url: https://pypi.org/project/feectools/
+      # url: https://test.pypi.org/project/feectools/
 
     permissions:
       id-token: write  # IMPORTANT: this permission is mandatory for trusted publishing
@@ -38,5 +38,5 @@ jobs:
 
     - name: Publish package distributions to PyPI
       uses: pypa/gh-action-pypi-publish@release/v1
-      with:
-        repository-url: https://test.pypi.org/legacy/
+      # with:
+      #   repository-url: https://test.pypi.org/legacy/
