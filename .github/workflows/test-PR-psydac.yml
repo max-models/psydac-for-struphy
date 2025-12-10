@@ -32,7 +32,7 @@ jobs:
         python-version: [ '3.12' ]
         compile_language: ['c', 'fortran']
 
-    name: Test Psydac for Python ${{ matrix.python-version }} / ${{ matrix.compile_language }}
+    name: Test feectools for Python ${{ matrix.python-version }} / ${{ matrix.compile_language }}
 
     steps:
       - name: Check for dockerenv file
@@ -48,7 +48,7 @@ jobs:
           python3 -m pip install ".[test]" --no-cache-dir
           python3 -m pip freeze
       
-      - name: Compile psydac kernels
+      - name: Compile feectools kernels
         run: |
           source env/bin/activate
           psydac-accelerate --language ${{ matrix.compile_language }}
@@ -66,7 +66,7 @@ jobs:
         run: |
           source env/bin/activate
           cd pytest
-          python3 -m pytest -n auto --pyargs psydac -m "not parallel and not petsc"
+          python3 -m pytest -n auto --pyargs feectools -m "not parallel and not petsc"
 
       - name: Install project with mpi
         run: |
@@ -78,7 +78,7 @@ jobs:
         run: |
           source env/bin/activate
           cd pytest
-          python3 mpi_tester.py --mpirun="mpiexec -n 4 ${MPI_OPTS}" --pyargs psydac -m "parallel and not petsc"
+          python3 mpi_tester.py --mpirun="mpiexec -n 4 ${MPI_OPTS}" --pyargs feectools -m "parallel and not petsc"
 
       - name: Remove test directory
         if: always()
