@@ -7,7 +7,7 @@ from subprocess import run as sub_run, PIPE, STDOUT  # nosec B404
 import subprocess
 import sysconfig
 
-import psydac
+import feectools
 
 # Get the absolute path to the psydac directory
 psydac_path = os.path.abspath(feectools.__path__[0])
