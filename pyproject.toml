@@ -32,7 +32,7 @@ dependencies = [
     'pyevtk',
 
     # Our packages from PyPi
-    'pyccel >= 2.0.1',
+    'pyccel >= 2.1.0',
     'h5py',
 
     # When pyccel is run in parallel with MPI, it uses tblib to pickle
