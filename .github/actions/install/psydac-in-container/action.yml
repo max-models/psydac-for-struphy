@@ -22,6 +22,8 @@ runs:
           ls / -a
           which python3
           ls -a
+          mkdir for_cloning
+          cd for_cloning
           git clone https://github.com/struphy-hub/feectools.git
           cd feectools
           echo ${GIT_BRANCH_NAME}
