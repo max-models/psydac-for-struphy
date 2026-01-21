@@ -1,5 +1,7 @@
 name: Install Psydac in Container
 
+description: 
+
 inputs:
   compile_language:
     required: true
@@ -19,8 +21,9 @@ runs:
       run: |
           ls / -a
           which python3
-          git clone https://github.com/struphy-hub/psydac-for-struphy.git
-          cd psydac-for-struphy
+          ls -a
+          git clone https://github.com/struphy-hub/feectools.git
+          cd feectools
           echo ${GIT_BRANCH_NAME}
           git checkout ${GIT_BRANCH_NAME}
           git pull
