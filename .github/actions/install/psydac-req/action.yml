@@ -92,7 +92,7 @@ runs:
           cache-name: cache-PETSc
       with:
           path: "./petsc"
-          key: petsc-${{ matrix.os }}-${{ matrix.python-version }}
+          key: petsc-${{ matrix.os }}-${{ matrix.python-version }}-xxxxx
 
     - if: steps.cache-petsc.outputs.cache-hit != 'true'
       name: Download a specific release of PETSc
