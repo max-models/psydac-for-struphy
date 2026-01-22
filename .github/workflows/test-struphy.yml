@@ -78,7 +78,7 @@ jobs:
           psydac-accelerate --cleanup --yes
           pip show feectools
           pip uninstall feectools -y
-          python -m pip install ${{ env.PSYDAC_DIR }} --force-reinstall --no-cache-dir
+          python -m pip install ${{ env.PSYDAC_DIR }}
           echo "feectools location after installing feectools from the current branch (should be the same as in the previous step)"
           pip show feectools
           
