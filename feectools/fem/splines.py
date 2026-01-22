@@ -111,6 +111,13 @@ class SplineSpace( FemSpace ):
             if dirichlet[1]: defect += 1
             nbasis = len(knots) - degree - 1 - defect
 
+        # greville points
+        grev_tmp = greville(knots, degree, periodic, multiplicity = multiplicity)
+        if dirichlet[0]:
+            grev_tmp = grev_tmp[1:]
+        if dirichlet[1]:
+            grev_tmp = grev_tmp[:-1]
+
         # Coefficients to convert B-splines to M-splines (if needed)
         if basis == 'M':
             scaling_array = 1 / basis_integrals(knots, degree)
@@ -128,7 +135,7 @@ class SplineSpace( FemSpace ):
         self._nbasis        = nbasis
         self._breaks        = grid
         self._ncells        = len(grid) - 1
-        self._greville      = greville(knots, degree, periodic, multiplicity = multiplicity)
+        self._greville      = grev_tmp
         self._ext_greville  = greville(elevate_knots(knots, degree, periodic, multiplicity=multiplicity), degree+1, periodic, multiplicity = multiplicity)
         self._scaling_array = scaling_array
         self._parent_multiplicity  = parent_multiplicity
@@ -178,6 +185,7 @@ class SplineSpace( FemSpace ):
                 periodic = self.periodic,
                 normalization = self.basis,
                 xgrid    = self.greville,
+                dirichlet = self.dirichlet,
                 multiplicity = self.multiplicity
             )
 
