@@ -300,7 +300,7 @@ def basis_funs_all_ders(knots, degree, x, span, n, normalization='B', out=None):
     return out
 
 #==============================================================================
-def collocation_matrix(knots, degree, periodic, normalization, xgrid, out=None, multiplicity = 1):
+def collocation_matrix(knots, degree, periodic, normalization, xgrid, dirichlet, out=None, multiplicity = 1):
     """Computes the collocation matrix
 
     If called with normalization='M', this uses M-splines instead of B-splines.
@@ -321,6 +321,9 @@ def collocation_matrix(knots, degree, periodic, normalization, xgrid, out=None, 
 
     xgrid : array_like
         Evaluation points.
+        
+    dirichlet: tuple[bool]
+        Whether to have hom. Dirichlet conditions left and/or right.
 
     out : array, optional
         If provided, the result will be inserted into this array.
@@ -345,10 +348,11 @@ def collocation_matrix(knots, degree, periodic, normalization, xgrid, out=None, 
 
     knots = np.ascontiguousarray(knots, dtype=float)
     xgrid = np.ascontiguousarray(xgrid, dtype=float)
+    nb = len(xgrid)
     if out is None:
-        nb = len(knots) - degree - 1
-        if periodic:
-            nb -= degree + 1 - multiplicity
+        # nb = len(knots) - degree - 1
+        # if periodic:
+        #     nb -= degree + 1 - multiplicity
 
         out = np.zeros((xgrid.shape[0], nb), dtype=float)
     else:
@@ -357,11 +361,11 @@ def collocation_matrix(knots, degree, periodic, normalization, xgrid, out=None, 
     bool_normalization = normalization == "M"
     multiplicity = int(multiplicity)
 
-    collocation_matrix_p(knots, degree, periodic, bool_normalization, xgrid, out, multiplicity=multiplicity)
+    collocation_matrix_p(knots, degree, periodic, bool_normalization, xgrid, dirichlet, out, multiplicity=multiplicity)
     return out
 
 #==============================================================================
-def histopolation_matrix(knots, degree, periodic, normalization, xgrid, multiplicity=1, check_boundary=True, out=None):
+def histopolation_matrix(knots, degree, periodic, normalization, xgrid, dirichlet, multiplicity=1, check_boundary=True, out=None):
     """Computes the histopolation matrix.
 
     If called with normalization='M', this uses M-splines instead of B-splines.
@@ -445,7 +449,7 @@ def histopolation_matrix(knots, degree, periodic, normalization, xgrid, multipli
             assert out.shape == (len(xgrid) - 1, len(elevated_knots) - (degree + 1) - 1 - 1)
         assert out.dtype == np.dtype('float')
     multiplicity = int(multiplicity)
-    histopolation_matrix_p(knots, degree, periodic, normalization, xgrid, check_boundary, elevated_knots, out, multiplicity = multiplicity)
+    histopolation_matrix_p(knots, degree, periodic, normalization, xgrid, dirichlet, check_boundary, elevated_knots, out, multiplicity = multiplicity)
     return out
 
 #==============================================================================

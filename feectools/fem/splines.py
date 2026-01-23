@@ -221,6 +221,7 @@ class SplineSpace( FemSpace ):
             periodic = self.periodic,
             normalization = self.basis,
             xgrid    = self.ext_greville,
+            dirichlet = self.dirichlet,
             multiplicity = self._multiplicity
         )
 

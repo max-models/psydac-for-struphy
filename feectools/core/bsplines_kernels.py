@@ -512,8 +512,14 @@ def basis_integrals_p(knots: 'float[:]', degree: int, out: 'float[:]'):
 
 
 # =============================================================================
-def collocation_matrix_p(knots: 'float[:]', degree: int, periodic: bool, normalization: bool, xgrid: 'float[:]',
-                         out: 'float[:,:]', multiplicity : int = 1):
+def collocation_matrix_p(knots: 'float[:]', 
+                         degree: int, 
+                         periodic: bool, 
+                         normalization: bool, 
+                         xgrid: 'float[:]',
+                         dirichlet: tuple[bool],
+                         out: 'float[:,:]', 
+                         multiplicity : int = 1):
     """
     Compute the collocation matrix :math:`C_ij = B_j(x_i)`, which contains the
     values of each B-spline basis function :math:`B_j` at all locations :math:`x_i`.
@@ -547,9 +553,10 @@ def collocation_matrix_p(knots: 'float[:]', degree: int, periodic: bool, normali
         
     """
     # Number of basis functions (in periodic case remove degree repeated elements)
-    nb = len(knots)-degree-1
-    if periodic:
-        nb -= degree + 1 - multiplicity
+    nb = len(xgrid)
+    # nb = len(knots)-degree-1
+    # if periodic:
+    #     nb -= degree + 1 - multiplicity
 
     # Number of evaluation points
     nx = len(xgrid)
@@ -570,7 +577,19 @@ def collocation_matrix_p(knots: 'float[:]', degree: int, periodic: bool, normali
                     out[i, actual_j] = basis[i, j]
         else:
             for i in range(nx):
-                out[i, spans[i] - degree:spans[i] + 1] = basis[i, :]
+                print(f"\n{i = }")
+                print("not normalization")
+                print(f"{dirichlet = }")
+                print(f"{spans = }")
+                print(f"{degree = }")
+                print(f"{spans[i] - dirichlet[0] - degree = }")
+                print(f"{spans[i] - dirichlet[0] + 1 = }")
+                print(f"{basis[i, :] = }")
+                if dirichlet[1] and i==nx - 1:
+                    out[i, spans[i] - dirichlet[0] - degree:spans[i] - dirichlet[0]] = basis[i, :-1]
+                else:
+                    out[i, spans[i] - dirichlet[0] - degree:spans[i] - dirichlet[0] + 1] = basis[i, :]
+                print(f"{out = }")
     else:
         integrals = np.zeros(knots.shape[0] - degree - 1)
         basis_integrals_p(knots, degree, integrals)
@@ -584,7 +603,20 @@ def collocation_matrix_p(knots: 'float[:]', degree: int, periodic: bool, normali
         else:
             for i in range(nx):
                 local_scaling = scaling[spans[i] - degree:spans[i] + 1]
-                out[i, spans[i] - degree:spans[i] + 1] = basis[i, :] * local_scaling[:]
+                print(f"\n{i = }")
+                print("else")
+                print(f"{dirichlet = }")
+                print(f"{spans = }")
+                print(f"{degree = }")
+                print(f"{spans[i] - dirichlet[0] - degree = }")
+                print(f"{spans[i] - dirichlet[0] + 1 = }")
+                print(f"{basis[i, :] = }")
+                print(f"{local_scaling[:] = }")
+                # if dirichlet[1] and i==nx - 1:
+                #     out[i, spans[i] - dirichlet[0] - degree:spans[i] - dirichlet[0]] = basis[i, :-1] * local_scaling[:]
+                # else:
+                out[i, spans[i] - dirichlet[0] - degree:spans[i] - dirichlet[0] + 1] = basis[i, :] * local_scaling[:]
+                print(f"{out = }")
 
     # Mitigate round-off errors
     for x in range(nx):
@@ -594,8 +626,16 @@ def collocation_matrix_p(knots: 'float[:]', degree: int, periodic: bool, normali
 
 
 # =============================================================================
-def histopolation_matrix_p(knots: 'float[:]', degree: int, periodic: bool, normalization: bool, xgrid: 'float[:]',
-                           check_boundary: bool, elevated_knots: 'float[:]', out: 'float[:,:]', multiplicity : int = 1):
+def histopolation_matrix_p(knots: 'float[:]', 
+                           degree: int, 
+                           periodic: bool, 
+                           normalization: bool, 
+                           xgrid: 'float[:]',
+                           dirichlet: tuple[bool],
+                           check_boundary: bool, 
+                           elevated_knots: 'float[:]',
+                           out: 'float[:,:]',
+                           multiplicity : int = 1):
     """Computes the histopolation matrix.
 
     If called with normalization=True, this uses M-splines instead of B-splines.
@@ -684,6 +724,7 @@ def histopolation_matrix_p(knots: 'float[:]', degree: int, periodic: bool, norma
                             False,
                             False,
                             xgrid_new[:actual_len],
+                            dirichlet,
                             colloc,
                             multiplicity = multiplicity)
 
