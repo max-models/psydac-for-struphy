@@ -566,6 +566,12 @@ def collocation_matrix_p(knots: 'float[:]',
     find_spans_p(knots, degree, xgrid, spans)
     basis_funs_array_p(knots, degree, xgrid, spans, basis)
 
+    # adapt indexing for hom. dirichlet
+    if spans[0] == degree:
+        adapt_col_index = False
+    else:
+        adapt_col_index = dirichlet[0]
+
     # Fill in non-zero matrix values
 
     # Rescaling of B-splines, to get M-splines if needed
@@ -576,20 +582,23 @@ def collocation_matrix_p(knots: 'float[:]',
                     actual_j = (spans[i] - degree + j) % nb
                     out[i, actual_j] = basis[i, j]
         else:
+            k = 0
             for i in range(nx):
-                print(f"\n{i = }")
-                print("not normalization")
-                print(f"{dirichlet = }")
-                print(f"{spans = }")
-                print(f"{degree = }")
-                print(f"{spans[i] - dirichlet[0] - degree = }")
-                print(f"{spans[i] - dirichlet[0] + 1 = }")
-                print(f"{basis[i, :] = }")
-                if dirichlet[1] and i==nx - 1:
-                    out[i, spans[i] - dirichlet[0] - degree:spans[i] - dirichlet[0]] = basis[i, :-1]
+                # print(f"\n{i = }")
+                # print("not normalization")
+                # print(f"{dirichlet = }")
+                # print(f"{spans = }")
+                # print(f"{degree = }")
+                # print(f"{adapt_col_index = }")
+                # print(f"{spans[i] - adapt_col_index - degree = }")
+                # print(f"{spans[i] - adapt_col_index + 1 = }")
+                # print(f"{basis[i, :] = }")
+                if dirichlet[1] and i>=nx - degree:
+                    k += 1
+                    out[i, spans[i] - adapt_col_index - degree:spans[i] - adapt_col_index + 1 - k] = basis[i, :-k]
                 else:
-                    out[i, spans[i] - dirichlet[0] - degree:spans[i] - dirichlet[0] + 1] = basis[i, :]
-                print(f"{out = }")
+                    out[i, spans[i] - adapt_col_index - degree:spans[i] - adapt_col_index + 1] = basis[i, :]
+                # print(f"{out = }")
     else:
         integrals = np.zeros(knots.shape[0] - degree - 1)
         basis_integrals_p(knots, degree, integrals)
@@ -601,22 +610,25 @@ def collocation_matrix_p(knots: 'float[:]',
                     out[i, actual_j] = basis[i, j] * scaling[spans[i] - degree + j]
 
         else:
+            k = 0
             for i in range(nx):
                 local_scaling = scaling[spans[i] - degree:spans[i] + 1]
-                print(f"\n{i = }")
-                print("else")
-                print(f"{dirichlet = }")
-                print(f"{spans = }")
-                print(f"{degree = }")
-                print(f"{spans[i] - dirichlet[0] - degree = }")
-                print(f"{spans[i] - dirichlet[0] + 1 = }")
-                print(f"{basis[i, :] = }")
-                print(f"{local_scaling[:] = }")
-                # if dirichlet[1] and i==nx - 1:
-                #     out[i, spans[i] - dirichlet[0] - degree:spans[i] - dirichlet[0]] = basis[i, :-1] * local_scaling[:]
-                # else:
-                out[i, spans[i] - dirichlet[0] - degree:spans[i] - dirichlet[0] + 1] = basis[i, :] * local_scaling[:]
-                print(f"{out = }")
+                # print(f"\n{i = }")
+                # print("else")
+                # print(f"{dirichlet = }")
+                # print(f"{spans = }")
+                # print(f"{degree = }")
+                # print(f"{adapt_col_index = }")
+                # print(f"{spans[i] - adapt_col_index - degree = }")
+                # print(f"{spans[i] - adapt_col_index + 1 = }")
+                # print(f"{basis[i, :] = }")
+                # print(f"{local_scaling[:] = }")
+                if dirichlet[1] and i>=nx - degree:
+                    k += 1
+                    out[i, spans[i] - adapt_col_index - degree:spans[i] - adapt_col_index + 1 - k] = basis[i, :-k] * local_scaling[:-k]
+                else:
+                    out[i, spans[i] - adapt_col_index - degree:spans[i] - adapt_col_index + 1] = basis[i, :] * local_scaling[:]
+                # print(f"{out = }")
 
     # Mitigate round-off errors
     for x in range(nx):
@@ -717,8 +729,9 @@ def histopolation_matrix_p(knots: 'float[:]',
     # NOTES:
     #  . cannot use M-splines in analytical formula for histopolation matrix
     #  . always use non-periodic splines to avoid circulant matrix structure
-    nb_elevated = len(elevated_knots) - (degree + 1) - 1
-    colloc = np.zeros((actual_len, nb_elevated))
+    # nb_elevated = len(elevated_knots) - (degree + 1) - 1
+    # colloc = np.zeros((actual_len, nb_elevated))
+    colloc = np.zeros((actual_len, actual_len))
     collocation_matrix_p(elevated_knots,
                             degree + 1,
                             False,

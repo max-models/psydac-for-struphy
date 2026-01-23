@@ -439,14 +439,14 @@ def histopolation_matrix(knots, degree, periodic, normalization, xgrid, dirichle
 
     if out is None:
         if periodic:
-            out = np.zeros((len(xgrid), len(knots) - 2 * degree - 2 + multiplicity), dtype=float)
+            out = np.zeros((len(xgrid), len(xgrid)), dtype=float)
         else:
-            out = np.zeros((len(xgrid) - 1, len(elevated_knots) - (degree + 1) - 1 - 1), dtype=float)
+            out = np.zeros((len(xgrid) - 1, len(xgrid) - 1), dtype=float)
     else:
         if periodic:
-            assert out.shape == (len(xgrid), len(knots) - 2 * degree - 2 + multiplicity)
+            assert out.shape == (len(xgrid), len(xgrid))
         else:
-            assert out.shape == (len(xgrid) - 1, len(elevated_knots) - (degree + 1) - 1 - 1)
+            assert out.shape == (len(xgrid) - 1, len(xgrid) - 1)
         assert out.dtype == np.dtype('float')
     multiplicity = int(multiplicity)
     histopolation_matrix_p(knots, degree, periodic, normalization, xgrid, dirichlet, check_boundary, elevated_knots, out, multiplicity = multiplicity)
