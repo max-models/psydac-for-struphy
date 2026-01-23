@@ -117,6 +117,12 @@ class SplineSpace( FemSpace ):
             grev_tmp = grev_tmp[1:]
         if dirichlet[1]:
             grev_tmp = grev_tmp[:-1]
+            
+        ext_grev_tmp = greville(elevate_knots(knots, degree, periodic, multiplicity=multiplicity), degree+1, periodic, multiplicity = multiplicity)
+        if dirichlet[0]:
+            ext_grev_tmp = ext_grev_tmp[1:]
+        if dirichlet[1]:
+            ext_grev_tmp = ext_grev_tmp[:-1]
 
         # Coefficients to convert B-splines to M-splines (if needed)
         if basis == 'M':
@@ -136,7 +142,7 @@ class SplineSpace( FemSpace ):
         self._breaks        = grid
         self._ncells        = len(grid) - 1
         self._greville      = grev_tmp
-        self._ext_greville  = greville(elevate_knots(knots, degree, periodic, multiplicity=multiplicity), degree+1, periodic, multiplicity = multiplicity)
+        self._ext_greville  = ext_grev_tmp
         self._scaling_array = scaling_array
         self._parent_multiplicity  = parent_multiplicity
         self._histopolation_grid   = unroll_edges(self.domain, self.ext_greville)
