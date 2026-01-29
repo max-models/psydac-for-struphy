@@ -97,6 +97,7 @@ jobs:
           echo "Struphy is installed at: $STRUPHY_PATH"
           echo "STRUPHY_PATH=${STRUPHY_PATH}" >> $GITHUB_ENV
           mpirun -n 1 pytest -m single --testmon-forceselect -s --with-mpi --model-name Maxwell $STRUPHY_PATH
+          cd $STRUPHY_PATH
           pytest --testmon $TEST_FILES
       
       - name: Run struphy model tests
