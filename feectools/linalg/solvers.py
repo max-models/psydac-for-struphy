@@ -4,7 +4,7 @@ This module provides iterative solvers and preconditioners.
 
 """
 import numpy as np
-from math import sqrt
+from math import sqrt, inf
 
 from feectools.utilities.utils  import is_real
 from feectools.linalg.utilities import _sym_ortho
@@ -20,7 +20,7 @@ __all__ = (
     'PBiConjugateGradientStabilized',
     'MinimumResidual',
     'LSMR',
-    'GMRES'
+    'GMRES',
 )
 
 #===============================================================================
@@ -64,6 +64,7 @@ def inverse(A, solver, **kwargs):
         'minres'   : MinimumResidual,
         'lsmr'     : LSMR,
         'gmres'    : GMRES,
+        'uzawa'    : UzawaSolver
     }
 
     # Check solver input
@@ -1912,3 +1913,129 @@ class GMRES(InverseLinearOperator):
     def dot(self, b, out=None):
         return self.solve(b, out=out)
 
+
+class UzawaSolver(InverseLinearOperator):
+    def __init__(self, A, *, A11, A22, B1, B2,
+                 x0=None, tol=1e-6, maxiter=1000, verbose=False, recycle=False,
+                 inner_solver='gmres', inner_tol=1e-10):  # TODO specify these from outside
+
+        self._options = {
+            "x0": x0, "tol": tol, "maxiter": maxiter,
+            "verbose": verbose, "recycle": recycle,
+        }
+        super().__init__(A, **self._options)
+
+        self._A11 = A11
+        self._A22 = A22
+        self._B1 = B1
+        self._B2 = B2
+
+        # inner solves for A11^{-1} and A22^{-1}
+        self._A11inv = inverse(A11, inner_solver, tol=inner_tol, maxiter=maxiter, verbose=False)
+        self._A22inv = inverse(A22, inner_solver, tol=inner_tol, maxiter=maxiter, verbose=False)
+
+        # pre-allocate temporaries
+        self._tmps_u  = A11.domain.zeros()
+        self._tmps_ue = A22.domain.zeros()
+        self._tmps_p  = B1.codomain.zeros()
+
+        self._info = None
+
+    def solve(self, b, out=None):
+        """
+        Uzawa iteration on the saddle-point system.
+
+        b is a BlockVector [F, g] where F = [f_u, f_ue] and g is the
+        constraint RHS.
+        """
+
+        A11 = self._A11
+        A22 = self._A22
+        B1  = self._B1
+        B2  = self._B2
+        A11inv = self._A11inv
+        A22inv = self._A22inv
+
+        tol     = self._options["tol"]
+        maxiter = self._options["maxiter"]
+        verbose = self._options["verbose"]
+        recycle = self._options["recycle"]
+
+        F = b[0]
+        g = b[1]
+        f_u  = F[0]
+        f_ue = F[1]
+
+        # initial guess
+        x0 = self._options["x0"]
+        if x0 is not None:
+            u  = x0[0][0].copy()
+            ue = x0[0][1].copy()
+            p  = x0[1].copy()
+        else:
+            u  = A11.domain.zeros()
+            ue = A22.domain.zeros()
+            p  = B1.codomain.zeros()
+
+        if verbose:
+            print("Uzawa solver:")
+            print("+---------+---------------------+")
+            print("+ Iter. # | L2-norm of residual |")
+            print("+---------+---------------------+")
+            template = "| {:7d} | {:19.2e} |"
+
+        for iteration in range(1, maxiter + 1):
+
+            # solve A11 * u = f_u - B1^T * p
+            rhs_u = f_u - B1.T.dot(p)
+            rhs_u -= A11.dot(u)
+            u += A11inv.dot(rhs_u)
+
+            # solve A22 * ue = f_ue - B2^T * p
+            rhs_ue = f_ue - B2.T.dot(p)
+            rhs_ue -= A22.dot(ue)
+            ue += A22inv.dot(rhs_ue)
+
+            # constraint residual: R = B1*u + B2*ue - g
+            R = B1.dot(u) + B2.dot(ue) - g
+            residual_norm = sqrt(R.inner(R).real)
+
+            if verbose:
+                print(template.format(iteration, residual_norm))
+
+            if residual_norm < tol:
+                break
+
+            # pressure update (steepest descent on Schur complement)
+            S_R = B1.dot(A11inv.dot(B1.T.dot(R))) + B2.dot(A22inv.dot(B2.T.dot(R)))
+            alpha = R.inner(R).real / R.inner(S_R).real
+            p += alpha * R
+
+        if verbose:
+            print("+---------+---------------------+")
+
+        self._info = {
+            'niter': iteration,
+            'success': residual_norm < tol,
+            'res_norm': residual_norm,
+        }
+
+        if recycle:
+            # store solution as next initial guess
+            from feectools.linalg.block import BlockVector, BlockVectorSpace
+            block_u = BlockVector(BlockVectorSpace(A11.domain, A22.domain), blocks=[u, ue])
+            self._options["x0"] = BlockVector(self.domain, blocks=[block_u, p])
+
+        # pack solution back into BlockVector matching the full system
+        if out is not None:
+            out[0][0] = u
+            out[0][1] = ue
+            out[1] = p
+            return out
+
+        block_u = BlockVector(BlockVectorSpace(A11.domain, A22.domain), blocks=[u, ue])
+        sol = BlockVector(self.domain, blocks=[block_u, p])
+        return sol
+
+    def dot(self, b, out=None):
+        return self.solve(b, out=out)
