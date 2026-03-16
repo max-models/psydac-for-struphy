@@ -1931,7 +1931,7 @@ class UzawaSolver(InverseLinearOperator):
         self._B2 = B2
 
         # inner solves for A11^{-1} and A22^{-1}
-        self._A11inv = inverse(A11, inner_solver, tol=inner_tol, maxiter=maxiter, verbose=False)
+        self._A11inv = inverse(A11, inner_solver, tol=inner_tol, maxiter=maxiter, verbose=False)  # TODO option to use direct solve
         self._A22inv = inverse(A22, inner_solver, tol=inner_tol, maxiter=maxiter, verbose=False)
 
         # pre-allocate temporaries
@@ -2006,7 +2006,7 @@ class UzawaSolver(InverseLinearOperator):
             if residual_norm < tol:
                 break
 
-            # pressure update (steepest descent on Schur complement)
+            # pressure update (steepest descent on Schur complement) TODO preconditioning
             S_R = B1.dot(A11inv.dot(B1.T.dot(R))) + B2.dot(A22inv.dot(B2.T.dot(R)))
             alpha = R.inner(R).real / R.inner(S_R).real
             p += alpha * R
@@ -2026,7 +2026,6 @@ class UzawaSolver(InverseLinearOperator):
             block_u = BlockVector(BlockVectorSpace(A11.domain, A22.domain), blocks=[u, ue])
             self._options["x0"] = BlockVector(self.domain, blocks=[block_u, p])
 
-        # pack solution back into BlockVector matching the full system
         if out is not None:
             out[0][0] = u
             out[0][1] = ue
