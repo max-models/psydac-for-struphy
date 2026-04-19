@@ -756,7 +756,7 @@ class ScaledLinearOperator(LinearOperator):
         self._scalar = c
 
     def toarray(self):
-        return self._scalar * self._operator.toarray() 
+        return self._scalar * self._operator.toarray
 
     def tosparse(self):
         return self._scalar * self._operator.tosparse().tocsr()
