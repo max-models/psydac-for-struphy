@@ -1,0 +1,34 @@
+name: Install Psydac in Container
+
+description: 
+
+inputs:
+  compile_language:
+    required: true
+    default: c
+
+runs:
+  using: composite
+  steps:
+    - name: Git branch name
+      id: git-branch-name 
+      uses: EthanSK/git-branch-name-action@v1
+    - name: Echo the branch name
+      shell: bash 
+      run: echo "Branch name ${GIT_BRANCH_NAME}"
+    - name: Install psydac
+      shell: bash
+      run: |
+          ls / -a
+          which python3
+          ls -a
+          git clone https://github.com/struphy-hub/feectools.git feectools-tmp
+          cd feectools-tmp
+          echo ${GIT_BRANCH_NAME}
+          git checkout ${GIT_BRANCH_NAME}
+          git pull
+          source /struphy_${{ inputs.compile_language }}_/env_${{ inputs.compile_language }}_/bin/activate
+          pip show feectools
+          psydac-accelerate --cleanup --yes
+          pip uninstall feectools -y
+          python3 -m pip install .
