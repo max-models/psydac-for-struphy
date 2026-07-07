@@ -10,6 +10,8 @@ from feectools.utilities.utils  import is_real
 from feectools.linalg.utilities import _sym_ortho
 from feectools.linalg.basic     import (Vector, LinearOperator,
         InverseLinearOperator, IdentityOperator, ScaledLinearOperator)
+from feectools.linalg.block import BlockVector, BlockVectorSpace
+
 
 __all__ = (
     'inverse',
@@ -1916,8 +1918,7 @@ class GMRES(InverseLinearOperator):
 
 class UzawaSolver(InverseLinearOperator):
     def __init__(self, A, *, A11, A22, B1, B2,
-                 x0=None, tol=1e-6, maxiter=1000, verbose=False, recycle=False,
-                 inner_solver='gmres', inner_tol=1e-10):  # TODO specify these from outside
+                 x0=None, tol=1e-6, maxiter=1000, verbose=False, recycle=False):
 
         self._options = {
             "x0": x0, "tol": tol, "maxiter": maxiter,
@@ -1930,29 +1931,29 @@ class UzawaSolver(InverseLinearOperator):
         self._B1 = B1
         self._B2 = B2
 
-        # inner solves for A11^{-1} and A22^{-1}
-        self._A11inv = inverse(A11, inner_solver, tol=inner_tol, maxiter=maxiter, verbose=False)  # TODO option to use direct solve
-        self._A22inv = inverse(A22, inner_solver, tol=inner_tol, maxiter=maxiter, verbose=False)
-
-        # pre-allocate temporaries
-        self._tmps_u  = A11.domain.zeros()
-        self._tmps_ue = A22.domain.zeros()
-        self._tmps_p  = B1.codomain.zeros()
+        self._A11inv = self._factorize(A11)
+        self._A22inv = self._factorize(A22)
 
         self._info = None
 
+    @staticmethod
+    def _factorize(A):
+        """Compute sparse LU factorization of A."""
+        from feectools.linalg.direct_solvers import SparseSolver
+        spmat = A.tosparse()
+        return SparseSolver(spmat)
+
+    def update_A11(self, A11):
+        """Recompute A11 factorization when dt changes."""
+        self._A11 = A11
+        self._A11inv = self._factorize(A11)
+
     def solve(self, b, out=None):
-        """
-        Uzawa iteration on the saddle-point system.
 
-        b is a BlockVector [F, g] where F = [f_u, f_ue] and g is the
-        constraint RHS.
-        """
-
-        A11 = self._A11
-        A22 = self._A22
-        B1  = self._B1
-        B2  = self._B2
+        A11    = self._A11
+        A22    = self._A22
+        B1     = self._B1
+        B2     = self._B2
         A11inv = self._A11inv
         A22inv = self._A22inv
 
@@ -1961,8 +1962,8 @@ class UzawaSolver(InverseLinearOperator):
         verbose = self._options["verbose"]
         recycle = self._options["recycle"]
 
-        F = b[0]
-        g = b[1]
+        F    = b[0]
+        g    = b[1]
         f_u  = F[0]
         f_ue = F[1]
 
@@ -1986,15 +1987,13 @@ class UzawaSolver(InverseLinearOperator):
 
         for iteration in range(1, maxiter + 1):
 
-            # solve A11 * u = f_u - B1^T * p
+            # solve A11 * u = f_u - B1^T * p  (exact direct solve)
             rhs_u = f_u - B1.T.dot(p)
-            rhs_u -= A11.dot(u)
-            u += A11inv.dot(rhs_u)
+            u = A11inv.solve(rhs_u.toarray())
 
-            # solve A22 * ue = f_ue - B2^T * p
+            # solve A22 * ue = f_ue - B2^T * p  (exact direct solve)
             rhs_ue = f_ue - B2.T.dot(p)
-            rhs_ue -= A22.dot(ue)
-            ue += A22inv.dot(rhs_ue)
+            ue = A22inv.solve(rhs_ue.toarray())
 
             # constraint residual: R = B1*u + B2*ue - g
             R = B1.dot(u) + B2.dot(ue) - g
@@ -2006,8 +2005,8 @@ class UzawaSolver(InverseLinearOperator):
             if residual_norm < tol:
                 break
 
-            # pressure update (steepest descent on Schur complement) TODO preconditioning
-            S_R = B1.dot(A11inv.dot(B1.T.dot(R))) + B2.dot(A22inv.dot(B2.T.dot(R)))
+            # pressure update: steepest descent step size
+            S_R = B1.dot(A11inv.solve(B1.T.dot(R).toarray())) + B2.dot(A22inv.solve(B2.T.dot(R).toarray()))
             alpha = R.inner(R).real / R.inner(S_R).real
             p += alpha * R
 
@@ -2021,8 +2020,6 @@ class UzawaSolver(InverseLinearOperator):
         }
 
         if recycle:
-            # store solution as next initial guess
-            from feectools.linalg.block import BlockVector, BlockVectorSpace
             block_u = BlockVector(BlockVectorSpace(A11.domain, A22.domain), blocks=[u, ue])
             self._options["x0"] = BlockVector(self.domain, blocks=[block_u, p])
 
@@ -2033,8 +2030,7 @@ class UzawaSolver(InverseLinearOperator):
             return out
 
         block_u = BlockVector(BlockVectorSpace(A11.domain, A22.domain), blocks=[u, ue])
-        sol = BlockVector(self.domain, blocks=[block_u, p])
-        return sol
+        return BlockVector(self.domain, blocks=[block_u, p])
 
     def dot(self, b, out=None):
         return self.solve(b, out=out)
