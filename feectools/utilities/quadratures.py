@@ -10,7 +10,6 @@ with weights equal to 1
 import cunumpy as xp
 
 from math import cos, pi
-from numpy import zeros
 
 
 __all__ = ('gauss_legendre', 'gauss_lobatto', 'quadrature')
@@ -55,8 +54,8 @@ def gauss_legendre(m, tol=1e-13):
         dp = m*(p0 - t*p1)/(1.0 - t**2)
         return p1, dp
 
-    A = zeros(m)
-    x = zeros(m)
+    A = xp.zeros(m)
+    x = xp.zeros(m)
     nRoots = (m + 1) // 2          # Number of non-neg. roots
     for i in range(nRoots):
         t = cos(pi*(i + 0.75)/(m + 0.5))  # Approx. root

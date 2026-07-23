@@ -805,7 +805,7 @@ def test_sparse_matrix_linear_operator_serial_dot( dtype, n1, n2, p1, p2, P1, P2
     Ym = Lm.dot(X)
 
     # Check data in 1D array
-    assert np.allclose( Ym.toarray(), Y.toarray(), rtol=1e-12, atol=1e-12 )
+    assert xp.allclose( Ym.toarray(), Y.toarray(), rtol=1e-12, atol=1e-12 )
 #===============================================================================
 @pytest.mark.parametrize( 'dtype', [float, complex] )
 @pytest.mark.parametrize( 'n1', [8, 16] )

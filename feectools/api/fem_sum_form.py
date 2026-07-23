@@ -1,4 +1,4 @@
-import numpy as np
+import cunumpy as xp
 
 from sympde.expr.expr import (
     BilinearForm as sym_BilinearForm,
@@ -119,5 +119,5 @@ class DiscreteSumForm(BasicDiscrete):
             return self._operator
         else:
             M = [form.assemble(**kwargs) for form in self.forms]
-            M = np.sum(M)
+            M = xp.sum(M)
             return M

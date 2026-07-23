@@ -6,7 +6,7 @@ from feectools.fem.tensor  import TensorFemSpace
 from feectools.fem.vector  import VectorFemSpace
 from feectools.ddm.cart    import DomainDecomposition
 
-from numpy import linspace
+import cunumpy as xp
 
 
 def test_1d_1():
@@ -22,7 +22,7 @@ def test_1d_2():
     print ('>>> test_1d_2')
 
     p = 2
-    grid = linspace(0., 1., 5)
+    grid = xp.linspace(0., 1., 5)
     V = SplineSpace(p, grid=grid)
     print (V)
     F = FemField(V)
@@ -31,7 +31,7 @@ def test_1d_3():
     print ('>>> test_1d_3')
 
     p = 2
-    grid = linspace(0., 1., 5)
+    grid = xp.linspace(0., 1., 5)
     V1 = SplineSpace(p, grid=grid)
     V2 = SplineSpace(p+1, grid=grid)
 
@@ -59,8 +59,8 @@ def test_2d_2():
 
     p_1 = 2
     p_2 = 2
-    grid_1 = linspace(0., 1., 3)
-    grid_2 = linspace(0., 1., 5)
+    grid_1 = xp.linspace(0., 1., 3)
+    grid_2 = xp.linspace(0., 1., 5)
     V1 = SplineSpace(p_1, grid=grid_1)
     V2 = SplineSpace(p_2, grid=grid_2)
 
@@ -73,8 +73,8 @@ def test_2d_3():
     print ('>>> test_2d_3')
 
     p = 2
-    grid_1 = linspace(0., 1., 3)
-    grid_2 = linspace(0., 1., 5)
+    grid_1 = xp.linspace(0., 1., 3)
+    grid_2 = xp.linspace(0., 1., 5)
 
     # ... first component
     V1 = SplineSpace(p-1, grid=grid_1)
@@ -119,9 +119,9 @@ def test_3d_2():
     p_1 = 2
     p_2 = 2
     p_3 = 1
-    grid_1 = linspace(0., 1., 3)
-    grid_2 = linspace(0., 1., 5)
-    grid_3 = linspace(0., 1., 7)
+    grid_1 = xp.linspace(0., 1., 3)
+    grid_2 = xp.linspace(0., 1., 5)
+    grid_3 = xp.linspace(0., 1., 7)
     V1 = SplineSpace(p_1, grid=grid_1)
     V2 = SplineSpace(p_2, grid=grid_2)
     V3 = SplineSpace(p_3, grid=grid_3)
@@ -135,9 +135,9 @@ def test_3d_3():
     print ('>>> test_3d_3')
 
     p = 2
-    grid_1 = linspace(0., 1., 3)
-    grid_2 = linspace(0., 1., 5)
-    grid_3 = linspace(0., 1., 7)
+    grid_1 = xp.linspace(0., 1., 3)
+    grid_2 = xp.linspace(0., 1., 5)
+    grid_3 = xp.linspace(0., 1., 7)
 
     # ... first component
     V1 = SplineSpace(p-1, grid=grid_1)

@@ -1248,6 +1248,7 @@ class TensorFemSpace(FemSpace):
         plt.Figure
             Figure where the plot was made. Coincides with `fig` if provided.
         """
+        import numpy as np  # MPI Gather requires CPU-side numpy buffers
         import matplotlib.pyplot as plt
         from matplotlib.patches  import Polygon, Patch
         from sympde.topology.mapping import BasicCallableMapping
