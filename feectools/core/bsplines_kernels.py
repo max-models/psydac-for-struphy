@@ -4,7 +4,7 @@
 
 from pyccel.decorators import pure
 from numpy import shape, abs
-import cunumpy as xp
+import numpy as np
 from typing import Final
 
 # Auxiliary functions needed for the bsplines kernels.
@@ -238,8 +238,8 @@ def basis_funs_p(knots: 'float[:]', degree: int, x: float, span: int, out: 'floa
     out[0] = 1.0
     if degree == 0:
         return
-    left = xp.zeros(degree, dtype=float)
-    right = xp.zeros(degree, dtype=float)
+    left = np.zeros(degree, dtype=float)
+    right = np.zeros(degree, dtype=float)
 
     for j in range(degree):
         left[j]  = x - knots[span - j]
@@ -325,7 +325,7 @@ def basis_funs_1st_der_p(knots: 'float[:]', degree: int, x: float, span: int, ou
 
     # Compute nonzero basis functions and knot differences for splines
     # up to degree deg-1
-    values = xp.zeros(degree)
+    values = np.zeros(degree)
     basis_funs_p(knots, degree-1, x, span, values)
 
     # Compute derivatives at x using formula based on difference of splines of
@@ -395,13 +395,13 @@ def basis_funs_all_ders_p(knots: 'float[:]', degree: int, x: float, span: int, n
     .. [1] L. Piegl and W. Tiller. The NURBS Book, 2nd ed.,
         Springer-Verlag Berlin Heidelberg GmbH, 1997.
     """
-    sh_a  = xp.empty(2)
-    sh_b  = xp.empty(2)
-    left  = xp.empty(degree)
-    right = xp.empty(degree)
-    ndu   = xp.empty((degree+1, degree+1))
-    a     = xp.empty((2, degree+1))
-    temp_d = xp.empty((1, 1))
+    sh_a  = np.empty(2)
+    sh_b  = np.empty(2)
+    left  = np.empty(degree)
+    right = np.empty(degree)
+    ndu   = np.empty((degree+1, degree+1))
+    a     = np.empty((2, degree+1))
+    temp_d = np.empty((1, 1))
     # Number of derivatives that need to be effectively computed
     # Derivatives higher than degree are = 0.
     ne = min(n, degree)
@@ -444,13 +444,13 @@ def basis_funs_all_ders_p(knots: 'float[:]', degree: int, x: float, span: int, n
             j2 = k-1 if (r-1 <= pk) else degree-r
 
             a[s2, j1:j2 + 1] = (a[s1, j1:j2 + 1] - a[s1, j1 - 1:j2]) * ndu[pk + 1, rk + j1:rk + j2 + 1]
-            # temp_d[:, :] = xp.matmul(a[s2:s2 + 1, j1:j2 + 1], ndu[rk + j1:rk + j2 + 1, pk: pk + 1])
+            # temp_d[:, :] = np.matmul(a[s2:s2 + 1, j1:j2 + 1], ndu[rk + j1:rk + j2 + 1, pk: pk + 1])
             
             # sh_a[:] = shape(a[s2:s2 + 1, j1:j2 + 1])
-            sh_a[:] = xp.array(a[s2:s2 + 1, j1:j2 + 1].shape, dtype=sh_a.dtype)
+            sh_a[:] = np.array(a[s2:s2 + 1, j1:j2 + 1].shape, dtype=sh_a.dtype)
             
             # sh_b[:] = shape(ndu[rk + j1:rk + j2 + 1, pk: pk + 1])
-            sh_b[:] = xp.array(ndu[rk + j1:rk + j2 + 1, pk: pk + 1].shape, dtype=sh_b.dtype)
+            sh_b[:] = np.array(ndu[rk + j1:rk + j2 + 1, pk: pk + 1].shape, dtype=sh_b.dtype)
             
             
             if sh_a[0] == 0 or sh_a[1] == 0 or sh_b[0] == 0 or sh_b[1] == 0:
@@ -558,8 +558,8 @@ def collocation_matrix_p(knots: 'float[:]', degree: int, periodic: bool, normali
     # Number of evaluation points
     nx = len(xgrid)
 
-    basis = xp.zeros((nx, degree + 1))
-    spans = xp.zeros(nx, dtype=int)
+    basis = np.zeros((nx, degree + 1))
+    spans = np.zeros(nx, dtype=int)
     find_spans_p(knots, degree, xgrid, spans)
     basis_funs_array_p(knots, degree, xgrid, spans, basis)
 
@@ -576,7 +576,7 @@ def collocation_matrix_p(knots: 'float[:]', degree: int, periodic: bool, normali
             for i in range(nx):
                 out[i, spans[i] - degree:spans[i] + 1] = basis[i, :]
     else:
-        integrals = xp.zeros(knots.shape[0] - degree - 1)
+        integrals = np.zeros(knots.shape[0] - degree - 1)
         basis_integrals_p(knots, degree, integrals)
         scaling = 1.0 / integrals
         if periodic:
@@ -646,7 +646,7 @@ def histopolation_matrix_p(knots: 'float[:]', degree: int, periodic: bool, norma
     nx = len(xgrid)
 
     # In periodic case, make sure that evaluation points include domain boundaries
-    xgrid_new = xp.zeros(len(xgrid) + 2)
+    xgrid_new = np.zeros(len(xgrid) + 2)
     actual_len = len(xgrid)
     if periodic:
         if check_boundary:
@@ -682,7 +682,7 @@ def histopolation_matrix_p(knots: 'float[:]', degree: int, periodic: bool, norma
     #  . cannot use M-splines in analytical formula for histopolation matrix
     #  . always use non-periodic splines to avoid circulant matrix structure
     nb_elevated = len(elevated_knots) - (degree + 1) - 1
-    colloc = xp.zeros((actual_len, nb_elevated))
+    colloc = np.zeros((actual_len, nb_elevated))
     collocation_matrix_p(elevated_knots,
                             degree + 1,
                             False,
@@ -694,7 +694,7 @@ def histopolation_matrix_p(knots: 'float[:]', degree: int, periodic: bool, norma
     m = colloc.shape[0] - 1
     n = colloc.shape[1] - 1
 
-    spans = xp.zeros(colloc.shape[0], dtype=int)
+    spans = np.zeros(colloc.shape[0], dtype=int)
     for i in range(colloc.shape[0]):
         local_span = 0
         for j in range(colloc.shape[1]):
@@ -705,7 +705,7 @@ def histopolation_matrix_p(knots: 'float[:]', degree: int, periodic: bool, norma
 
     # Compute histopolation matrix from collocation matrix of higher degree
     if periodic:
-        temp_array = xp.zeros((m, n))
+        temp_array = np.zeros((m, n))
         H = temp_array[:, :]
     else:
         H = out[:, :]
@@ -717,12 +717,12 @@ def histopolation_matrix_p(knots: 'float[:]', degree: int, periodic: bool, norma
             jend = int(min(spans[i + 1], n))
             # Compute non-zero values of histopolation matrix
             for j in range(1 + jstart, jend + 1):
-                # s = xp.sum(colloc[i, 0:j]) - xp.sum(colloc[i + 1, 0:j])
+                # s = np.sum(colloc[i, 0:j]) - np.sum(colloc[i + 1, 0:j])
                 s = sum_vec(colloc[i, 0:j]) - sum_vec(colloc[i + 1, 0:j])
                 H[i, j - 1] = s
 
     else:
-        integrals = xp.zeros(knots.shape[0] - degree - 1)
+        integrals = np.zeros(knots.shape[0] - degree - 1)
         basis_integrals_p(knots, degree, integrals)
         for i in range(m):
             # Indices of first/last non-zero elements in row of collocation matrix
@@ -730,7 +730,7 @@ def histopolation_matrix_p(knots: 'float[:]', degree: int, periodic: bool, norma
             jend = int(min(spans[i + 1], n))
             # Compute non-zero values of histopolation matrix
             for j in range(1 + jstart, jend + 1):
-                # s = xp.sum(colloc[i, 0:j]) - xp.sum(colloc[i + 1, 0:j])
+                # s = np.sum(colloc[i, 0:j]) - np.sum(colloc[i + 1, 0:j])
                 s = sum_vec(colloc[i, 0:j]) - sum_vec(colloc[i + 1, 0:j])
                 H[i, j - 1] = s * integrals[j - 1]
 
@@ -762,9 +762,9 @@ def merge_sort(a: 'float[:]'):
     if len(a) != 1 and len(a) != 0:
         n = len(a)
 
-        a1 = xp.zeros(n // 2)
+        a1 = np.zeros(n // 2)
         a1[:] = a[:n // 2]
-        a2 = xp.zeros(n - n // 2)
+        a2 = np.zeros(n - n // 2)
         a2[:] = a[n // 2:]
 
         merge_sort(a1)
@@ -819,8 +819,8 @@ def breakpoints_p(knots: 'float[:]', degree: int, out: 'float[:]', tol: float = 
         Last meaningful index + 1, e.g. the actual interesting result
         is ``out[:last_index]``.
     """
-    # knots = xp.array(knots)
-    # diff  = xp.append(True, abs(xp.diff(knots[degree:-degree]))>tol)
+    # knots = np.array(knots)
+    # diff  = np.append(True, abs(np.diff(knots[degree:-degree]))>tol)
     # return knots[degree:-degree][diff]
 
     out[0] = knots[degree]
@@ -918,9 +918,9 @@ def elements_spans_p(knots: 'float[:]', degree: int, out: 'int[:]'):
     2) This function could be written in two lines:
 
        breaks = breakpoints( knots, degree )
-       spans  = xp.searchsorted( knots, breaks[:-1], side='right' ) - 1
+       spans  = np.searchsorted( knots, breaks[:-1], side='right' ) - 1
     """
-    temp_array = xp.zeros(len(knots))
+    temp_array = np.zeros(len(knots))
 
     actual_len = breakpoints_p(knots, degree, temp_array)
 
@@ -1162,15 +1162,15 @@ def basis_ders_on_quad_grid_p(knots: 'float[:]', degree: int, quad_grid: 'float[
     ne = quad_grid.shape[0]
     nq = quad_grid.shape[1]
     if normalization:
-        integrals = xp.zeros(knots.shape[0] - degree - 1)
+        integrals = np.zeros(knots.shape[0] - degree - 1)
         basis_integrals_p(knots, degree, integrals)
         scaling = 1.0 /integrals
 
-    temp_spans = xp.zeros(len(knots), dtype=int)
+    temp_spans = np.zeros(len(knots), dtype=int)
     actual_index = elements_spans_p(knots, degree, temp_spans)
     spans = temp_spans[:actual_index]
 
-    ders = xp.zeros((nders + 1, degree + 1))
+    ders = np.zeros((nders + 1, degree + 1))
 
     for ie in range(ne):
         xx = quad_grid[ie, :]
@@ -1220,8 +1220,8 @@ def cell_index_p(breaks: 'float[:]', i_grid: 'float[:]', tol: float, out: 'int[:
     nbk = len(breaks)
 
     # Check if there are points outside the domain
-    if xp.min(i_grid) < breaks[0] - tol/2: return -1
-    if xp.max(i_grid) > breaks[nbk - 1] + tol/2: return -1
+    if np.min(i_grid) < breaks[0] - tol/2: return -1
+    if np.max(i_grid) > breaks[nbk - 1] + tol/2: return -1
 
     current_index = 0
     while current_index < nx:
@@ -1333,13 +1333,13 @@ def basis_ders_on_irregular_grid_p(knots: 'float[:]', degree: int,
     """
     nx = i_grid.shape[0]
     if normalization:
-        scaling = xp.zeros(knots.shape[0] - degree - 1)
+        scaling = np.zeros(knots.shape[0] - degree - 1)
         basis_integrals_p(knots, degree, scaling)
         scaling = 1.0 / scaling
 
-    ders = xp.zeros((nders + 1, degree + 1))
+    ders = np.zeros((nders + 1, degree + 1))
 
-    temp_spans = xp.zeros(len(knots), dtype=int)
+    temp_spans = np.zeros(len(knots), dtype=int)
     actual_index = elements_spans_p(knots, degree, temp_spans)
     spans = temp_spans[:actual_index]
 
