@@ -168,8 +168,9 @@ class StencilVectorSpace(VectorSpace):
             self._inner_func = self._inner_python
 
         # Constant arguments for inner product: total number of ghost cells
-        # self._inner_consts = tuple(xp.int64(p) * xp.int64(s) for p, s in zip(self._pads, self._shifts))
-        self._inner_consts = tuple(int(p * s) for p, s in zip(self._pads, self._shifts))
+        # Pyccel-compiled kernels require explicit numpy.int64 type arguments
+        import numpy as np
+        self._inner_consts = tuple(np.int64(p) * np.int64(s) for p, s in zip(self._pads, self._shifts))
 
 
         # TODO [YG, 06.09.2023]: print warning if pure Python functions are used
@@ -1577,7 +1578,9 @@ class StencilMatrix(LinearOperator):
         dm    = self._domain.shifts
         cm    = self._codomain.shifts
 
-        pp = [int(compute_diag_len(p,mj,mi)-(p+1)) for p,mi,mj in zip(self._pads, cm, dm)]
+        import numpy as _np
+        # Pyccel kernels require explicit numpy.int64 type arguments
+        pp = [_np.int64(compute_diag_len(p,mj,mi)-(p+1)) for p,mi,mj in zip(self._pads, cm, dm)]
 
         # Range of data owned by local process (no ghost regions)
         local = tuple( [slice(mi*p,-mi*p) if p != 0 else slice(p, None) for p,mi in zip(cpads, cm)] + [slice(None)] * nd )
@@ -1587,18 +1590,17 @@ class StencilMatrix(LinearOperator):
         rows = xp.zeros(size, dtype='int64')
         cols = xp.zeros(size, dtype='int64')
         data = xp.zeros(size, dtype=self.dtype)
-        nrl = [int(e-s+1) for s,e in zip(self.codomain.starts, self.codomain.ends)]
-        ncl = [int(i) for i in self._data.shape[nd:]]
-        ss = [int(i) for i in ss]
-        nr = [int(i) for i in nr]
-        nc = [int(i) for i in nc]
-        dm = [int(i) for i in dm]
-        cm = [int(i) for i in cm]
-        cpads = [int(i) for i in cpads]
-        pp = [int(i) for i in pp]
+        nrl = [_np.int64(e-s+1) for s,e in zip(self.codomain.starts, self.codomain.ends)]
+        ncl = [_np.int64(i) for i in self._data.shape[nd:]]
+        ss = [_np.int64(i) for i in ss]
+        nr = [_np.int64(i) for i in nr]
+        nc = [_np.int64(i) for i in nc]
+        dm = [_np.int64(i) for i in dm]
+        cm = [_np.int64(i) for i in cm]
+        cpads = [_np.int64(i) for i in cpads]
+        pp = [_np.int64(i) for i in pp]
 
         stencil2coo = kernels['stencil2coo'][order][nd]
-        import numpy as _np
         ind = stencil2coo(self._data, data, rows, cols, *nrl, *ncl, *ss, *nr, *nc, *dm, *cm, *cpads, *pp)
         
         
