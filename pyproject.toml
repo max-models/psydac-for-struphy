@@ -107,3 +107,9 @@ ignore_errors = true
 
 [tool.coverage.html]
 directory = "coverage_html_report"
+
+[tool.pytest.ini_options]
+markers = [
+    "petsc: mark test as requiring PETSc",
+    "parallel: mark test as parallel",
+]
