@@ -110,6 +110,12 @@ directory = "coverage_html_report"
 
 [tool.pytest.ini_options]
 markers = [
+    "mpi: mark test as requiring MPI",
     "petsc: mark test as requiring PETSc",
     "parallel: mark test as parallel",
 ]
+testpaths = ["feectools"]
+norecursedirs = [".git", ".venv", "env", "__pycache__", "*.egg-info"]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"

@@ -8,6 +8,13 @@ from    pathlib import  Path
 
 import  pytest
 import  time
+
+# Skip entire module if sympde is not available
+try:
+    import sympde
+except ImportError:
+    pytest.skip("sympde not installed", allow_module_level=True)
+
 import  numpy   as      np
 from    sympy   import  sin, sqrt, pi, Abs, cos, tan
 

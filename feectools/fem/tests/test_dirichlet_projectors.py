@@ -5,6 +5,13 @@
 #---------------------------------------------------------------------------#
 import  numpy as np
 import  pytest
+
+# Skip entire module if sympde is not available
+try:
+    import sympde
+except ImportError:
+    pytest.skip("sympde not installed", allow_module_level=True)
+
 from    mpi4py import MPI
 from    sympy import sin, pi, sqrt, Tuple
 

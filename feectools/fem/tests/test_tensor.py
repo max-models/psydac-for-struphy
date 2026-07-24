@@ -8,6 +8,13 @@ import contextlib
 from pathlib import Path
 
 import pytest
+
+# Skip entire module if sympde is not available
+try:
+    import sympde
+except ImportError:
+    pytest.skip("sympde not installed", allow_module_level=True)
+
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt

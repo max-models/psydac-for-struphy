@@ -3,6 +3,19 @@
 # LICENSE file or go to https://github.com/pyccel/psydac/blob/devel/LICENSE #
 # for full license details.                                                 #
 #---------------------------------------------------------------------------#
+import pytest
+import sys
+
+# Skip entire module if sympde is not available
+sympde_available = True
+try:
+    import sympde
+except ImportError:
+    sympde_available = False
+
+if not sympde_available:
+    pytest.skip("sympde not installed", allow_module_level=True)
+
 import os
 from pathlib import Path
 
