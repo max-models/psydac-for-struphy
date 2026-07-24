@@ -5,13 +5,19 @@ from pathlib import Path
 
 
 def pytest_configure(config):
-    """Register custom pytest markers."""
-    config.addinivalue_line(
-        "markers", "petsc: mark test as requiring PETSc"
-    )
-    config.addinivalue_line(
-        "markers", "parallel: mark test as parallel"
-    )
+    """Register custom pytest markers and configure pytest behavior."""
+    # Ensure markers are registered for all pytest processes (including xdist workers)
+    markers_to_register = [
+        ("mpi", "mark test as requiring MPI"),
+        ("petsc", "mark test as requiring PETSc"),
+        ("parallel", "mark test as parallel"),
+    ]
+
+    for marker_name, marker_desc in markers_to_register:
+        # Check if already registered to avoid duplicates
+        existing = config.getini("markers")
+        if not any(marker_name in line for line in existing):
+            config.addinivalue_line("markers", f"{marker_name}: {marker_desc}")
 
 
 def pytest_collection_modifyitems(config, items):
