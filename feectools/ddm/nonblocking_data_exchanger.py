@@ -1,6 +1,7 @@
 # coding: utf-8
 
 import cunumpy as xp
+import numpy as np
 from itertools import product
 
 from feectools.ddm.mpi import mpi as MPI
