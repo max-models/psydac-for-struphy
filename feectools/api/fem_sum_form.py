@@ -119,5 +119,5 @@ class DiscreteSumForm(BasicDiscrete):
             return self._operator
         else:
             M = [form.assemble(**kwargs) for form in self.forms]
-            M = xp.sum(M)
+            M = sum(M)
             return M
