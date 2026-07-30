@@ -93,7 +93,9 @@ class SplineSpace( FemSpace ):
         indices = xp.where(xp.diff(knots[degree:len(knots)-degree])>1e-15)[0]
 
         if len(indices)>0:
-            multiplicity = xp.max(xp.diff(indices), default=1)
+            diffs = xp.diff(indices)
+            # xp.max has no 'default' keyword, so handle the empty case explicitly
+            multiplicity = int(xp.max(diffs)) if len(diffs)>0 else 1
         else:
             multiplicity = max(1,len(knots[degree+1:-degree-1]))
 
