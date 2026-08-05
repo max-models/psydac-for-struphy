@@ -1,6 +1,14 @@
+<<<<<<< HEAD
 # coding: utf-8
 # Copyright 2018 Yaman Güçlü
 
+=======
+#---------------------------------------------------------------------------#
+# This file is part of PSYDAC which is released under MIT License. See the  #
+# LICENSE file or go to https://github.com/pyccel/psydac/blob/devel/LICENSE #
+# for full license details.                                                 #
+#---------------------------------------------------------------------------#
+>>>>>>> origin/devel-tiny
 import cunumpy as xp
 
 #===============================================================================

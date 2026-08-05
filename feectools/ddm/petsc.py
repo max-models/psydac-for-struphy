@@ -3,6 +3,8 @@
 import cunumpy as xp
 from itertools import product
 
+import cunumpy as xp
+
 from .cart import CartDecomposition
 
 #===============================================================================
@@ -109,4 +111,3 @@ class PetscCart:
         to_is   = self.petsc.IS().createGeneral(indices, comm=cart.comm)
 
         return self.petsc.Scatter().create(gvec, from_is, natural, to_is)
-

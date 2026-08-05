@@ -6,6 +6,8 @@ import cunumpy as xp
 import numpy as np
 from numbers import Number
 
+import cunumpy as xp
+
 __all__ = (
     'refine_array_1d',
     'unroll_edges',
@@ -58,10 +60,10 @@ def refine_array_1d(x, n, remove_duplicates=True):
     if not remove_duplicates:
         n += 1
     for (a, b) in zip(x[:-1], x[1:]):
-        xr.extend(np.linspace(a, b, n, endpoint=not remove_duplicates))
+        xr.extend(xp.linspace(a, b, n, endpoint=not remove_duplicates))
     if remove_duplicates:
         xr.append(x[-1])
-    return np.array(xr)
+    return xp.array(xr)
 
 #===============================================================================
 def unroll_edges(domain, xgrid):
@@ -74,7 +76,7 @@ def unroll_edges(domain, xgrid):
     if hasattr(xgrid, 'get'):
         xgrid = xgrid.get()
     xgrid = np.asarray(xgrid)
-    
+
     # Convert to numpy for comparison
     assert all(np.diff(xgrid) >= 0)
     assert xA < xB

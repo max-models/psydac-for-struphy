@@ -997,14 +997,9 @@ def evaluate_dofs_3d_0form(
         ):
     
     # evaluate input functions at interpolation points (make sure that points are in [0, 1])
-    assert np.all(np.logical_and(intp_x1 >= 0., intp_x1 <= 1.))
-    assert np.all(np.logical_and(intp_x2 >= 0., intp_x2 <= 1.))
-    assert np.all(np.logical_and(intp_x3 >= 0., intp_x3 <= 1.))
-    
-    # Convert interpolation points to current backend if needed
-    intp_x1 = xp.asarray(intp_x1)
-    intp_x2 = xp.asarray(intp_x2)
-    intp_x3 = xp.asarray(intp_x3)
+    assert xp.all(xp.logical_and(intp_x1 >= 0., intp_x1 <= 1.))
+    assert xp.all(xp.logical_and(intp_x2 >= 0., intp_x2 <= 1.))
+    assert xp.all(xp.logical_and(intp_x3 >= 0., intp_x3 <= 1.))
     
     E1, E2, E3 = xp.meshgrid(intp_x1, intp_x2, intp_x3, indexing='ij')
     f_pts = f(E1, E2, E3)
@@ -1028,20 +1023,9 @@ def evaluate_dofs_3d_1form(
         ):
 
     # evaluate input functions at quadrature/interpolation points (make sure that points are in [0, 1])
-    assert np.all(np.logical_and(intp_x1 >= 0., intp_x1 <= 1.))
-    assert np.all(np.logical_and(intp_x2 >= 0., intp_x2 <= 1.))
-    assert np.all(np.logical_and(intp_x3 >= 0., intp_x3 <= 1.))
-    
-    # Convert interpolation points to current backend if needed
-    intp_x1 = xp.asarray(intp_x1)
-    intp_x2 = xp.asarray(intp_x2)
-    intp_x3 = xp.asarray(intp_x3)
-    quad_x1 = xp.asarray(quad_x1)
-    quad_x2 = xp.asarray(quad_x2)
-    quad_x3 = xp.asarray(quad_x3)
-    quad_w1 = xp.asarray(quad_w1)
-    quad_w2 = xp.asarray(quad_w2)
-    quad_w3 = xp.asarray(quad_w3)
+    assert xp.all(xp.logical_and(intp_x1 >= 0., intp_x1 <= 1.))
+    assert xp.all(xp.logical_and(intp_x2 >= 0., intp_x2 <= 1.))
+    assert xp.all(xp.logical_and(intp_x3 >= 0., intp_x3 <= 1.))
     
     E1, E2, E3 = xp.meshgrid(quad_x1.flatten()%1., intp_x2, intp_x3, indexing='ij')
     f1_pts = f1(E1, E2, E3)
@@ -1080,20 +1064,9 @@ def evaluate_dofs_3d_2form(
         ):
 
     # evaluate input functions at quadrature/interpolation points (make sure that points are in [0, 1])
-    assert np.all(np.logical_and(intp_x1 >= 0., intp_x1 <= 1.))
-    assert np.all(np.logical_and(intp_x2 >= 0., intp_x2 <= 1.))
-    assert np.all(np.logical_and(intp_x3 >= 0., intp_x3 <= 1.))
-    
-    # Convert interpolation points to current backend if needed
-    intp_x1 = xp.asarray(intp_x1)
-    intp_x2 = xp.asarray(intp_x2)
-    intp_x3 = xp.asarray(intp_x3)
-    quad_x1 = xp.asarray(quad_x1)
-    quad_x2 = xp.asarray(quad_x2)
-    quad_x3 = xp.asarray(quad_x3)
-    quad_w1 = xp.asarray(quad_w1)
-    quad_w2 = xp.asarray(quad_w2)
-    quad_w3 = xp.asarray(quad_w3)
+    assert xp.all(xp.logical_and(intp_x1 >= 0., intp_x1 <= 1.))
+    assert xp.all(xp.logical_and(intp_x2 >= 0., intp_x2 <= 1.))
+    assert xp.all(xp.logical_and(intp_x3 >= 0., intp_x3 <= 1.))
     
     E1, E2, E3 = xp.meshgrid(intp_x1, quad_x2.flatten()%1., quad_x3.flatten()%1., indexing='ij')
     f1_pts = f1(E1, E2, E3)

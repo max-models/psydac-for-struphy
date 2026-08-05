@@ -1,15 +1,23 @@
-# -*- coding: UTF-8 -*-
-#! /usr/bin/python
-
+#---------------------------------------------------------------------------#
+# This file is part of PSYDAC which is released under MIT License. See the  #
+# LICENSE file or go to https://github.com/pyccel/psydac/blob/devel/LICENSE #
+# for full license details.                                                 #
+#---------------------------------------------------------------------------#
 """
 This module contains some routines to generate quadrature points in 1D
 it has also a routine uniform, which generates uniform points
 with weights equal to 1
 """
 
+<<<<<<< HEAD
 import cunumpy as xp
 
 from math import cos, pi
+=======
+from math import cos, pi
+
+import cunumpy as xp
+>>>>>>> origin/devel-tiny
 
 
 __all__ = ('gauss_legendre', 'gauss_lobatto', 'quadrature')

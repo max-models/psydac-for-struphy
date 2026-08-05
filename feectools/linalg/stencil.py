@@ -1,13 +1,14 @@
-# coding: utf-8
-#
-# Copyright 2018 Yaman Güçlü
-
+#---------------------------------------------------------------------------#
+# This file is part of PSYDAC which is released under MIT License. See the  #
+# LICENSE file or go to https://github.com/pyccel/psydac/blob/devel/LICENSE #
+# for full license details.                                                 #
+#---------------------------------------------------------------------------#
 import os
 import warnings
+from types import MappingProxyType
 
 import cunumpy as xp
 from cunumpy.xp import array_backend
-from types        import MappingProxyType
 from scipy.sparse import coo_matrix, diags as sp_diags
 
 from feectools.ddm.mpi import mpi as MPI
@@ -32,8 +33,7 @@ __all__ = (
     'StencilInterfaceMatrix'
 )
 
-#===============================================================================
-def _to_numpy_int64(val):
+#========================================================================def _to_numpy_int64(val):
     """Convert CuPy or NumPy scalar/array to numpy int64."""
     import numpy as _np
     if hasattr(val, 'get'):
@@ -48,8 +48,7 @@ def _to_numpy_array(val):
         return val.get()
     return val
 
-#===============================================================================
-# Dictionary used to select correct kernel functions based on dimensionality
+#========================================================================# Dictionary used to select correct kernel functions based on dimensionality
 kernels = {
     'axpy'  : (None,   axpy_1d,   axpy_2d,   axpy_3d),
     'inner' : (None,  inner_1d,  inner_2d,  inner_3d),
@@ -60,8 +59,7 @@ kernels = {
                     'C': (None, stencil2coo_1d_C, stencil2coo_2d_C, stencil2coo_3d_C)}
 }
 
-#===============================================================================
-def compute_diag_len(pads, shifts_domain, shifts_codomain, return_padding=False):
+#========================================================================def compute_diag_len(pads, shifts_domain, shifts_codomain, return_padding=False):
     """
     Compute the diagonal length and the padding of the stencil matrix for each direction,
     using the shifts of the domain and the codomain.
@@ -96,8 +94,7 @@ def compute_diag_len(pads, shifts_domain, shifts_codomain, return_padding=False)
     else:
         return n.astype('int')
 
-#===============================================================================
-class StencilVectorSpace(VectorSpace):
+#========================================================================class StencilVectorSpace(VectorSpace):
     """
     Vector space for n-dimensional stencil format. Two different initializations
     are possible:
@@ -456,8 +453,7 @@ class StencilVectorSpace(VectorSpace):
 
             self._interfaces[axis, ext] = space
 
-#===============================================================================
-class StencilVector(Vector):
+#========================================================================class StencilVector(Vector):
     """
     Vector in n-dimensional stencil format.
 
@@ -907,8 +903,7 @@ class StencilVector(Vector):
             index.append(l)
         return tuple(index)
 
-#===============================================================================
-class StencilMatrix(LinearOperator):
+#========================================================================class StencilMatrix(LinearOperator):
     """
     Matrix in n-dimensional stencil format.
 
@@ -1129,6 +1124,8 @@ class StencilMatrix(LinearOperator):
             out._data[:] = out_data_conj
         else:
             out._data[:] = _np.conjugate(out_data_np)
+        self._func(self._data, xp.conjugate(v._data), out._data, **self._args)
+        xp.conjugate(out._data, out=out._data)
 
         # IMPORTANT: flag that ghost regions are not up-to-date
         out.ghost_regions_in_sync = False
@@ -1170,6 +1167,7 @@ class StencilMatrix(LinearOperator):
         
         if conjugate:
             self._transpose_func(_to_numpy_array(xp.conjugate(M_data_np)), out_data_np, **self._transpose_args)
+            self._transpose_func(xp.conjugate(M._data), out._data, **self._transpose_args)
         else:
             self._transpose_func(M_data_np, out_data_np, **self._transpose_args)
         
@@ -1507,11 +1505,12 @@ class StencilMatrix(LinearOperator):
         Returns
         -------
         StencilDiagonalMatrix
-            The matrix which contains the main diagonal of self (or its inverse).
+            The matrix which contains the main diagonal of self (or its inverse (square root)).
 
         """
-        # Check `inverse` argument
+        # Check `inverse` and `sqrt` argument
         assert isinstance(inverse, bool)
+        assert isinstance(sqrt, bool)
 
         # Determine domain and codomain of the StencilDiagonalMatrix
         V, W = self.domain, self.codomain
@@ -1523,7 +1522,6 @@ class StencilMatrix(LinearOperator):
             assert isinstance(out, StencilDiagonalMatrix)
             assert out.domain is V
             assert out.codomain is W
-
 
         # Extract diagonal data from self and identify output array
         diagonal_indices = self._get_diagonal_indices()
@@ -1659,6 +1657,7 @@ class StencilMatrix(LinearOperator):
         for p, mi, mj in zip(self._pads, cm, dm):
             diag_len = compute_diag_len(p, mj, mi) - (p + 1)
             pp.append(_to_numpy_int64(diag_len))
+        pp = [_np.int64(compute_diag_len(p,mj,mi)-(p+1)) for p,mi,mj in zip(self._pads, cm, dm)]
 
         # Range of data owned by local process (no ghost regions)
         local = tuple( [slice(mi*p,-mi*p) if p != 0 else slice(p, None) for p,mi in zip(cpads, cm)] + [slice(None)] * nd )
@@ -1693,6 +1692,18 @@ class StencilMatrix(LinearOperator):
             data[:ind] = cp.asarray(data_np[:ind])
             rows[:ind] = cp.asarray(rows_np[:ind])
             cols[:ind] = cp.asarray(cols_np[:ind])
+        nrl = [_np.int64(e-s+1) for s,e in zip(self.codomain.starts, self.codomain.ends)]
+        ncl = [_np.int64(i) for i in self._data.shape[nd:]]
+        ss = [_np.int64(i) for i in ss]
+        nr = [_np.int64(i) for i in nr]
+        nc = [_np.int64(i) for i in nc]
+        dm = [_np.int64(i) for i in dm]
+        cm = [_np.int64(i) for i in cm]
+        cpads = [_np.int64(i) for i in cpads]
+        pp = [_np.int64(i) for i in pp]
+
+        stencil2coo = kernels['stencil2coo'][order][nd]
+        ind = stencil2coo(self._data, data, rows, cols, *nrl, *ncl, *ss, *nr, *nc, *dm, *cm, *cpads, *pp)
         
         
         if array_backend.backend == "cupy":
@@ -2112,8 +2123,7 @@ class StencilMatrix(LinearOperator):
 
         return self._diag_indices
 
-#===============================================================================
-class StencilDiagonalMatrix(LinearOperator):
+#========================================================================class StencilDiagonalMatrix(LinearOperator):
     """
     Linear operator which operates between stencil vector spaces, and which can
     be represented by a matrix with non-zero entries only on its main diagonal.
@@ -2202,11 +2212,8 @@ class StencilDiagonalMatrix(LinearOperator):
             assert isinstance(out, StencilDiagonalMatrix)
             assert out.domain is self.codomain
             assert out.codomain is self.domain
-
-        if not (conjugate and self.dtype is complex):
-
-            if out is None:
-                data = self._data.copy()
+            if conjugate and self.dtype is complex:
+                xp.conjugate(self._data, out=out._data, casting='no')
             else:
                 xp.copyto(out._data, self._data, casting='no')
 
@@ -2218,6 +2225,11 @@ class StencilDiagonalMatrix(LinearOperator):
                 xp.conjugate(self._data, out=out._data, casting='no')
 
         if out is None:
+        else:
+            if conjugate and self.dtype is complex:
+                data = xp.conjugate(self._data, casting='no')
+            else:
+                data = self._data.copy()
             out = StencilDiagonalMatrix(self.codomain, self.domain, data)
 
         return out
@@ -2241,16 +2253,21 @@ class StencilDiagonalMatrix(LinearOperator):
 
         return out
 
-    def diagonal(self, *, inverse = False, out = None):
+    def diagonal(self, *, inverse = False, sqrt = False, out = None):
         """
         Get the coefficients on the main diagonal as a StencilDiagonalMatrix object.
 
-        In the default case (inverse=False, out=None) self is returned.
+        In the default case (inverse=False, sqrt=False, out=None) self is returned.
 
         Parameters
         ----------
         inverse : bool
             If True, get the inverse of the diagonal. (Default: False).
+            Can be combined with sqrt to get the inverse square root.
+
+        sqrt : bool
+            If True, get the square root of the diagonal. (Default: False).
+            Can be combined with inverse to get the inverse square root.
 
         out : StencilDiagonalMatrix
             If provided, write the diagonal entries into this matrix. (Default: None).
@@ -2258,11 +2275,12 @@ class StencilDiagonalMatrix(LinearOperator):
         Returns
         -------
         StencilDiagonalMatrix
-            Either self, or another StencilDiagonalMatrix with the diagonal inverse.
+            Either self, or another StencilDiagonalMatrix with the diagonal (or its inverse (square root)).
 
         """
-        # Check `inverse` argument
+        # Check `inverse` and `sqrt` argument
         assert isinstance(inverse, bool)
+        assert isinstance(sqrt, bool)
 
         # Determine domain and codomain of the `out` matrix
         V, W = self.domain, self.codomain
@@ -2278,10 +2296,17 @@ class StencilDiagonalMatrix(LinearOperator):
             assert out.codomain is W
             data = out._data
 
+        diag = self._data
+
         # Calculate entries, or set `out=self` in default case
         if inverse:
             data = xp.divide(1, diag, out=data)
         elif out:
+            if sqrt:
+                data = xp.sqrt(data, out=data)
+        elif sqrt:
+            data = xp.sqrt(diag, out=data)
+        elif out not in (None, self):
             xp.copyto(data, diag)
         else:
             out = self
@@ -2292,8 +2317,7 @@ class StencilDiagonalMatrix(LinearOperator):
 
         return out
 
-#===============================================================================
-# TODO [YG, 28.01.2021]:
+#========================================================================# TODO [YG, 28.01.2021]:
 # - Check if StencilMatrix should be subclassed
 # - Reimplement magic methods (some are simply copied from StencilMatrix)
 def flip_axis(index, n):
@@ -3036,5 +3060,4 @@ class StencilInterfaceMatrix(LinearOperator):
 
             self._func = dot.func
 
-#===============================================================================
-del VectorSpace, Vector
+#========================================================================del VectorSpace, Vector
