@@ -41,6 +41,13 @@ def _to_numpy_int64(val):
         val = val.get()
     return _np.int64(val)
 
+def _to_numpy_array(val):
+    """Convert CuPy array to NumPy array, preserving dtype. Return as-is if already NumPy."""
+    if hasattr(val, 'get'):
+        # CuPy array - convert to NumPy
+        return val.get()
+    return val
+
 #===============================================================================
 # Dictionary used to select correct kernel functions based on dimensionality
 kernels = {
@@ -307,10 +314,22 @@ class StencilVectorSpace(VectorSpace):
             else:
                 a = float(a)
 
-        self._axpy_func(a, x._data, y._data)
+        x_data_np = _to_numpy_array(x._data)
+        y_data_np = _to_numpy_array(y._data)
+        self._axpy_func(a, x_data_np, y_data_np)
+        # Copy result back if CuPy
+        if hasattr(y._data, 'get'):
+            import cupy as cp
+            y._data[:] = cp.asarray(y_data_np)
 
         for axis, ext in self.interfaces:
-            self._axpy_func(a, x._interface_data[axis, ext], y._interface_data[axis, ext])
+            x_int_np = _to_numpy_array(x._interface_data[axis, ext])
+            y_int_np = _to_numpy_array(y._interface_data[axis, ext])
+            self._axpy_func(a, x_int_np, y_int_np)
+            # Copy result back if CuPy
+            if hasattr(y._interface_data[axis, ext], 'get'):
+                import cupy as cp
+                y._interface_data[axis, ext][:] = cp.asarray(y_int_np)
 
         x._sync = x._sync and y._sync
 
@@ -1032,7 +1051,25 @@ class StencilMatrix(LinearOperator):
         if not v.ghost_regions_in_sync:
             v.update_ghost_regions()
 
-        self._func(self._data, v._data, out._data, **self._args)
+        # Convert arrays for compiled kernel - create NumPy output
+        import numpy as _np
+        self_data_np = _to_numpy_array(self._data)
+        v_data_np = _to_numpy_array(v._data)
+        out_data_np = _np.empty(out._data.shape, dtype=out._data.dtype)
+        
+        # Convert args that might be CuPy arrays
+        args_np = {}
+        for key, val in self._args.items():
+            args_np[key] = _to_numpy_array(val)
+        
+        self._func(self_data_np, v_data_np, out_data_np, **args_np)
+        
+        # Copy result back to CuPy array if needed
+        if hasattr(out._data, 'get'):
+            import cupy as cp
+            out._data[:] = cp.asarray(out_data_np)
+        else:
+            out._data[:] = out_data_np
 
         # IMPORTANT: flag that ghost regions are not up-to-date
         out.ghost_regions_in_sync = False
@@ -1071,9 +1108,27 @@ class StencilMatrix(LinearOperator):
         if not v.ghost_regions_in_sync:
             v.update_ghost_regions()
 
+        # Convert arrays for compiled kernel - create NumPy output
+        import numpy as _np
+        self_data_np = _to_numpy_array(self._data)
+        v_data_conj_np = _to_numpy_array(xp.conjugate(v._data))
+        out_data_np = _np.empty(out._data.shape, dtype=out._data.dtype)
+        
+        # Convert args that might be CuPy arrays
+        args_np = {}
+        for key, val in self._args.items():
+            args_np[key] = _to_numpy_array(val)
+        
         # Instead of computing A_*x, this function computes (A*x_)_
-        self._func(self._data, xp.conjugate(v._data), out._data, **self._args)
-        xp.conjugate(out._data, out=out._data)
+        self._func(self_data_np, v_data_conj_np, out_data_np, **args_np)
+        
+        # Copy result back to CuPy array if needed
+        if hasattr(out._data, 'get'):
+            import cupy as cp
+            out_data_conj = cp.conjugate(cp.asarray(out_data_np))
+            out._data[:] = out_data_conj
+        else:
+            out._data[:] = _np.conjugate(out_data_np)
 
         # IMPORTANT: flag that ghost regions are not up-to-date
         out.ghost_regions_in_sync = False
@@ -1109,10 +1164,20 @@ class StencilMatrix(LinearOperator):
             out = StencilMatrix(M.codomain, M.domain, pads=self._pads, backend=self._backend, precompiled=self._precompiled)
 
         # Call low-level '_transpose' function (works on Numpy arrays directly)
+        # Convert CuPy arrays to NumPy for compiled kernels
+        M_data_np = _to_numpy_array(M._data)
+        out_data_np = _to_numpy_array(out._data)
+        
         if conjugate:
-            self._transpose_func(xp.conjugate(M._data), out._data, **self._transpose_args)
+            self._transpose_func(_to_numpy_array(xp.conjugate(M_data_np)), out_data_np, **self._transpose_args)
         else:
-            self._transpose_func(M._data, out._data, **self._transpose_args)
+            self._transpose_func(M_data_np, out_data_np, **self._transpose_args)
+        
+        # Copy results back to CuPy if needed
+        if array_backend.backend == "cupy":
+            import cupy as cp
+            out._data[:] = cp.asarray(out_data_np)
+        
         return out
 
     # ...
@@ -1614,7 +1679,20 @@ class StencilMatrix(LinearOperator):
         pp = [_to_numpy_int64(i) for i in pp]
 
         stencil2coo = kernels['stencil2coo'][order][nd]
-        ind = stencil2coo(self._data, data, rows, cols, *nrl, *ncl, *ss, *nr, *nc, *dm, *cm, *cpads, *pp)
+        # Convert CuPy arrays to NumPy for the compiled kernel
+        self_data_np = _to_numpy_array(self._data)
+        data_np = _to_numpy_array(data)
+        rows_np = _to_numpy_array(rows)
+        cols_np = _to_numpy_array(cols)
+        
+        ind = stencil2coo(self_data_np, data_np, rows_np, cols_np, *nrl, *ncl, *ss, *nr, *nc, *dm, *cm, *cpads, *pp)
+        
+        # Copy results back to CuPy arrays if needed
+        if array_backend.backend == "cupy":
+            import cupy as cp
+            data[:ind] = cp.asarray(data_np[:ind])
+            rows[:ind] = cp.asarray(rows_np[:ind])
+            cols[:ind] = cp.asarray(cols_np[:ind])
         
         
         if array_backend.backend == "cupy":
