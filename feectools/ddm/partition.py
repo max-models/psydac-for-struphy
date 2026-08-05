@@ -1,4 +1,5 @@
 import cunumpy as xp
+import numpy as np
 import numpy.ma as ma
 
 from sympy.ntheory import factorint
@@ -32,7 +33,7 @@ def partition_procs_per_patch(npts, size):
     """
     npts       = [xp.prod(nc) for nc in npts]
     percentage = [nc / sum(npts) for nc in npts]
-    sizes      = xp.array([int(p*size) for p in percentage])
+    sizes      = np.array([int(p*size) for p in percentage])
     diff       = [p * size - s for s, p in zip(sizes, percentage)]
     indices    = xp.argsort(diff)[::-1]
     rm         = size - sum(sizes)
@@ -49,7 +50,7 @@ def partition_procs_per_patch(npts, size):
 
     assert start == size
 
-    ranges = xp.array(ranges)
+    ranges = np.array(ranges)
     ranks  = [i[0] for i in ranges[indices[:rm]]]
 
     if len(ranks) == 0:

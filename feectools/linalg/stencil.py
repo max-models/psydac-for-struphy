@@ -33,6 +33,15 @@ __all__ = (
 )
 
 #===============================================================================
+def _to_numpy_int64(val):
+    """Convert CuPy or NumPy scalar/array to numpy int64."""
+    import numpy as _np
+    if hasattr(val, 'get'):
+        # CuPy array - convert to NumPy first
+        val = val.get()
+    return _np.int64(val)
+
+#===============================================================================
 # Dictionary used to select correct kernel functions based on dimensionality
 kernels = {
     'axpy'  : (None,   axpy_1d,   axpy_2d,   axpy_3d),
@@ -1580,7 +1589,11 @@ class StencilMatrix(LinearOperator):
 
         import numpy as _np
         # Pyccel kernels require explicit numpy.int64 type arguments
-        pp = [_np.int64(compute_diag_len(p,mj,mi)-(p+1)) for p,mi,mj in zip(self._pads, cm, dm)]
+        # Handle CuPy arrays by explicitly converting to NumPy
+        pp = []
+        for p, mi, mj in zip(self._pads, cm, dm):
+            diag_len = compute_diag_len(p, mj, mi) - (p + 1)
+            pp.append(_to_numpy_int64(diag_len))
 
         # Range of data owned by local process (no ghost regions)
         local = tuple( [slice(mi*p,-mi*p) if p != 0 else slice(p, None) for p,mi in zip(cpads, cm)] + [slice(None)] * nd )
@@ -1590,15 +1603,15 @@ class StencilMatrix(LinearOperator):
         rows = xp.zeros(size, dtype='int64')
         cols = xp.zeros(size, dtype='int64')
         data = xp.zeros(size, dtype=self.dtype)
-        nrl = [_np.int64(e-s+1) for s,e in zip(self.codomain.starts, self.codomain.ends)]
-        ncl = [_np.int64(i) for i in self._data.shape[nd:]]
-        ss = [_np.int64(i) for i in ss]
-        nr = [_np.int64(i) for i in nr]
-        nc = [_np.int64(i) for i in nc]
-        dm = [_np.int64(i) for i in dm]
-        cm = [_np.int64(i) for i in cm]
-        cpads = [_np.int64(i) for i in cpads]
-        pp = [_np.int64(i) for i in pp]
+        nrl = [_to_numpy_int64(e-s+1) for s,e in zip(self.codomain.starts, self.codomain.ends)]
+        ncl = [_to_numpy_int64(i) for i in self._data.shape[nd:]]
+        ss = [_to_numpy_int64(i) for i in ss]
+        nr = [_to_numpy_int64(i) for i in nr]
+        nc = [_to_numpy_int64(i) for i in nc]
+        dm = [_to_numpy_int64(i) for i in dm]
+        cm = [_to_numpy_int64(i) for i in cm]
+        cpads = [_to_numpy_int64(i) for i in cpads]
+        pp = [_to_numpy_int64(i) for i in pp]
 
         stencil2coo = kernels['stencil2coo'][order][nd]
         ind = stencil2coo(self._data, data, rows, cols, *nrl, *ncl, *ss, *nr, *nc, *dm, *cm, *cpads, *pp)

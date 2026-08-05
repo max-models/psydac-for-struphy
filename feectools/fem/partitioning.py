@@ -1,6 +1,7 @@
 # -*- coding: UTF-8 -*-
 import os
 
+import numpy as np
 import cunumpy as xp
 
 from feectools.ddm.cart       import CartDecomposition, InterfaceCartDecomposition, create_interfaces_cart
@@ -56,9 +57,13 @@ def partition_coefficients(domain_decomposition, spaces, min_blocks=None):
         ee = domain_decomposition.global_element_ends  [axis]
         m  = multiplicity[axis]
 
+        # Convert to numpy if CuPy (needed for MPI operations later)
+        if hasattr(ee, 'get'):
+            ee = ee.get()
+        
         global_ends  [axis]     = m*(ee+1)-1
         global_ends  [axis][-1] = npts[axis]-1
-        global_starts[axis]     = xp.array([0] + (global_ends[axis][:-1]+1).tolist())
+        global_starts[axis]     = np.array([0] + (global_ends[axis][:-1]+1).tolist())
 
     if min_blocks is None:
         min_blocks = [None] * ndims

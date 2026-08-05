@@ -8,6 +8,7 @@ of compact support
 from feectools.ddm.mpi import mpi as MPI
     
 import cunumpy as xp
+import numpy as np
 import itertools
 import h5py
 import os
@@ -989,8 +990,8 @@ class TensorFemSpace(FemSpace):
                                     dirichlet=space.dirichlet, basis=space.basis)
             spaces[axis] = new_space
             breaks = new_space.breaks.tolist()
-            elements_ends = xp.array([breaks.index(bd) for bd in boundaries])-1
-            elements_starts = xp.array([0] + (elements_ends[:-1]+1).tolist())
+            elements_ends = np.array([breaks.index(bd) for bd in boundaries])-1
+            elements_starts = np.array([0] + (elements_ends[:-1]+1).tolist())
 
             if periodic:
                 global_starts[axis] = elements_starts
@@ -1165,8 +1166,8 @@ class TensorFemSpace(FemSpace):
                 new_global_starts[-1].append(s)
                 new_global_ends  [-1].append(e-1)
 
-            new_global_starts[-1] = xp.array(new_global_starts[-1])
-            new_global_ends  [-1] = xp.array(new_global_ends  [-1])
+            new_global_starts[-1] = np.array(new_global_starts[-1])
+            new_global_ends  [-1] = np.array(new_global_ends  [-1])
 
         new_domain = domain.refine(ncells, new_global_starts, new_global_ends)
         new_space  = TensorFemSpace(new_domain, *spaces, dtype=self._coeff_space.dtype)
