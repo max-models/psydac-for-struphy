@@ -60,7 +60,8 @@ kernels = {
                     'C': (None, stencil2coo_1d_C, stencil2coo_2d_C, stencil2coo_3d_C)}
 }
 
-#========================================================================def compute_diag_len(pads, shifts_domain, shifts_codomain, return_padding=False):
+#========================================================================
+def compute_diag_len(pads, shifts_domain, shifts_codomain, return_padding=False):
     """
     Compute the diagonal length and the padding of the stencil matrix for each direction,
     using the shifts of the domain and the codomain.
@@ -95,7 +96,8 @@ kernels = {
     else:
         return n.astype('int')
 
-#========================================================================class StencilVectorSpace(VectorSpace):
+#========================================================================
+class StencilVectorSpace(VectorSpace):
     """
     Vector space for n-dimensional stencil format. Two different initializations
     are possible:
@@ -454,7 +456,8 @@ kernels = {
 
             self._interfaces[axis, ext] = space
 
-#========================================================================class StencilVector(Vector):
+#========================================================================
+class StencilVector(Vector):
     """
     Vector in n-dimensional stencil format.
 
@@ -904,7 +907,8 @@ kernels = {
             index.append(l)
         return tuple(index)
 
-#========================================================================class StencilMatrix(LinearOperator):
+#========================================================================
+class StencilMatrix(LinearOperator):
     """
     Matrix in n-dimensional stencil format.
 
@@ -3061,4 +3065,6 @@ class StencilInterfaceMatrix(LinearOperator):
 
             self._func = dot.func
 
-#========================================================================del VectorSpace, Vector
+#========================================================================
+
+del VectorSpace, Vector
