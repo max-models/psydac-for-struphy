@@ -663,7 +663,7 @@ class StencilVector(Vector):
 
     # ...
     def _toarray_parallel_no_pads(self, order='C'):
-        a         = xp.zeros( self.space.npts, self.dtype )
+        a         = xp.zeros(self.space.npts, dtype=self.dtype)
         idx_from  = tuple( slice(m*p,-m*p) if p != 0 else slice(0, None) for p,m in zip(self.pads, self.space.shifts) )
         idx_to    = tuple( slice(s,e+1) for s,e in zip(self.starts,self.ends) )
         a[idx_to] = self._data[idx_from]
@@ -675,7 +675,7 @@ class StencilVector(Vector):
         pads = [m*p for m,p in zip(self.space.shifts, self.pads)]
         # Step 0: create extended n-dimensional array with zero values
         shape = tuple( n+2*p for n,p in zip( self.space.npts, pads ) )
-        a = xp.zeros( shape, self.dtype )
+        a = xp.zeros(shape, dtype=self.dtype)
 
         # Step 1: write extended data chunk (local to process) onto array
         idx = tuple( slice(s,e+2*p+1) for s,e,p in
