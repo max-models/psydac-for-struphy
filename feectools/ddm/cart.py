@@ -282,11 +282,7 @@ class DomainDecomposition:
 
         if comm is None:
             # compute the coords for all processes
-<<<<<<< HEAD
             self._global_coords = np.array([np.unravel_index(int(rank), nprocs) for rank in range(self._size)])
-=======
-            self._global_coords = xp.array([xp.unravel_index(xp.int64(rank), nprocs) for rank in range(self._size)])
->>>>>>> origin/devel-tiny
             self._coords        = self._global_coords[self._rank]
             self._rank_in_topo  = 0
             self._ranks_in_topo = xp.array([0])
@@ -497,14 +493,9 @@ class CartDecomposition():
         # Store input arguments
         self._domain_decomposition = domain_decomposition
         self._npts          = tuple( npts    )
-<<<<<<< HEAD
         # Convert to NumPy arrays for MPI compatibility (MPI can't handle CuPy arrays)
         self._global_starts = tuple( [ np.asarray(gs.get() if hasattr(gs, 'get') else gs) for gs in global_starts]  )
         self._global_ends   = tuple( [ np.asarray(ge.get() if hasattr(ge, 'get') else ge) for ge in global_ends]    )
-=======
-        self._global_starts = tuple( [ xp.asarray(gs) for gs in global_starts]  )
-        self._global_ends   = tuple( [ xp.asarray(ge) for ge in global_ends]    )
->>>>>>> origin/devel-tiny
         self._pads          = tuple( pads    )
         self._shifts        = tuple( shifts  )
         self._periods       = domain_decomposition.periods
@@ -944,11 +935,7 @@ class CartDecomposition():
         if len([i for i in shift if i==0]) == 2 and rank_dest != MPI.PROC_NULL:
             direction = [i for i,s in enumerate(shift) if s != 0][0]
             comm = self._subcomm[direction]
-<<<<<<< HEAD
             # local_dest_rank = self._comm_cart.group.Translate_ranks(np.array([rank_dest]), comm.group)[0]
-=======
-            # local_dest_rank = self._comm_cart.group.Translate_ranks(xp.array([rank_dest]), comm.group)[0]
->>>>>>> origin/devel-tiny
             local_dest_rank = self._comm_cart.group.Translate_ranks([int(rank_dest)], comm.group)[0]
 
         else:
@@ -963,11 +950,7 @@ class CartDecomposition():
         if len([i for i in shift if i==0]) == 2 and rank_source != MPI.PROC_NULL:
             direction = [i for i,s in enumerate(shift) if s != 0][0]
             comm = self._subcomm[direction]
-<<<<<<< HEAD
             # local_source_rank = self._comm_cart.group.Translate_ranks(np.array([rank_source]), comm.group)[0]
-=======
-            # local_source_rank = self._comm_cart.group.Translate_ranks(xp.array([rank_source]), comm.group)[0]
->>>>>>> origin/devel-tiny
             local_source_rank = self._comm_cart.group.Translate_ranks([int(rank_source)], comm.group)[0]
         else:
             local_source_rank = rank_source

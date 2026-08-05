@@ -9,15 +9,8 @@ it has also a routine uniform, which generates uniform points
 with weights equal to 1
 """
 
-<<<<<<< HEAD
 import cunumpy as xp
-
 from math import cos, pi
-=======
-from math import cos, pi
-
-import cunumpy as xp
->>>>>>> origin/devel-tiny
 
 
 __all__ = ('gauss_legendre', 'gauss_lobatto', 'quadrature')
