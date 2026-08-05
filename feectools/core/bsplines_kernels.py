@@ -1,20 +1,13 @@
 # This file holds the pyccelisable versions of the functions in bsplines.py
 # This will be changed once pyccel can return arrays and can get out=None arguments
 # like Numpy functions.
+# NOTE: This file must use ONLY numpy for pyccel compilation compatibility.
+# Backend conversion (NumPy/CuPy) happens at the Python wrapper level.
 
 from pyccel.decorators import pure
 from numpy import shape, abs
 import numpy as np
-import cunumpy as xp
 from typing import Final
-
-def _get_array_module(arr):
-    """Get the appropriate array module (numpy or cupy) for a given array."""
-    backend = xp.get_backend(arr)
-    if backend == 'cupy':
-        import cupy
-        return cupy
-    return np
 
 # Auxiliary functions needed for the bsplines kernels.
 @pure
@@ -405,15 +398,15 @@ def basis_funs_all_ders_p(knots: 'float[:]', degree: int, x: float, span: int, n
         Springer-Verlag Berlin Heidelberg GmbH, 1997.
     """
     # Detect backend from output array
-    xp_module = _get_array_module(out)
+    # Backend array operations removed - always use numpy
     
-    sh_a  = xp_module.empty(2)
-    sh_b  = xp_module.empty(2)
-    left  = xp_module.empty(degree)
-    right = xp_module.empty(degree)
-    ndu   = xp_module.empty((degree+1, degree+1))
-    a     = xp_module.empty((2, degree+1))
-    temp_d = xp_module.empty((1, 1))
+    sh_a  = np.empty(2)
+    sh_b  = np.empty(2)
+    left  = np.empty(degree)
+    right = np.empty(degree)
+    ndu   = np.empty((degree+1, degree+1))
+    a     = np.empty((2, degree+1))
+    temp_d = np.empty((1, 1))
     # Number of derivatives that need to be effectively computed
     # Derivatives higher than degree are = 0.
     ne = min(n, degree)
@@ -459,10 +452,10 @@ def basis_funs_all_ders_p(knots: 'float[:]', degree: int, x: float, span: int, n
             # temp_d[:, :] = np.matmul(a[s2:s2 + 1, j1:j2 + 1], ndu[rk + j1:rk + j2 + 1, pk: pk + 1])
             
             # sh_a[:] = shape(a[s2:s2 + 1, j1:j2 + 1])
-            sh_a[:] = xp_module.array(a[s2:s2 + 1, j1:j2 + 1].shape, dtype=sh_a.dtype)
+            sh_a[:] = np.array(a[s2:s2 + 1, j1:j2 + 1].shape, dtype=sh_a.dtype)
             
             # sh_b[:] = shape(ndu[rk + j1:rk + j2 + 1, pk: pk + 1])
-            sh_b[:] = xp_module.array(ndu[rk + j1:rk + j2 + 1, pk: pk + 1].shape, dtype=sh_b.dtype)
+            sh_b[:] = np.array(ndu[rk + j1:rk + j2 + 1, pk: pk + 1].shape, dtype=sh_b.dtype)
             
             
             if sh_a[0] == 0 or sh_a[1] == 0 or sh_b[0] == 0 or sh_b[1] == 0:
@@ -563,7 +556,7 @@ def collocation_matrix_p(knots: 'float[:]', degree: int, periodic: bool, normali
         
     """
     # Detect backend from output array
-    xp_module = _get_array_module(out)
+    # Backend array operations removed - always use numpy
     
     # Number of basis functions (in periodic case remove degree repeated elements)
     nb = len(knots)-degree-1
@@ -573,7 +566,7 @@ def collocation_matrix_p(knots: 'float[:]', degree: int, periodic: bool, normali
     # Number of evaluation points
     nx = len(xgrid)
 
-    basis = xp_module.zeros((nx, degree + 1))
+    basis = np.zeros((nx, degree + 1))
     spans = np.zeros(nx, dtype=int)  # Keep indices on CPU
     find_spans_p(knots, degree, xgrid, spans)
     basis_funs_array_p(knots, degree, xgrid, spans, basis)
@@ -591,7 +584,7 @@ def collocation_matrix_p(knots: 'float[:]', degree: int, periodic: bool, normali
             for i in range(nx):
                 out[i, spans[i] - degree:spans[i] + 1] = basis[i, :]
     else:
-        integrals = xp_module.zeros(knots.shape[0] - degree - 1)
+        integrals = np.zeros(knots.shape[0] - degree - 1)
         basis_integrals_p(knots, degree, integrals)
         scaling = 1.0 / integrals
         if periodic:
@@ -654,7 +647,7 @@ def histopolation_matrix_p(knots: 'float[:]', degree: int, periodic: bool, norma
     two successive grid points.
     """
     # Detect backend from output array
-    xp_module = _get_array_module(out)
+    # Backend array operations removed - always use numpy
     
     nb = len(knots) - degree - 1
     if periodic:
@@ -664,7 +657,7 @@ def histopolation_matrix_p(knots: 'float[:]', degree: int, periodic: bool, norma
     nx = len(xgrid)
 
     # In periodic case, make sure that evaluation points include domain boundaries
-    xgrid_new = xp_module.zeros(len(xgrid) + 2)
+    xgrid_new = np.zeros(len(xgrid) + 2)
     actual_len = len(xgrid)
     if periodic:
         if check_boundary:
@@ -700,7 +693,7 @@ def histopolation_matrix_p(knots: 'float[:]', degree: int, periodic: bool, norma
     #  . cannot use M-splines in analytical formula for histopolation matrix
     #  . always use non-periodic splines to avoid circulant matrix structure
     nb_elevated = len(elevated_knots) - (degree + 1) - 1
-    colloc = xp_module.zeros((actual_len, nb_elevated))
+    colloc = np.zeros((actual_len, nb_elevated))
     collocation_matrix_p(elevated_knots,
                             degree + 1,
                             False,
@@ -723,7 +716,7 @@ def histopolation_matrix_p(knots: 'float[:]', degree: int, periodic: bool, norma
 
     # Compute histopolation matrix from collocation matrix of higher degree
     if periodic:
-        temp_array = xp_module.zeros((m, n))
+        temp_array = np.zeros((m, n))
         H = temp_array[:, :]
     else:
         H = out[:, :]
@@ -740,7 +733,7 @@ def histopolation_matrix_p(knots: 'float[:]', degree: int, periodic: bool, norma
                 H[i, j - 1] = s
 
     else:
-        integrals = xp_module.zeros(knots.shape[0] - degree - 1)
+        integrals = np.zeros(knots.shape[0] - degree - 1)
         basis_integrals_p(knots, degree, integrals)
         for i in range(m):
             # Indices of first/last non-zero elements in row of collocation matrix
@@ -781,11 +774,11 @@ def merge_sort(a: 'float[:]'):
         n = len(a)
         
         # Detect backend and use the appropriate array module
-        xp_module = _get_array_module(a)
+        # Backend array operations removed - always use numpy
         
-        a1 = xp_module.zeros(n // 2)
+        a1 = np.zeros(n // 2)
         a1[:] = a[:n // 2]
-        a2 = xp_module.zeros(n - n // 2)
+        a2 = np.zeros(n - n // 2)
         a2[:] = a[n // 2:]
 
         merge_sort(a1)
@@ -1184,10 +1177,10 @@ def basis_ders_on_quad_grid_p(knots: 'float[:]', degree: int, quad_grid: 'float[
     nq = quad_grid.shape[1]
     
     # Detect backend from output array
-    xp_module = _get_array_module(out)
+    # Backend array operations removed - always use numpy
     
     if normalization:
-        integrals = xp_module.zeros(knots.shape[0] - degree - 1)
+        integrals = np.zeros(knots.shape[0] - degree - 1)
         basis_integrals_p(knots, degree, integrals)
         scaling = 1.0 /integrals
 
@@ -1195,7 +1188,7 @@ def basis_ders_on_quad_grid_p(knots: 'float[:]', degree: int, quad_grid: 'float[
     actual_index = elements_spans_p(knots, degree, temp_spans)
     spans = temp_spans[:actual_index]
 
-    ders = xp_module.zeros((nders + 1, degree + 1))
+    ders = np.zeros((nders + 1, degree + 1))
 
     for ie in range(ne):
         xx = quad_grid[ie, :]
