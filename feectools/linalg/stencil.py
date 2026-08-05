@@ -2128,7 +2128,8 @@ class StencilMatrix(LinearOperator):
 
         return self._diag_indices
 
-#========================================================================class StencilDiagonalMatrix(LinearOperator):
+#========================================================================
+class StencilDiagonalMatrix(LinearOperator):
     """
     Linear operator which operates between stencil vector spaces, and which can
     be represented by a matrix with non-zero entries only on its main diagonal.
