@@ -1,6 +1,6 @@
 # -*- coding: UTF-8 -*-
 
-import numpy as np
+import cunumpy as xp
 import scipy.sparse as spa
 
 from feectools.linalg.stencil  import StencilVector, StencilMatrix, StencilVectorSpace
@@ -116,10 +116,10 @@ class DirectionalDerivativeOperator(LinearOperator):
 
         # define differentiation lambda based on the parameter negative (or sign)
         if self._negative:
-            self._do_diff = lambda v,out: np.subtract(v._data[idslice],
+            self._do_diff = lambda v,out: xp.subtract(v._data[idslice],
                                 v._data[diffslice], out=out._data[idslice])
         else:
-            self._do_diff = lambda v,out: np.subtract(v._data[diffslice],
+            self._do_diff = lambda v,out: xp.subtract(v._data[diffslice],
                                 v._data[idslice], out=out._data[idslice])
 
     @property
@@ -315,13 +315,13 @@ class DirectionalDerivativeOperator(LinearOperator):
                     directional_matrix = spa.coo_array((codomain_local, domain_local))
 
                 else:
-                    maindiag = np.ones(domain_local) * (-sign)
-                    adddiag = np.ones(domain_local) * sign
+                    maindiag = xp.ones(domain_local) * (-sign)
+                    adddiag = xp.ones(domain_local) * sign
 
                     # handle special case with not self.domain.parallel and not with_pads and periodic
                     if self.domain.periods[d] and not self.domain.parallel and not with_pads:
                         # then: add element to other side of the array
-                        adddiagcirc = np.array([sign])
+                        adddiagcirc = xp.array([sign])
                         offsets = (-codomain_local+1, 0, 1)
                         diags = (adddiagcirc, maindiag, adddiag)
                     else:
