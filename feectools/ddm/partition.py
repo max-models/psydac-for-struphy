@@ -3,7 +3,7 @@
 # LICENSE file or go to https://github.com/pyccel/psydac/blob/devel/LICENSE #
 # for full license details.                                                 #
 #---------------------------------------------------------------------------#
-import numpy    as np
+import cunumpy as xp
 import numpy.ma as ma
 
 from sympy.ntheory import factorint
@@ -36,11 +36,11 @@ def partition_procs_per_patch(npts, size):
         such that k1<=k2.
 
     """
-    npts       = [np.prod(nc) for nc in npts]
+    npts       = [xp.prod(nc) for nc in npts]
     percentage = [nc / sum(npts) for nc in npts]
-    sizes      = np.array([int(p*size) for p in percentage])
+    sizes      = xp.array([int(p*size) for p in percentage])
     diff       = [p * size - s for s, p in zip(sizes, percentage)]
-    indices    = np.argsort(diff)[::-1]
+    indices    = xp.argsort(diff)[::-1]
     rm         = size - sum(sizes)
 
     sizes[indices[:rm]] +=1
@@ -55,7 +55,7 @@ def partition_procs_per_patch(npts, size):
 
     assert start == size
 
-    ranges = np.array(ranges)
+    ranges = xp.array(ranges)
     ranks  = [i[0] for i in ranges[indices[:rm]]]
 
     if len(ranks) == 0:
@@ -110,7 +110,7 @@ def compute_dims( nnodes, gridsizes, min_blocksizes=None, mpi=None, try_uniform=
     """
     assert nnodes > 0
     assert all( s > 0 for s in gridsizes )
-    assert np.prod( gridsizes ) >= nnodes
+    assert xp.prod( xp.asarray(gridsizes) ) >= nnodes
 
     if (min_blocksizes is not None):
         assert len( min_blocksizes ) == len( gridsizes )
@@ -118,7 +118,7 @@ def compute_dims( nnodes, gridsizes, min_blocksizes=None, mpi=None, try_uniform=
         assert all( s >= m for s,m in zip( gridsizes, min_blocksizes ) )
 
     # Determine whether uniform decomposition is possible
-    uniform = (np.prod( gridsizes ) % nnodes == 0)
+    uniform = (xp.prod( xp.asarray(gridsizes) ) % nnodes == 0)
 
     # Compute dimensions of MPI Cartesian topology with most appropriate algorithm
     if try_uniform and uniform:
@@ -166,11 +166,11 @@ def compute_dims_general( mpi_size, npts, mpi_dims_mask=None ):
 
     for a in f:
 
-        i = np.argmax( shape )
+        i = xp.argmax( shape )
         max_shape = shape[i]
 
         if shape.count( max_shape ) > 1:
-            i = ma.array( nprocs, mask=np.not_equal( shape, max_shape ) ).argmin()
+            i = ma.array( nprocs, mask=xp.not_equal( shape, max_shape ) ).argmin()
 
         nprocs[i]  *= a
         shape [i] //= a
@@ -197,17 +197,17 @@ def compute_dims_uniform( mpi_size, npts ):
 
         for k in range( power ):
 
-            i = np.argmax( exponents )
+            i = xp.argmax( exponents )
             max_exp = exponents[i]
 
             if exponents.count( max_exp ) > 1:
-                i = ma.array( nprocs, mask=np.not_equal( exponents, max_exp ) ).argmin()
+                i = ma.array( nprocs, mask=xp.not_equal( exponents, max_exp ) ).argmin()
 
             nprocs   [i] *= a
             exponents[i] -= 1
 
             npts_factors[i][a] -= 1
 
-    shape = [np.prod( [key**val for key,val in f.items()] ) for f in npts_factors]
+    shape = [xp.prod( [key**val for key,val in f.items()] ) for f in npts_factors]
 
     return nprocs, shape

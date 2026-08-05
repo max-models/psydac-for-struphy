@@ -5,7 +5,7 @@
 #---------------------------------------------------------------------------#
 from numbers import Number
 
-import numpy as np
+import cunumpy as xp
 
 __all__ = (
     'refine_array_1d',
@@ -29,7 +29,7 @@ def is_real(x):
         True if x is real, False otherwise.
 
     """
-    return isinstance(x, Number) and np.isrealobj(x) and not isinstance(x, bool)
+    return isinstance(x, Number) and xp.isrealobj(x) and not isinstance(x, bool)
 
 #===============================================================================
 def refine_array_1d(x, n, remove_duplicates=True):
@@ -59,10 +59,10 @@ def refine_array_1d(x, n, remove_duplicates=True):
     if not remove_duplicates:
         n += 1
     for (a, b) in zip(x[:-1], x[1:]):
-        xr.extend(np.linspace(a, b, n, endpoint=not remove_duplicates))
+        xr.extend(xp.linspace(a, b, n, endpoint=not remove_duplicates))
     if remove_duplicates:
         xr.append(x[-1])
-    return np.array(xr)
+    return xp.array(xr)
 
 #===============================================================================
 def unroll_edges(domain, xgrid):
@@ -71,7 +71,7 @@ def unroll_edges(domain, xgrid):
 
     xA, xB = domain
 
-    assert all(np.diff(xgrid) >= 0)
+    assert all(xp.diff(xgrid) >= 0)
     assert xA < xB
     assert xA <= xgrid[0]
     assert xgrid[-1] <= xB
@@ -80,10 +80,10 @@ def unroll_edges(domain, xgrid):
         return xgrid
 
     elif xgrid[0] != xA:
-        return np.array([xgrid[-1] - (xB-xA), *xgrid])
+        return xp.array([xgrid[-1] - (xB-xA), *xgrid])
 
     elif xgrid[-1] != xB:
-        return np.array([*xgrid, xgrid[0] + (xB-xA)])
+        return xp.array([*xgrid, xgrid[0] + (xB-xA)])
 
 #===============================================================================
 def roll_edges(domain, points):
@@ -141,14 +141,14 @@ def animate_field(fields, domain, mapping, res=(150,150), vrange=None, cmap=None
     ax.set_aspect('equal')
 
     etas    = [refine_array_1d( bounds, r ) for r,bounds in zip(res, zip(domain.min_coords, domain.max_coords))]
-    pcoords = np.array( [[mapping( e1,e2 ) for e2 in etas[1]] for e1 in etas[0]] )
+    pcoords = xp.array( [[mapping( e1,e2 ) for e2 in etas[1]] for e1 in etas[0]] )
     xx      = pcoords[:,:,0]
     yy      = pcoords[:,:,1]
 
     # determine range of values from first field
-    num1     = np.array( [[fields[0].fields[0]( e1,e2 ) for e2 in etas[1]] for e1 in etas[0]] )
-    num2     = np.array( [[fields[0].fields[1]( e1,e2 ) for e2 in etas[1]] for e1 in etas[0]] )
-    num      = np.hypot(num1, num2)
+    num1     = xp.array( [[fields[0].fields[0]( e1,e2 ) for e2 in etas[1]] for e1 in etas[0]] )
+    num2     = xp.array( [[fields[0].fields[1]( e1,e2 ) for e2 in etas[1]] for e1 in etas[0]] )
+    num      = xp.hypot(num1, num2)
     vrange   = (num.min(), num.max())
 
     quadmesh = plt.pcolormesh(xx, yy, num, shading='gouraud', cmap=cmap,
@@ -157,9 +157,9 @@ def animate_field(fields, domain, mapping, res=(150,150), vrange=None, cmap=None
 
     pbar = tqdm.tqdm(total=len(fields))
     def anim_func(i):
-        num1     = np.array( [[fields[i].fields[0]( e1,e2 ) for e2 in etas[1]] for e1 in etas[0]] )
-        num2     = np.array( [[fields[i].fields[1]( e1,e2 ) for e2 in etas[1]] for e1 in etas[0]] )
-        C        = np.hypot(num1, num2)
+        num1     = xp.array( [[fields[i].fields[0]( e1,e2 ) for e2 in etas[1]] for e1 in etas[0]] )
+        num2     = xp.array( [[fields[i].fields[1]( e1,e2 ) for e2 in etas[1]] for e1 in etas[0]] )
+        C        = xp.hypot(num1, num2)
         quadmesh.set_array(C)
         pbar.update()
         if i == len(fields) - 1:

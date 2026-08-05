@@ -8,7 +8,7 @@ from feectools.ddm.nonblocking_data_exchanger import NonBlockingCartDataExchange
 #===============================================================================
 def run_cart_2d( data_exchanger_type, verbose=False , nprocs=None, reverse_axis=None):
 
-    import numpy as np
+    import cunumpy as xp
     from feectools.ddm.mpi import mpi as MPI  
     from feectools.ddm.cart import DomainDecomposition, CartDecomposition
 
@@ -51,7 +51,7 @@ def run_cart_2d( data_exchanger_type, verbose=False , nprocs=None, reverse_axis=
 
         global_ends  [axis]     = (ee+1)-1
         global_ends  [axis][-1] = npts[axis]-1
-        global_starts[axis]     = np.array([0] + (global_ends[axis][:-1]+1).tolist())
+        global_starts[axis]     = xp.array([0] + (global_ends[axis][:-1]+1).tolist())
 
     # Decomposition of Cartesian domain
     cart = CartDecomposition(
@@ -65,7 +65,7 @@ def run_cart_2d( data_exchanger_type, verbose=False , nprocs=None, reverse_axis=
 
     # Local 2D array with 2D vector data (extended domain)
     shape = list( cart.shape ) + [2]
-    u = np.zeros( shape, dtype=int )
+    u = xp.zeros( shape, dtype=int )
 
     # Global indices of first and last elements of array
     s1,s2 = cart.starts

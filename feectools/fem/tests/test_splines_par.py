@@ -9,14 +9,14 @@ from feectools.fem.vector  import VectorFemSpace
 from feectools.ddm.cart    import DomainDecomposition
 from feectools.ddm.mpi import mpi as MPI
 
-from numpy  import linspace
+import cunumpy as xp
 
 def test_2d_1():
 
     p_1 = 2
     p_2 = 2
-    grid_1 = linspace(0., 1., 10)
-    grid_2 = linspace(0., 1., 15)
+    grid_1 = xp.linspace(0., 1., 10)
+    grid_2 = xp.linspace(0., 1., 15)
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
 

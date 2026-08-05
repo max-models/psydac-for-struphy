@@ -3,7 +3,7 @@
 # LICENSE file or go to https://github.com/pyccel/psydac/blob/devel/LICENSE #
 # for full license details.                                                 #
 #---------------------------------------------------------------------------#
-import numpy as np
+import cunumpy as xp
 
 from feectools.core.bsplines         import elements_spans
 from feectools.core.bsplines         import quadrature_grid

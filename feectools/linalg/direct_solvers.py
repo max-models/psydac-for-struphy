@@ -3,7 +3,9 @@
 # LICENSE file or go to https://github.com/pyccel/psydac/blob/devel/LICENSE #
 # for full license details.                                                 #
 #---------------------------------------------------------------------------#
-import numpy               as np
+from abc                 import abstractmethod
+import cunumpy as xp
+from cunumpy.xp import array_backend
 from scipy.linalg.lapack import dgbtrf, dgbtrs, sgbtrf, sgbtrs, cgbtrf, cgbtrs, zgbtrf, zgbtrs
 from scipy.sparse        import spmatrix, dia_matrix
 from scipy.sparse.linalg import splu
@@ -21,7 +23,7 @@ def to_bnd(A):
     ua   = dmat.offsets.max()
     cmat = dmat.tocsr()
 
-    A_bnd = np.zeros((1+ua+2*la, cmat.shape[1]), A.dtype)
+    A_bnd = xp.zeros((1+ua+2*la, cmat.shape[1]), A.dtype)
 
     for i,j in zip(*cmat.nonzero()):
         A_bnd[la+ua+i-j, j] = cmat[i,j]
@@ -52,27 +54,31 @@ class BandedSolver(LinearSolver):
         self._transposed = transposed
 
         # ... LU factorization
-        if bmat.dtype == np.float32:
+        if bmat.dtype == xp.float32:
             self._factor_function = sgbtrf
             self._solver_function = sgbtrs
-        elif bmat.dtype == np.float64:
+        elif bmat.dtype == xp.float64:
             self._factor_function = dgbtrf
             self._solver_function = dgbtrs
-        elif bmat.dtype == np.complex64:
+        elif bmat.dtype == xp.complex64:
             self._factor_function = cgbtrf
             self._solver_function = cgbtrs
-        elif bmat.dtype == np.complex128:
+        elif bmat.dtype == xp.complex128:
             self._factor_function = zgbtrf
             self._solver_function = zgbtrs
         else:
             msg = f'Cannot create a BandedSolver for bmat.dtype = {bmat.dtype}'
             raise NotImplementedError(msg)
-
+        # print(f"{bmat = } {type(bmat) = }")
+        if hasattr(bmat, "get"):  # CuPy array
+            bmat = bmat.get()
+        else:
+            bmat = xp.asanyarray(bmat)
         self._bmat, self._ipiv, self._finfo = self._factor_function(bmat, l, u)
 
         self._sinfo = None
 
-        self._space = np.ndarray
+        self._space = xp.ndarray
         self._dtype = bmat.dtype
 
     @staticmethod
@@ -152,8 +158,16 @@ class BandedSolver(LinearSolver):
             # TODO: handle non-contiguous views?
 
             # we want FORTRAN-contiguous data (default is assumed to be C contiguous)
-            _, self._sinfo = self._solver_function(self._bmat, self._l, self._u, out.T, self._ipiv, overwrite_b=True,
+            from cunumpy.xp import array_backend
+            if array_backend.backend == "numpy":
+                _, self._sinfo = self._solver_function(self._bmat, self._l, self._u, out.T, self._ipiv, overwrite_b=True,
                                                    trans=transposed)
+            else:
+                # GPU
+                out_cpu = out.get()
+                _, self._sinfo = self._solver_function(self._bmat, self._l, self._u, out_cpu.T, self._ipiv, overwrite_b=True,
+                                                   trans=transposed)
+                out.set(out_cpu)
 
         return out
 
@@ -172,7 +186,7 @@ class SparseSolver (LinearSolver):
 
         assert isinstance(spmat, spmatrix)
 
-        self._space = np.ndarray
+        self._space = xp.ndarray
         self._splu  = splu(spmat.tocsc())
         self._transposed = transposed
 
@@ -221,6 +235,11 @@ class SparseSolver (LinearSolver):
             assert out.dtype == rhs.dtype
 
             # currently no in-place solve exposed
-            out[:] = self._splu.solve(rhs.T, trans='T' if transposed else 'N').T
+            if array_backend.backend == "numpy":
+                out[:] = self._splu.solve(rhs.T, trans='T' if transposed else 'N').T
+            else:
+                rhs_cpu = rhs.get()
+                result_cpu = self._splu.solve(rhs_cpu.T, trans='T' if transposed else 'N').T
+                out[:] = xp.asarray(result_cpu)
 
         return out

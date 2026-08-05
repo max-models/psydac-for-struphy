@@ -4,7 +4,7 @@
 # for full license details.                                                 #
 #---------------------------------------------------------------------------#
 import math
-import numpy as np
+import cunumpy as xp
 
 from feectools.fem.tests.analytical_profiles_base import AnalyticalProfile
 from feectools.fem.tests.utilities                import horner, falling_factorial
@@ -32,7 +32,7 @@ class AnalyticalProfile1D_Cos( AnalyticalProfile ):
         return -1
 
     def eval( self, x, diff=0 ):
-        return self._k**diff * np.cos( 0.5*math.pi*diff + self._k*x + self._phi )
+        return self._k**diff * xp.cos( 0.5*math.pi*diff + self._k*x + self._phi )
 
     def max_norm( self, diff=0 ):
         return self._k**diff
@@ -58,7 +58,7 @@ class AnalyticalProfile1D_Sin( AnalyticalProfile ):
         return -1
 
     def eval( self, x, diff=0 ):
-        return self._k**diff * np.sin( 0.5*math.pi*diff + self._k*x + self._phi )
+        return self._k**diff * xp.sin( 0.5*math.pi*diff + self._k*x + self._phi )
 
     def max_norm( self, diff=0 ):
         return self._k**diff
@@ -67,7 +67,7 @@ class AnalyticalProfile1D_Poly( AnalyticalProfile ):
 
     def __init__( self, deg ):
 
-        coeffs = np.random.random_sample( 1+deg )  # 0 <= c < 1
+        coeffs = xp.random.random_sample( 1+deg )  # 0 <= c < 1
         coeffs = 1.0 - coeffs                      # 0 < c <= 1
 
         self._deg    = deg

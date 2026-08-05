@@ -1,7 +1,7 @@
 # coding: utf-8
 
 import os
-import numpy as np
+import cunumpy as xp
 from itertools import product
 
 from feectools.ddm.mpi import mpi as MPI
@@ -36,10 +36,10 @@ def find_mpi_type( dtype ):
         if isinstance( dtype, MPI.Datatype ):
             mpi_type = dtype
         else:
-            nt = np.dtype( dtype )
+            nt = xp.dtype( dtype )
             mpi_type = MPI._typedict[nt.char]
     else:
-        mpi_type = np.dtype( dtype )
+        mpi_type = xp.dtype( dtype )
 
     return mpi_type
 
@@ -250,20 +250,20 @@ class DomainDecomposition:
             n = ncells[axis]
             d = nprocs[axis]
             s = n//d
-            global_shapes[axis] = np.array([s]*d)
+            global_shapes[axis] = xp.array([s]*d)
             global_shapes[axis][:n%d] += 1
 
-            self._global_element_ends  [axis] = np.cumsum(global_shapes[axis])-1
-            self._global_element_starts[axis] = np.array( [0] + [e+1 for e in self._global_element_ends[axis][:-1]] )
+            self._global_element_ends  [axis] = xp.cumsum(global_shapes[axis])-1
+            self._global_element_starts[axis] = xp.array( [0] + [e+1 for e in self._global_element_ends[axis][:-1]] )
 
         if self.is_comm_null:return
 
         if comm is None:
             # compute the coords for all processes
-            self._global_coords = np.array([np.unravel_index(rank, nprocs) for rank in range(self._size)])
+            self._global_coords = xp.array([xp.unravel_index(xp.int64(rank), nprocs) for rank in range(self._size)])
             self._coords        = self._global_coords[self._rank]
             self._rank_in_topo  = 0
-            self._ranks_in_topo = np.array([0])
+            self._ranks_in_topo = xp.array([0])
         else:
             # Create a MPI cart
             self._comm_cart = comm.Create_cart(
@@ -275,7 +275,7 @@ class DomainDecomposition:
             # Know my coordinates in the topology
             self._rank_in_topo = self._comm_cart.Get_rank()
             self._coords       = self._comm_cart.Get_coords( rank=self._rank_in_topo )
-            self._ranks_in_topo = np.array(self._comm_cart.group.Translate_ranks(list(range(self._comm_cart.size)), comm.group))
+            self._ranks_in_topo = xp.array(self._comm_cart.group.Translate_ranks(list(range(self._comm_cart.size)), comm.group))
 
         # Start/end values of global indices (without ghost regions)
         self._starts = tuple( self._global_element_starts[axis][c] for axis,c in zip(range(self._ndims), self._coords) )
@@ -467,8 +467,8 @@ class CartDecomposition():
         # Store input arguments
         self._domain_decomposition = domain_decomposition
         self._npts          = tuple( npts    )
-        self._global_starts = tuple( [ np.asarray(gs) for gs in global_starts]  )
-        self._global_ends   = tuple( [ np.asarray(ge) for ge in global_ends]    )
+        self._global_starts = tuple( [ xp.asarray(gs) for gs in global_starts]  )
+        self._global_ends   = tuple( [ xp.asarray(ge) for ge in global_ends]    )
         self._pads          = tuple( pads    )
         self._shifts        = tuple( shifts  )
         self._periods       = domain_decomposition.periods
@@ -500,7 +500,9 @@ class CartDecomposition():
         self._ends   = tuple( self._global_ends  [axis][c] for axis,c in zip(range(self._ndims), self._coords) )
 
         # List of 1D global indices (without ghost regions)
-        self._grids = tuple( range(s,e+1) for s,e in zip( self._starts, self._ends ) )
+        # self._grids = tuple( range(s,e+1) for s,e in zip( self._starts, self._ends ) )
+        self._grids = tuple(range(int(s), int(e) + 1) for s, e in zip(self._starts, self._ends))
+
 
         # Compute shape of local arrays in topology (with ghost regions)
         self._shape = tuple( e-s+1+2*m*p for s,e,p,m in zip( self._starts, self._ends, self._pads, shifts ) )
@@ -688,8 +690,8 @@ class CartDecomposition():
             self.comm.Abort(1)
 
         # compute the coords for all threads
-        coords_from_rank = np.array([np.unravel_index(rank, nthreads) for rank in range(self._num_threads)])
-        rank_from_coords = np.zeros([n+1 for n in nthreads], dtype=int)
+        coords_from_rank = xp.array([xp.unravel_index(rank, nthreads) for rank in range(self._num_threads)])
+        rank_from_coords = xp.zeros([n+1 for n in nthreads], dtype=int)
         for r in range(self._num_threads):
             c = coords_from_rank[r]
             rank_from_coords[tuple(c)] = r
@@ -708,8 +710,8 @@ class CartDecomposition():
         for axis in range( self._ndims ):
             n = shape[axis]
             d = nthreads[axis]
-            thread_global_starts[axis] = np.array( [( c   *n)//d   for c in range( d )] )
-            thread_global_ends  [axis] = np.array( [((c+1)*n)//d-1 for c in range( d )] )
+            thread_global_starts[axis] = xp.array( [( c   *n)//d   for c in range( d )] )
+            thread_global_ends  [axis] = xp.array( [((c+1)*n)//d-1 for c in range( d )] )
 
         return coords_from_rank, rank_from_coords, thread_global_starts, thread_global_ends, self._num_threads
 
@@ -856,14 +858,14 @@ class CartDecomposition():
         m = self._shifts[direction]
 
         # Shape of send/recv subarrays
-        buf_shape = np.array( self._shape )
+        buf_shape = xp.array( self._shape )
         buf_shape[direction] = m*p
 
         # Start location of send/recv subarrays
-        send_starts          = np.zeros( self._ndims, dtype=int )
-        recv_starts          = np.zeros( self._ndims, dtype=int )
-        send_assembly_starts = np.zeros( self._ndims, dtype=int )
-        recv_assembly_starts = np.zeros( self._ndims, dtype=int )
+        send_starts          = xp.zeros( self._ndims, dtype=int )
+        recv_starts          = xp.zeros( self._ndims, dtype=int )
+        send_assembly_starts = xp.zeros( self._ndims, dtype=int )
+        recv_assembly_starts = xp.zeros( self._ndims, dtype=int )
 
         if disp > 0:
             recv_starts[direction]          = 0
@@ -904,7 +906,9 @@ class CartDecomposition():
         if len([i for i in shift if i==0]) == 2 and rank_dest != MPI.PROC_NULL:
             direction = [i for i,s in enumerate(shift) if s != 0][0]
             comm = self._subcomm[direction]
-            local_dest_rank = self._comm_cart.group.Translate_ranks(np.array([rank_dest]), comm.group)[0]
+            # local_dest_rank = self._comm_cart.group.Translate_ranks(xp.array([rank_dest]), comm.group)[0]
+            local_dest_rank = self._comm_cart.group.Translate_ranks([int(rank_dest)], comm.group)[0]
+
         else:
             local_dest_rank = rank_dest
             comm = self._comm_cart
@@ -917,7 +921,8 @@ class CartDecomposition():
         if len([i for i in shift if i==0]) == 2 and rank_source != MPI.PROC_NULL:
             direction = [i for i,s in enumerate(shift) if s != 0][0]
             comm = self._subcomm[direction]
-            local_source_rank = self._comm_cart.group.Translate_ranks(np.array([rank_source]), comm.group)[0]
+            # local_source_rank = self._comm_cart.group.Translate_ranks(xp.array([rank_source]), comm.group)[0]
+            local_source_rank = self._comm_cart.group.Translate_ranks([int(rank_source)], comm.group)[0]
         else:
             local_source_rank = rank_source
             comm = self._comm_cart
@@ -1091,11 +1096,11 @@ class InterfaceCartDecomposition:
         if local_comm_plus != MPI.COMM_NULL and reduce_elements == False:
             local_comm_plus.Bcast((ranks_in_topo_minus,ranks_in_topo_minus.size, dtype), root=0)
 
-        self._coords_from_rank_minus = np.array([np.unravel_index(rank, nprocs_minus) for rank in range(size_minus)])
-        self._coords_from_rank_plus  = np.array([np.unravel_index(rank, nprocs_plus)  for rank in range(size_plus)])
+        self._coords_from_rank_minus = xp.array([xp.unravel_index(rank, nprocs_minus) for rank in range(size_minus)])
+        self._coords_from_rank_plus  = xp.array([xp.unravel_index(rank, nprocs_plus)  for rank in range(size_plus)])
 
-        rank_from_coords_minus = np.zeros(nprocs_minus, dtype=int)
-        rank_from_coords_plus  = np.zeros(nprocs_plus, dtype=int)
+        rank_from_coords_minus = xp.zeros(nprocs_minus, dtype=int)
+        rank_from_coords_plus  = xp.zeros(nprocs_plus, dtype=int)
 
         for r in range(size_minus):
             rank_from_coords_minus[tuple(self._coords_from_rank_minus[r])] = r
@@ -1539,10 +1544,10 @@ class InterfaceCartDecomposition:
                 starts[axis] = starts[axis] if ext_plus == -1 else ends[axis]-pads_plus[axis]+diff
                 ends[axis]   = starts[axis]+pads_plus[axis]-diff if ext_plus == -1 else ends[axis]
                 shape_k = [e-s+1 for s,e in zip(starts, ends)]
-                recv_counts[k] = np.prod(shape_k)
+                recv_counts[k] = xp.prod(shape_k)
                 ranges         = [(s+p*m, p*m+e+1) for s,e,p,m in zip(starts, ends, pads_plus, shifts_plus)]
                 ranges[axis]   = (shifts_plus[axis]*pads_plus[axis], shifts_plus[axis]*pads_plus[axis]+shape_k[axis])
-                indices       += [np.ravel_multi_index( ii, dims=recv_shape, order='C' ) for ii in product(*[range(*a) for a in ranges])]
+                indices       += [xp.ravel_multi_index( ii, dims=recv_shape, order='C' ) for ii in product(*[range(*a) for a in ranges])]
 
         elif self._local_rank_plus is not None:
             rank_plus = self._local_rank_plus
@@ -1574,12 +1579,12 @@ class InterfaceCartDecomposition:
                 starts[axis] = starts[axis] if ext_minus == -1 else ends[axis]-pads_minus[axis]+diff
                 ends[axis]   = starts[axis]+pads_minus[axis]-diff if ext_minus == -1 else ends[axis]
                 shape_k = [e-s+1 for s,e in zip(starts, ends)]
-                recv_counts[k] = np.prod(shape_k)
+                recv_counts[k] = xp.prod(shape_k)
                 ranges       = [(s+p*m, p*m+e+1) for s,e,p,m in zip(starts, ends, pads_minus, shifts_minus)]
                 ranges[axis] = (shifts_minus[axis]*pads_minus[axis], shifts_minus[axis]*pads_minus[axis]+shape_k[axis])
-                indices     += [np.ravel_multi_index( ii, dims=recv_shape, order='C' ) for ii in product(*[range(*a) for a in ranges])]
+                indices     += [xp.ravel_multi_index( ii, dims=recv_shape, order='C' ) for ii in product(*[range(*a) for a in ranges])]
 
-        displacements[1:] = np.cumsum(recv_counts)
+        displacements[1:] = xp.cumsum(recv_counts)
         # Store all information into dictionary
         info = {'send_buf_shape' : tuple( send_buf_shape ),
                 'send_starts'    : tuple( send_starts ),
@@ -1809,8 +1814,8 @@ def create_interfaces_cart(domain_decomposition, carts, interfaces, communicatio
         axis_i, ext_i   = interfaces[i,j][0]
         axis_j, ext_j   = interfaces[i,j][1]
         if interfaces_comm[i,j] != MPI.COMM_NULL:
-            ranks_in_topo_i = domain_decomposition.domains[i].ranks_in_topo if i in owned_groups else np.full(local_groups[i].size, -1)
-            ranks_in_topo_j = domain_decomposition.domains[j].ranks_in_topo if j in owned_groups else np.full(local_groups[j].size, -1)
+            ranks_in_topo_i = domain_decomposition.domains[i].ranks_in_topo if i in owned_groups else xp.full(local_groups[i].size, -1)
+            ranks_in_topo_j = domain_decomposition.domains[j].ranks_in_topo if j in owned_groups else xp.full(local_groups[j].size, -1)
 
             if interfaces_comm[i,j].rank == interfaces_root_ranks[i,j][0]:
                 req.append(interfaces_comm[i,j].Isend((ranks_in_topo_i, ranks_in_topo_i.size, dtype), interfaces_root_ranks[i,j][1], tag=tag(i,j,1)))

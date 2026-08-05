@@ -2,7 +2,7 @@ import sys
 import os
 import importlib
 
-import numpy as np
+import cunumpy as xp
 
 from sympy                  import ImmutableDenseMatrix, Matrix, Symbol, sympify
 from sympy.tensor.indexed   import Indexed, IndexedBase
@@ -465,8 +465,8 @@ class DiscreteBilinearForm:
 
         expr            = self.kernel_expr.expr
         target          = self.kernel_expr.target
-        test_degree     = np.array(self.test_basis.space.degree)
-        trial_degree    = np.array(self.trial_basis.space.degree)
+        test_degree     = xp.array(self.test_basis.space.degree)
+        trial_degree    = xp.array(self.trial_basis.space.degree)
         test_space      = self.spaces[1].coeff_space
         trial_space     = self.spaces[0].coeff_space
         test_fem_space  = self.spaces[1]
@@ -476,20 +476,20 @@ class DiscreteBilinearForm:
         is_conformal    = True
 
         if isinstance(expr, (ImmutableDenseMatrix, Matrix)):
-            if not isinstance(test_degree[0],(list, tuple, np.ndarray)):
+            if not isinstance(test_degree[0],(list, tuple, xp.ndarray)):
                 test_degree = [test_degree]
 
-            if not isinstance(trial_degree[0],(list, tuple, np.ndarray)):
+            if not isinstance(trial_degree[0],(list, tuple, xp.ndarray)):
                 trial_degree = [trial_degree]
 
-            pads = np.empty((len(test_degree),len(trial_degree),len(test_degree[0])), dtype=int)
+            pads = xp.empty((len(test_degree),len(trial_degree),len(test_degree[0])), dtype=int)
             for i in range(len(test_degree)):
                 for j in range(len(trial_degree)):
                     td  = test_degree[i]
                     trd = trial_degree[j]
-                    pads[i,j][:] = np.array([td, trd]).max(axis=0)
+                    pads[i,j][:] = xp.array([td, trd]).max(axis=0)
         else:
-            pads = np.maximum(test_degree, trial_degree)
+            pads = xp.maximum(test_degree, trial_degree)
 
         if self._matrix is None and (is_broken or isinstance(expr, (ImmutableDenseMatrix, Matrix))):
             self._matrix = BlockLinearOperator(trial_space, test_space)
@@ -714,8 +714,8 @@ class DiscreteBilinearForm:
                     bs, d, s, p, mult = construct_test_space_arguments(basis_v)
                     basis   += bs
                     spans   += s
-                    degrees += [np.int64(a) for a in d]
-                    pads    += [np.int64(a) for a in p]
+                    degrees += [xp.int64(a) for a in d]
+                    pads    += [xp.int64(a) for a in p]
                     if v.space.is_multipatch or v.space.is_vector_valued:
                         coeffs += (e._data for e in v.coeffs)
                     else:
@@ -1382,12 +1382,12 @@ class DiscreteBilinearForm:
             I_1 = f'int(floor(i_1/{test_mult[0]})*{trial_mult[0]})' if max(test_mult[0], trial_mult[0]) > 1 else 'i_1'
             I_2 = f'int(floor(i_2/{test_mult[1]})*{trial_mult[1]})' if max(test_mult[1], trial_mult[1]) > 1 else 'i_2'
             I_3 = f'int(floor(i_3/{test_mult[2]})*{trial_mult[2]})' if max(test_mult[2], trial_mult[2]) > 1 else 'i_3'
-            #MAX_P1 = max(int( ( MAX_P1 + np.floor(MAX_P1 / test_mult[0]) * trial_mult[0] ) / 2 ), MAX_P1) if max(test_mult[0], trial_mult[0]) > 1 else MAX_P1
-            #MAX_P2 = max(int( ( MAX_P2 + np.floor(MAX_P2 / test_mult[1]) * trial_mult[1] ) / 2 ), MAX_P2) if max(test_mult[1], trial_mult[1]) > 1 else MAX_P2
-            #MAX_P3 = max(int( ( MAX_P3 + np.floor(MAX_P3 / test_mult[2]) * trial_mult[2] ) / 2 ), MAX_P3) if max(test_mult[2], trial_mult[2]) > 1 else MAX_P3
-            n_cols_x1 = max( int(MAX_P1 + 1 + np.floor(MAX_P1 / test_mult[0]) * trial_mult[0]), 2*MAX_P1+1 )
-            n_cols_x2 = max( int(MAX_P2 + 1 + np.floor(MAX_P2 / test_mult[1]) * trial_mult[1]), 2*MAX_P2+1 )
-            n_cols_x3 = max( int(MAX_P3 + 1 + np.floor(MAX_P3 / test_mult[2]) * trial_mult[2]), 2*MAX_P3+1 )
+            #MAX_P1 = max(int( ( MAX_P1 + xp.floor(MAX_P1 / test_mult[0]) * trial_mult[0] ) / 2 ), MAX_P1) if max(test_mult[0], trial_mult[0]) > 1 else MAX_P1
+            #MAX_P2 = max(int( ( MAX_P2 + xp.floor(MAX_P2 / test_mult[1]) * trial_mult[1] ) / 2 ), MAX_P2) if max(test_mult[1], trial_mult[1]) > 1 else MAX_P2
+            #MAX_P3 = max(int( ( MAX_P3 + xp.floor(MAX_P3 / test_mult[2]) * trial_mult[2] ) / 2 ), MAX_P3) if max(test_mult[2], trial_mult[2]) > 1 else MAX_P3
+            n_cols_x1 = max( int(MAX_P1 + 1 + xp.floor(MAX_P1 / test_mult[0]) * trial_mult[0]), 2*MAX_P1+1 )
+            n_cols_x2 = max( int(MAX_P2 + 1 + xp.floor(MAX_P2 / test_mult[1]) * trial_mult[1]), 2*MAX_P2+1 )
+            n_cols_x3 = max( int(MAX_P3 + 1 + xp.floor(MAX_P3 / test_mult[2]) * trial_mult[2]), 2*MAX_P3+1 )
             MAX_P1 = n_cols_x1 - MAX_P1 - 1
             MAX_P2 = n_cols_x2 - MAX_P2 - 1
             MAX_P3 = n_cols_x3 - MAX_P3 - 1
@@ -2024,9 +2024,9 @@ class DiscreteBilinearForm:
 
             # keys_2[(u[0], v[1])][3] = (1,2) means that the fourth sub-expression corresponding to the trial-test-function-component-product
             # u[0] * v[1] involves a first derivative in x2 direction of the trial function and a second derivative in x2 direction of the test function            
-            keys_1[block] = np.array([(alpha_1, beta_1) for alpha_1, beta_1 in zip(x1_trial_keys[block], x1_test_keys[block])])
-            keys_2[block] = np.array([(alpha_2, beta_2) for alpha_2, beta_2 in zip(x2_trial_keys[block], x2_test_keys[block])])
-            keys_3[block] = np.array([(alpha_3, beta_3) for alpha_3, beta_3 in zip(x3_trial_keys[block], x3_test_keys[block])])
+            keys_1[block] = xp.array([(alpha_1, beta_1) for alpha_1, beta_1 in zip(x1_trial_keys[block], x1_test_keys[block])])
+            keys_2[block] = xp.array([(alpha_2, beta_2) for alpha_2, beta_2 in zip(x2_trial_keys[block], x2_test_keys[block])])
+            keys_3[block] = xp.array([(alpha_3, beta_3) for alpha_3, beta_3 in zip(x3_trial_keys[block], x3_test_keys[block])])
 
             # Those are the function values in each direction of a particular component of the trial/test function
             global_basis_u_1, global_basis_u_2, global_basis_u_3 = global_basis_u[u_i]
@@ -2056,9 +2056,9 @@ class DiscreteBilinearForm:
             # of non-zero product.
             # Hence, we assign zeros for each element, each quadrature point on the element, each test and trial function combination,
             # and each (or even more than required) appearing partial derivative combination of these functions - in each direction
-            test_trial_1 = np.zeros((n_element_1, k1, test_v_p1 + 1, trial_u_p1 + 1, max_block_trial_x1_derivative+1, max_block_test_x1_derivative+1), dtype='float64')
-            test_trial_2 = np.zeros((n_element_2, k2, test_v_p2 + 1, trial_u_p2 + 1, max_block_trial_x2_derivative+1, max_block_test_x2_derivative+1), dtype='float64')
-            test_trial_3 = np.zeros((n_element_3, k3, test_v_p3 + 1, trial_u_p3 + 1, max_block_trial_x3_derivative+1, max_block_test_x3_derivative+1), dtype='float64')
+            test_trial_1 = xp.zeros((n_element_1, k1, test_v_p1 + 1, trial_u_p1 + 1, max_block_trial_x1_derivative+1, max_block_test_x1_derivative+1), dtype='float64')
+            test_trial_2 = xp.zeros((n_element_2, k2, test_v_p2 + 1, trial_u_p2 + 1, max_block_trial_x2_derivative+1, max_block_test_x2_derivative+1), dtype='float64')
+            test_trial_3 = xp.zeros((n_element_3, k3, test_v_p3 + 1, trial_u_p3 + 1, max_block_trial_x3_derivative+1, max_block_test_x3_derivative+1), dtype='float64')
 
             # And that's how we fill the test_trial arrays
             if self._pyccelize_test_trial_computation and assembly_backend['name'] == 'pyccel':
@@ -2068,7 +2068,7 @@ class DiscreteBilinearForm:
                                 [max_block_trial_x1_derivative, max_block_trial_x2_derivative, max_block_trial_x3_derivative], [max_block_test_x1_derivative, max_block_test_x2_derivative, max_block_test_x3_derivative], 
                                 [test_trial_1, test_trial_2, test_trial_3]):
                     
-                    args = tuple(np.int64(a) if isinstance(a, int) else a for a in args)
+                    args = tuple(xp.int64(a) if isinstance(a, int) else a for a in args)
 
                     test_trial_func(*args)
             else:
@@ -2118,13 +2118,13 @@ class DiscreteBilinearForm:
             # to store local information correctly. 2*degree+1 in the simplest case.
             n_funs_x2 = n_element_2 + test_v_p2 + (test_mult[1]-1)*(n_element_2-1)
             n_funs_x3 = n_element_3 + test_v_p3 + (test_mult[2]-1)*(n_element_3-1)
-            n_cols_x2 = max( int(max_p_2 + 1 + np.floor(max_p_2 / test_mult[1]) * trial_mult[1]), 2*max_p_2+1 )
-            n_cols_x3 = max( int(max_p_3 + 1 + np.floor(max_p_3 / test_mult[2]) * trial_mult[2]), 2*max_p_3+1 )
+            n_cols_x2 = max( int(max_p_2 + 1 + xp.floor(max_p_2 / test_mult[1]) * trial_mult[1]), 2*max_p_2+1 )
+            n_cols_x3 = max( int(max_p_3 + 1 + xp.floor(max_p_3 / test_mult[2]) * trial_mult[2]), 2*max_p_3+1 )
             
-            a3[block] = np.zeros((n_expr, n_funs_x3, n_cols_x3), dtype='float64')
-            a2[block] = np.zeros((n_expr, n_funs_x2, n_funs_x3, n_cols_x2, n_cols_x3), dtype='float64')
+            a3[block] = xp.zeros((n_expr, n_funs_x3, n_cols_x3), dtype='float64')
+            a2[block] = xp.zeros((n_expr, n_funs_x2, n_funs_x3, n_cols_x2, n_cols_x3), dtype='float64')
 
-            coupling_terms[block] = np.zeros((n_element_2, k2, n_element_3, k3, n_expr), dtype='float64')
+            coupling_terms[block] = xp.zeros((n_element_2, k2, n_element_3, k3, n_expr), dtype='float64')
 
         # We gather the socalled new args - all other args are being obtained in a similar way using the old assembly implementation
         new_args = (*list(test_trial_1s.values()), 
@@ -2158,8 +2158,8 @@ class DiscreteBilinearForm:
         
         threads_args = ()
 
-        args = tuple(np.int64(a) if isinstance(a, int) else a for a in args)
-        threads_args = tuple(np.int64(a) if isinstance(a, int) else a for a in threads_args)
+        args = tuple(xp.int64(a) if isinstance(a, int) else a for a in args)
+        threads_args = tuple(xp.int64(a) if isinstance(a, int) else a for a in threads_args)
 
         #---------- We now generate the assembly file ----------
 

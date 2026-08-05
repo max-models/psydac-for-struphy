@@ -452,8 +452,12 @@ def basis_funs_all_ders_p(knots: 'float[:]', degree: int, x: float, span: int, n
             a[s2, j1:j2 + 1] = (a[s1, j1:j2 + 1] - a[s1, j1 - 1:j2]) * ndu[pk + 1, rk + j1:rk + j2 + 1]
             # temp_d[:, :] = np.matmul(a[s2:s2 + 1, j1:j2 + 1], ndu[rk + j1:rk + j2 + 1, pk: pk + 1])
             
-            sh_a[:] = shape(a[s2:s2 + 1, j1:j2 + 1])
-            sh_b[:] = shape(ndu[rk + j1:rk + j2 + 1, pk: pk + 1])
+            # sh_a[:] = shape(a[s2:s2 + 1, j1:j2 + 1])
+            sh_a[:] = np.array(a[s2:s2 + 1, j1:j2 + 1].shape, dtype=sh_a.dtype)
+            
+            # sh_b[:] = shape(ndu[rk + j1:rk + j2 + 1, pk: pk + 1])
+            sh_b[:] = np.array(ndu[rk + j1:rk + j2 + 1, pk: pk + 1].shape, dtype=sh_b.dtype)
+            
             
             if sh_a[0] == 0 or sh_a[1] == 0 or sh_b[0] == 0 or sh_b[1] == 0:
                 temp_d[:, :] = 0.
@@ -715,8 +719,8 @@ def histopolation_matrix_p(knots: 'float[:]', degree: int, periodic: bool, norma
     if normalization:
         for i in range(m):
             # Indices of first/last non-zero elements in row of collocation matrix
-            jstart = spans[i] - (degree + 1)
-            jend = min(spans[i + 1], n)
+            jstart = int(spans[i] - (degree + 1))
+            jend = int(min(spans[i + 1], n))
             # Compute non-zero values of histopolation matrix
             for j in range(1 + jstart, jend + 1):
                 # s = np.sum(colloc[i, 0:j]) - np.sum(colloc[i + 1, 0:j])
@@ -728,8 +732,8 @@ def histopolation_matrix_p(knots: 'float[:]', degree: int, periodic: bool, norma
         basis_integrals_p(knots, degree, integrals)
         for i in range(m):
             # Indices of first/last non-zero elements in row of collocation matrix
-            jstart = spans[i] - (degree + 1)
-            jend = min(spans[i + 1], n)
+            jstart = int(spans[i] - (degree + 1))
+            jend = int(min(spans[i + 1], n))
             # Compute non-zero values of histopolation matrix
             for j in range(1 + jstart, jend + 1):
                 # s = np.sum(colloc[i, 0:j]) - np.sum(colloc[i + 1, 0:j])

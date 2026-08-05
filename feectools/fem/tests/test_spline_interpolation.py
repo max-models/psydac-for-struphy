@@ -7,7 +7,7 @@ import time
 
 from feectools.ddm.mpi import mpi as MPI
     
-import numpy as np
+import cunumpy as xp
 import pytest
 
 from feectools.core.bsplines import make_knots
@@ -27,7 +27,7 @@ def test_SplineInterpolation1D_exact( ncells, degree ):
     domain   = [-1.0, 1.0]
     periodic = False
 
-    poly_coeffs = np.random.random_sample( degree+1 ) # 0 <= c < 1
+    poly_coeffs = xp.random.random_sample( degree+1 ) # 0 <= c < 1
     poly_coeffs = 1.0 - poly_coeffs                   # 0 < c <= 1
     f = lambda x : horner( x, *poly_coeffs )
 
@@ -40,10 +40,10 @@ def test_SplineInterpolation1D_exact( ncells, degree ):
 
     space.compute_interpolant( ug, field )
 
-    xt  = np.linspace( *domain, num=100 )
-    err = np.array( [field( x ) - f( x ) for x in xt] )
+    xt  = xp.linspace( *domain, num=100 )
+    err = xp.array( [field( x ) - f( x ) for x in xt] )
 
-    max_norm_err = np.max( abs( err ) )
+    max_norm_err = xp.max( abs( err ) )
     assert max_norm_err < 1.0e-13
 
 #===============================================================================
@@ -61,7 +61,7 @@ def test_SplineInterpolation1D_cosine( ncells, degree, periodic ):
 
     f = AnalyticalProfile1D_Cos()
 
-    grid, dx = np.linspace( *f.domain, num=ncells+1, retstep=True )
+    grid, dx = xp.linspace( *f.domain, num=ncells+1, retstep=True )
     space = SplineSpace( degree=degree, grid=grid, periodic=periodic )
     field = FemField( space )
 
@@ -69,10 +69,10 @@ def test_SplineInterpolation1D_cosine( ncells, degree, periodic ):
     ug = f.eval( xg )
 
     space.compute_interpolant( ug, field )
-    xt  = np.linspace( *f.domain, num=100 )
-    err = np.array( [field( x ) - f.eval( x ) for x in xt] )
+    xt  = xp.linspace( *f.domain, num=100 )
+    err = xp.array( [field( x ) - f.eval( x ) for x in xt] )
 
-    max_norm_err = np.max( abs( err ) )
+    max_norm_err = xp.max( abs( err ) )
     err_bound    = spline_1d_error_bound( f, dx, degree )
 
     assert max_norm_err < err_bound
@@ -97,7 +97,7 @@ def test_SplineInterpolation2D_parallel_exact( nc1, nc2, deg1, deg2 ):
     periodic2 = False
 
     # Random coefficients of 1D polynomial (identical on all processes!)
-    poly_coeffs = np.random.random_sample( min(deg1,deg2)+1 ) # 0 <= c < 1
+    poly_coeffs = xp.random.random_sample( min(deg1,deg2)+1 ) # 0 <= c < 1
     poly_coeffs = 1.0 - poly_coeffs                           # 0 < c <= 1
     mpi_comm.Bcast( poly_coeffs, root=0 )
 
@@ -151,7 +151,7 @@ def test_SplineInterpolation2D_parallel_exact( nc1, nc2, deg1, deg2 ):
 
     # Compute L2 norm of error
     integrand = lambda x1,x2: (f(x1,x2)-tensor_field(x1,x2))**2
-    l2_error  = np.sqrt( tensor_space.integral( integrand ) )
+    l2_error  = xp.sqrt( tensor_space.integral( integrand ) )
 
     # Print some information to terminal
     for i in range( mpi_size ):

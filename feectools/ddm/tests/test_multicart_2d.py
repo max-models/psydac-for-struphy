@@ -39,7 +39,7 @@ def get_plus_starts_ends(minus_starts, minus_ends, minus_npts, plus_npts, minus_
 # TEST MultiPatchDomainDecomposition and CartDataExchanger in 2D
 #===============================================================================
 def run_carts_2d():
-    import numpy as np
+    import cunumpy as xp
     
     from feectools.ddm.mpi import mpi as MPI
     from feectools.ddm.cart import MultiPatchDomainDecomposition, CartDecomposition, create_interfaces_cart
@@ -88,7 +88,7 @@ def run_carts_2d():
 
             global_ends  [axis]     = (ee+1)-1
             global_ends  [axis][-1] = n[i][axis]-1
-            global_starts[axis]     = np.array([0] + (global_ends[axis][:-1]+1).tolist())
+            global_starts[axis]     = xp.array([0] + (global_ends[axis][:-1]+1).tolist())
 
         carts.append(CartDecomposition(
                         domain_decomposition      = domain_decomposition.domains[i],
@@ -113,7 +113,7 @@ def run_carts_2d():
             s1,s2 = ci.starts
             e1,e2 = ci.ends
             m1,m2 = ci.shifts
-            us[i] = np.zeros( ci.shape, dtype=dtype )
+            us[i] = xp.zeros( ci.shape, dtype=dtype )
             us[i][m1*p1:-m1*p1,m2*p2:-m2*p2] = [[val(i,i1,i2)for i2 in range(s2,e2+1)] for i1 in range(s1,e1+1)]
             synchronizer = BlockingCartDataExchanger( ci, us[i].dtype)
             syn[i] = synchronizer
@@ -122,11 +122,11 @@ def run_carts_2d():
         if not interfaces_cart[i,j].is_comm_null:
             if carts[i].is_comm_null:
                 shape = interfaces_cart[i,j].get_interface_communication_infos(interfaces_cart[i,j]._axis)['gbuf_recv_shape'][0]
-                us[i] = np.zeros(shape, dtype=dtype)
+                us[i] = xp.zeros(shape, dtype=dtype)
 
             if carts[j].is_comm_null:
                 shape = interfaces_cart[i,j].get_interface_communication_infos(interfaces_cart[i,j]._axis)['gbuf_recv_shape'][0]
-                us[j] = np.zeros(shape, dtype=dtype)
+                us[j] = xp.zeros(shape, dtype=dtype)
 
             syn_interface[i,j] = InterfaceCartDataExchanger(interfaces_cart[i,j], dtype)
 
@@ -157,11 +157,11 @@ def run_carts_2d():
 
 #            if not carts[minus].is_comm_null:
 #                uex =  [[val(plus,i1,i2)for i2 in range(*ranges[1])] for i1 in range(*ranges[0])]
-#                uex = np.pad(uex, [(m*p,m*p) for m,p in zip(carts[minus].shifts, carts[minus].pads)])
+#                uex = xp.pad(uex, [(m*p,m*p) for m,p in zip(carts[minus].shifts, carts[minus].pads)])
 #                u_ij = us[plus]
 #            elif not carts[plus].is_comm_null:
 #                uex =  [[val(minus,i1,i2)for i2 in range(*ranges[1])] for i1 in range(*ranges[0])]
-#                uex = np.pad(uex, [(m*p,m*p) for m,p in zip(carts[plus].shifts, carts[plus].pads)])
+#                uex = xp.pad(uex, [(m*p,m*p) for m,p in zip(carts[plus].shifts, carts[plus].pads)])
 #                u_ij = us[minus]
 
 #            success = (u_ij == uex).all()

@@ -7,7 +7,9 @@ import os
 import warnings
 from types import MappingProxyType
 
-import numpy as np
+import cunumpy as xp
+from cunumpy.xp import array_backend
+from types        import MappingProxyType
 from scipy.sparse import coo_matrix, diags as sp_diags
 
 from feectools.ddm.mpi import mpi as MPI
@@ -72,8 +74,8 @@ def compute_diag_len(pads, shifts_domain, shifts_codomain, return_padding=False)
     ep : (int)
         Padding that constitutes the starting index of the non zero elements.
     """
-    n  = ((np.ceil((pads+1)/shifts_codomain)-1)*shifts_domain).astype('int')
-    ep = -np.minimum(0, n-pads)
+    n  = ((xp.ceil((pads+1)/shifts_codomain)-1)*shifts_domain).astype('int')
+    ep = -xp.minimum(0, n-pads)
     n  = n + ep + pads + 1
     if return_padding:
         return n.astype('int'), ep.astype('int')
@@ -168,7 +170,10 @@ class StencilVectorSpace(VectorSpace):
             self._inner_func = self._inner_python
 
         # Constant arguments for inner product: total number of ghost cells
-        self._inner_consts = tuple(np.int64(p * s) for p, s in zip(self._pads, self._shifts))
+        # Pyccel-compiled kernels require explicit numpy.int64 type arguments
+        import numpy as np
+        self._inner_consts = tuple(np.int64(p) * np.int64(s) for p, s in zip(self._pads, self._shifts))
+
 
         # TODO [YG, 06.09.2023]: print warning if pure Python functions are used
 
@@ -184,7 +189,7 @@ class StencilVectorSpace(VectorSpace):
     @staticmethod
     def _inner_python(v1, v2, nghost):
         index = tuple(slice(ng, -ng) for ng in nghost)
-        return np.vdot(v1[index].flat, v2[index].flat)
+        return xp.vdot(v1[index].flat, v2[index].flat)
 
     #--------------------------------------
     # Abstract interface
@@ -194,7 +199,7 @@ class StencilVectorSpace(VectorSpace):
         """ The dimension of a vector space V is the cardinality
             (i.e. the number of vectors) of a basis of V over its base field.
         """
-        return np.prod(self._npts)
+        return xp.prod(self._npts)
 
     # ...
     @property
@@ -443,15 +448,16 @@ class StencilVector(Vector):
         self._space          = V
         self._sizes          = V.shape
         self._ndim           = len(V.npts)
-        self._data           = np.zeros(V.shape, dtype=V.dtype)
-        self._dot_send_data  = np.zeros((1,), dtype=V.dtype)
-        self._dot_recv_data  = np.zeros((1,), dtype=V.dtype)
+        # self._data           = xp.zeros(V.shape, dtype=V.dtype)
+        self._data = xp.zeros(tuple(int(s) for s in V.shape), dtype=V.dtype)
+        self._dot_send_data  = xp.zeros((1,), dtype=V.dtype)
+        self._dot_recv_data  = xp.zeros((1,), dtype=V.dtype)
         self._interface_data = {}
         self._requests       = None
 
         # allocate data for the boundary that shares an interface
         for axis, ext in V.interfaces:
-            self._interface_data[axis, ext] = np.zeros(V.interfaces[axis, ext].shape, dtype=V.dtype)
+            self._interface_data[axis, ext] = xp.zeros(V.interfaces[axis, ext].shape, dtype=V.dtype)
 
         #prepare communications
         if V.cart.is_parallel and not V.cart.is_comm_null and isinstance(V.cart, CartDecomposition):
@@ -510,9 +516,9 @@ class StencilVector(Vector):
         if self is out:
             return self
         w = out or StencilVector( self._space )
-        np.copyto(w._data, self._data, casting='no')
+        xp.copyto(w._data, self._data, casting='no')
         for axis, ext in self._space.interfaces:
-            np.copyto(w._interface_data[axis, ext], self._interface_data[axis, ext], casting='no')
+            xp.copyto(w._interface_data[axis, ext], self._interface_data[axis, ext], casting='no')
         w._sync = self._sync
         return w
 
@@ -523,27 +529,27 @@ class StencilVector(Vector):
             assert out.space is self.space
         else:
             out = StencilVector(self.space)
-        np.conjugate(self._data, out=out._data, casting='no')
+        xp.conjugate(self._data, out=out._data, casting='no')
         for axis, ext in self._space.interfaces:
-            np.conjugate(self._interface_data[axis, ext], out=out._interface_data[axis, ext], casting='no')
+            xp.conjugate(self._interface_data[axis, ext], out=out._interface_data[axis, ext], casting='no')
         out._sync = self._sync
         return out
 
     #...
     def __neg__(self):
         w = StencilVector( self._space )
-        np.negative(self._data, out=w._data)
+        xp.negative(self._data, out=w._data)
         for axis, ext in self._space.interfaces:
-            np.negative(self._interface_data[axis, ext], out=w._interface_data[axis, ext])
+            xp.negative(self._interface_data[axis, ext], out=w._interface_data[axis, ext])
         w._sync = self._sync
         return w
 
     #...
     def __mul__(self, a):
         w = StencilVector( self._space )
-        np.multiply(self._data, a, out=w._data)
+        xp.multiply(self._data, a, out=w._data)
         for axis, ext in self._space.interfaces:
-            np.multiply(self._interface_data[axis, ext], a, out=w._interface_data[axis, ext])
+            xp.multiply(self._interface_data[axis, ext], a, out=w._interface_data[axis, ext])
         w._sync = self._sync
         return w
 
@@ -552,9 +558,9 @@ class StencilVector(Vector):
         assert isinstance( v, StencilVector )
         assert v._space is self._space
         w = StencilVector( self._space )
-        np.add(self._data, v._data, out=w._data)
+        xp.add(self._data, v._data, out=w._data)
         for axis, ext in self._space.interfaces:
-            np.add(self._interface_data[axis, ext], v._interface_data[axis, ext], out=w._interface_data[axis, ext])
+            xp.add(self._interface_data[axis, ext], v._interface_data[axis, ext], out=w._interface_data[axis, ext])
         w._sync = self._sync and v._sync
         return w
 
@@ -563,9 +569,9 @@ class StencilVector(Vector):
         assert isinstance( v, StencilVector )
         assert v._space is self._space
         w = StencilVector( self._space )
-        np.subtract(self._data, v._data, out=w._data)
+        xp.subtract(self._data, v._data, out=w._data)
         for axis, ext in self._space.interfaces:
-            np.subtract(self._interface_data[axis, ext], v._interface_data[axis, ext], out=w._interface_data[axis, ext])
+            xp.subtract(self._interface_data[axis, ext], v._interface_data[axis, ext], out=w._interface_data[axis, ext])
         w._sync = self._sync and v._sync
         return w
 
@@ -631,7 +637,7 @@ class StencilVector(Vector):
 
     # ...
     def _toarray_parallel_no_pads(self, order='C'):
-        a         = np.zeros( self.space.npts, self.dtype )
+        a         = xp.zeros( self.space.npts, self.dtype )
         idx_from  = tuple( slice(m*p,-m*p) if p != 0 else slice(0, None) for p,m in zip(self.pads, self.space.shifts) )
         idx_to    = tuple( slice(s,e+1) for s,e in zip(self.starts,self.ends) )
         a[idx_to] = self._data[idx_from]
@@ -643,7 +649,7 @@ class StencilVector(Vector):
         pads = [m*p for m,p in zip(self.space.shifts, self.pads)]
         # Step 0: create extended n-dimensional array with zero values
         shape = tuple( n+2*p for n,p in zip( self.space.npts, pads ) )
-        a = np.zeros( shape, self.dtype )
+        a = xp.zeros( shape, self.dtype )
 
         # Step 1: write extended data chunk (local to process) onto array
         idx = tuple( slice(s,e+2*p+1) for s,e,p in
@@ -915,7 +921,7 @@ class StencilMatrix(LinearOperator):
         self._pads     = pads or tuple(V.pads)
         dims           = list(W.shape)
         diags          = [compute_diag_len(p, md, mc) for p,md,mc in zip(self._pads, V.shifts, W.shifts)]
-        self._data     = np.zeros(dims+diags, dtype=W.dtype)
+        self._data     = xp.zeros(tuple(int(d) for d in (dims + diags)), dtype=W.dtype)
         self._domain   = V
         self._codomain = W
         self._ndim     = len(dims)
@@ -1059,8 +1065,8 @@ class StencilMatrix(LinearOperator):
             v.update_ghost_regions()
 
         # Instead of computing A_*x, this function computes (A*x_)_
-        self._func(self._data, np.conjugate(v._data), out._data, **self._args)
-        np.conjugate(out._data, out=out._data)
+        self._func(self._data, xp.conjugate(v._data), out._data, **self._args)
+        xp.conjugate(out._data, out=out._data)
 
         # IMPORTANT: flag that ghost regions are not up-to-date
         out.ghost_regions_in_sync = False
@@ -1097,7 +1103,7 @@ class StencilMatrix(LinearOperator):
 
         # Call low-level '_transpose' function (works on Numpy arrays directly)
         if conjugate:
-            self._transpose_func(np.conjugate(M._data), out._data, **self._transpose_args)
+            self._transpose_func(xp.conjugate(M._data), out._data, **self._transpose_args)
         else:
             self._transpose_func(M._data, out._data, **self._transpose_args)
         return out
@@ -1201,7 +1207,7 @@ class StencilMatrix(LinearOperator):
             out = StencilMatrix(self.domain, self.codomain, pads=self.pads, backend=self._backend, precompiled=self._precompiled)
             out._func    = self._func
             out._args    = self._args
-        np.conjugate(self._data, out=out._data, casting='no')
+        xp.conjugate(self._data, out=out._data, casting='no')
         return out
 
     # ...
@@ -1454,14 +1460,14 @@ class StencilMatrix(LinearOperator):
 
         # Calculate entries of StencilDiagonalMatrix
         if inverse:
-            data = np.divide(1, diag, out=data)
+            data = xp.divide(1, diag, out=data)
         elif out:
-            np.copyto(data, diag)
+            xp.copyto(data, diag)
         else:
             data = diag.copy()
 
         if sqrt:
-            np.sqrt(data, out=data)
+            xp.sqrt(data, out=data)
 
         # If needed create a new StencilDiagonalMatrix object
         if out is None:
@@ -1524,7 +1530,7 @@ class StencilMatrix(LinearOperator):
         nr = [e-s+1 +2*p for s,e,p in zip(sc, ec, pc)]
         nc = [e-s+1 +2*p for s,e,p in zip(sd, ed, pd)]
 
-        ravel_multi_index = np.ravel_multi_index
+        ravel_multi_index = xp.ravel_multi_index
 
         # COO storage
         rows = []
@@ -1535,7 +1541,7 @@ class StencilMatrix(LinearOperator):
 
         dd = [pdi-ppi for pdi,ppi in zip(pd, self._pads)]
 
-        for (index, value) in np.ndenumerate( self._data[local] ):
+        for (index, value) in xp.ndenumerate( self._data[local] ):
 
             # index = [i1-s1, i2-s2, ..., p1+j1-i1, p2+j2-i2, ...]
 
@@ -1554,7 +1560,7 @@ class StencilMatrix(LinearOperator):
 
         M = coo_matrix(
                 (data,(rows,cols)),
-                shape = [np.prod(nr),np.prod(nc)],
+                shape = [xp.prod(nr),xp.prod(nc)],
                 dtype = self._domain.dtype
         )
 
@@ -1574,32 +1580,42 @@ class StencilMatrix(LinearOperator):
         dm    = self._domain.shifts
         cm    = self._codomain.shifts
 
-        pp = [np.int64(compute_diag_len(p,mj,mi)-(p+1)) for p,mi,mj in zip(self._pads, cm, dm)]
+        import numpy as _np
+        # Pyccel kernels require explicit numpy.int64 type arguments
+        pp = [_np.int64(compute_diag_len(p,mj,mi)-(p+1)) for p,mi,mj in zip(self._pads, cm, dm)]
 
         # Range of data owned by local process (no ghost regions)
         local = tuple( [slice(mi*p,-mi*p) if p != 0 else slice(p, None) for p,mi in zip(cpads, cm)] + [slice(None)] * nd )
         size  = self._data[local].size
 
         # COO storage
-        rows = np.zeros(size, dtype='int64')
-        cols = np.zeros(size, dtype='int64')
-        data = np.zeros(size, dtype=self.dtype)
-        nrl = [np.int64(e-s+1) for s,e in zip(self.codomain.starts, self.codomain.ends)]
-        ncl = [np.int64(i) for i in self._data.shape[nd:]]
-        ss = [np.int64(i) for i in ss]
-        nr = [np.int64(i) for i in nr]
-        nc = [np.int64(i) for i in nc]
-        dm = [np.int64(i) for i in dm]
-        cm = [np.int64(i) for i in cm]
-        cpads = [np.int64(i) for i in cpads]
-        pp = [np.int64(i) for i in pp]
+        rows = xp.zeros(size, dtype='int64')
+        cols = xp.zeros(size, dtype='int64')
+        data = xp.zeros(size, dtype=self.dtype)
+        nrl = [_np.int64(e-s+1) for s,e in zip(self.codomain.starts, self.codomain.ends)]
+        ncl = [_np.int64(i) for i in self._data.shape[nd:]]
+        ss = [_np.int64(i) for i in ss]
+        nr = [_np.int64(i) for i in nr]
+        nc = [_np.int64(i) for i in nc]
+        dm = [_np.int64(i) for i in dm]
+        cm = [_np.int64(i) for i in cm]
+        cpads = [_np.int64(i) for i in cpads]
+        pp = [_np.int64(i) for i in pp]
 
         stencil2coo = kernels['stencil2coo'][order][nd]
-
         ind = stencil2coo(self._data, data, rows, cols, *nrl, *ncl, *ss, *nr, *nc, *dm, *cm, *cpads, *pp)
-        M = coo_matrix(
+        
+        
+        if array_backend.backend == "cupy":
+            M = coo_matrix(
+                (data[:ind].get(), (rows[:ind].get(), cols[:ind].get())),
+                shape=[int(_np.prod(nr)), int(_np.prod(nc))],
+                dtype=self.dtype
+            )
+        else:
+            M = coo_matrix(
                 (data[:ind],(rows[:ind],cols[:ind])),
-                shape = [np.prod(nr),np.prod(nc)],
+                shape = [_np.prod(nr),_np.prod(nc)],
                 dtype = self.dtype)
         return M
 
@@ -1622,7 +1638,7 @@ class StencilMatrix(LinearOperator):
         pd = self._domain.pads
         cc = self._codomain.periods
 
-        ravel_multi_index = np.ravel_multi_index
+        ravel_multi_index = xp.ravel_multi_index
 
         # COO storage
         rows = []
@@ -1637,7 +1653,7 @@ class StencilMatrix(LinearOperator):
         ll_dims = self._data.shape[nd:]
 
         # Cycle over rows (x = p + i - s)
-        for xx in np.ndindex( *xx_dims ):
+        for xx in xp.ndindex( *xx_dims ):
 
             # Compute row multi-index with simple shift
             ii = [s + x - p for (s, x, p) in zip(ss, xx, pc)]
@@ -1662,7 +1678,7 @@ class StencilMatrix(LinearOperator):
                 continue
 
             # Cycle over diagonals (l = p + k)
-            for ll in np.ndindex( *ll_dims ):
+            for ll in xp.ndindex( *ll_dims ):
 
                 # Compute column multi-index (k = j - i)
                 jj = [(i+l-p) % n for (i,l,n,p) in zip(ii,ll,nc,pp)]
@@ -1681,7 +1697,7 @@ class StencilMatrix(LinearOperator):
         # Create Scipy COO matrix
         M = coo_matrix(
                 (data,(rows,cols)),
-                shape = [np.prod(nr), np.prod(nc)],
+                shape = [xp.prod(nr), xp.prod(nc)],
                 dtype = self._domain.dtype
         )
 
@@ -1767,7 +1783,7 @@ class StencilMatrix(LinearOperator):
         sl   = [(s if mi > mj else 0) + (s % mi + mi//mj if mi < mj else 0)+(s if mi == mj else 0)\
                  for s, p, mi, mj in zip(starts, pp, cm, dm)]
 
-        si   = [(mi * p - mi * (int(np.ceil((p + 1)/mj)) - 1) if mi > mj else 0) + \
+        si   = [(mi * p - mi * (int(xp.ceil((p + 1)/mj)) - 1) if mi > mj else 0) + \
                  (mi * p - mi * (p//mi) + d * (mi - 1) if mi < mj else 0) + \
                  (mj * p - mj * (p//mi) + d * (mi - 1) if mi == mj else 0)\
                   for mi, mj, p, d in zip(cm, dm, pp, diff)]
@@ -1779,17 +1795,29 @@ class StencilMatrix(LinearOperator):
                  for mi, mj, n, p in zip(cm, dm, ndiagsT, pp)]
 
         args={}
-        args['n']   = np.int64(nrows)
-        args['nc']  = np.int64(ncols)
-        args['gp']  = np.int64(gpads)
-        args['p']   = np.int64(pp)
-        args['dm']  = np.int64(dm)
-        args['cm']  = np.int64(cm)
-        args['nd']  = np.int64(ndiags)
-        args['ndT'] = np.int64(ndiagsT)
-        args['si']  = np.int64(si)
-        args['sk']  = np.int64(sk)
-        args['sl']  = np.int64(sl)
+        # args['n']   = xp.int64(nrows)
+        # args['nc']  = xp.int64(ncols)
+        # args['gp']  = xp.int64(gpads)
+        # args['p']   = xp.int64(pp)
+        # args['dm']  = xp.int64(dm)
+        # args['cm']  = xp.int64(cm)
+        # args['nd']  = xp.int64(ndiags)
+        # args['ndT'] = xp.int64(ndiagsT)
+        # args['si']  = xp.int64(si)
+        # args['sk']  = xp.int64(sk)
+        # args['sl']  = xp.int64(sl)
+        args['n']   = [int(x) for x in nrows]
+        args['nc']  = [int(x) for x in ncols]
+        args['gp']  = [int(x) for x in gpads]
+        args['p']   = [int(x) for x in pp]
+        args['dm']  = [int(x) for x in dm]
+        args['cm']  = [int(x) for x in cm]
+        args['nd']  = [int(x) for x in ndiags]
+        args['ndT'] = [int(x) for x in ndiagsT]
+        args['si']  = [int(x) for x in si]
+        args['sk']  = [int(x) for x in sk]
+        args['sl']  = [int(x) for x in sl]
+
 
         return args
 
@@ -1811,7 +1839,7 @@ class StencilMatrix(LinearOperator):
 
         if self._backend is None:
             for key, arg in self._args.items():
-                self._args[key] = np.int64(arg)
+                self._args[key] = xp.int64(arg)
             self._func = self._dot
             self._args.pop('pads')
         elif precompiled:
@@ -1837,12 +1865,12 @@ class StencilMatrix(LinearOperator):
                 self._args['e_out'] = int(self.codomain.ends[0])
                 self._args['p_out'] = int(self.codomain.pads[0]) 
             else:
-                self._args['s_in'] = np.array(self.domain.starts)
-                self._args['p_in'] = np.array(self.domain.pads)
-                self._args['add'] = np.array(add)
-                self._args['s_out'] = np.array(self.codomain.starts)
-                self._args['e_out'] = np.array(self.codomain.ends)
-                self._args['p_out'] = np.array(self.codomain.pads)
+                self._args['s_in'] = xp.array(self.domain.starts)
+                self._args['p_in'] = xp.array(self.domain.pads)
+                self._args['add'] = xp.array(add)
+                self._args['s_out'] = xp.array(self.codomain.starts)
+                self._args['e_out'] = xp.array(self.codomain.ends)
+                self._args['p_out'] = xp.array(self.codomain.pads)
 
             # transpose kernel
             transp_func_name = 'transpose_' + str(self._ndim) + 'd_kernel'
@@ -1861,12 +1889,12 @@ class StencilMatrix(LinearOperator):
                 self._transpose_args['e_out'] = int(self.domain.ends[0])
                 self._transpose_args['p_out'] = int(self.domain.pads[0])
             else:
-                self._transpose_args['s_in'] = np.array(self.codomain.starts)
-                self._transpose_args['p_in'] = np.array(self.codomain.pads)
-                self._transpose_args['add'] = np.array(add)
-                self._transpose_args['s_out'] = np.array(self.domain.starts)
-                self._transpose_args['e_out'] = np.array(self.domain.ends)
-                self._transpose_args['p_out'] = np.array(self.domain.pads)
+                self._transpose_args['s_in'] = xp.array(self.codomain.starts)
+                self._transpose_args['p_in'] = xp.array(self.codomain.pads)
+                self._transpose_args['add'] = xp.array(add)
+                self._transpose_args['s_out'] = xp.array(self.domain.starts)
+                self._transpose_args['e_out'] = xp.array(self.domain.ends)
+                self._transpose_args['p_out'] = xp.array(self.domain.pads)
         else:
             raise AttributeError(f'This is the tiny-psydac version - must use precompiled kernels (but {precompiled = })!')
             from feectools.api.ast.linalg import LinearOperatorDot
@@ -1896,10 +1924,10 @@ class StencilMatrix(LinearOperator):
                     self._args.pop('cm')
 
                     for i in range(len(nrows)):
-                        self._args['s00_{i}'.format(i=i+1)] = np.int64(starts[i])
+                        self._args['s00_{i}'.format(i=i+1)] = xp.int64(starts[i])
 
                     for i in range(len(nrows)):
-                        self._args['n00_{i}'.format(i=i+1)] = np.int64(nrows[i])
+                        self._args['n00_{i}'.format(i=i+1)] = xp.int64(nrows[i])
 
                 else:
                     dot = LinearOperatorDot(self._ndim,
@@ -1923,13 +1951,13 @@ class StencilMatrix(LinearOperator):
                     self._args.pop('cm')
 
                     for i in range(len(nrows)):
-                        self._args['s00_{i}'.format(i=i+1)] = np.int64(starts[i])
+                        self._args['s00_{i}'.format(i=i+1)] = xp.int64(starts[i])
 
                     for i in range(len(nrows)):
-                        self._args['n00_{i}'.format(i=i+1)] = np.int64(nrows[i])
+                        self._args['n00_{i}'.format(i=i+1)] = xp.int64(nrows[i])
 
                     for i in range(len(nrows)):
-                        self._args['ne00_{i}'.format(i=i+1)] = np.int64(nrows_extra[i])
+                        self._args['ne00_{i}'.format(i=i+1)] = xp.int64(nrows_extra[i])
 
             else:
                 dot = LinearOperatorDot(self._ndim,
@@ -1982,9 +2010,9 @@ class StencilMatrix(LinearOperator):
             nrows = [e - s + 1 for s, e in zip(self.codomain.starts, self.codomain.ends)]
             ndim  = self.domain.ndim
 
-            indices = [np.zeros(np.prod(nrows), dtype=int) for _ in range(2 * ndim)]
+            indices = [xp.zeros(xp.prod(nrows), dtype=int) for _ in range(2 * ndim)]
 
-            for l, xx in enumerate(np.ndindex(*nrows)):
+            for l, xx in enumerate(xp.ndindex(*nrows)):
                 ii = [m * p + x for m, p, x in zip(dm, dp, xx)]
                 jj = [p + x + s - ((x+s) // mi) * mj for x, mi, mj, p, s in zip(xx, cm, dm, pp, ss)]
                 for k in range(ndim):
@@ -2022,7 +2050,7 @@ class StencilDiagonalMatrix(LinearOperator):
         assert V.starts == W.starts
         assert V.ends   == W.ends
 
-        data = np.asarray(data)
+        data = xp.asarray(data)
 
         # Check shape of provided data
         shape = tuple(e - s + 1 for s, e in zip(V.starts, V.ends))
@@ -2067,7 +2095,7 @@ class StencilDiagonalMatrix(LinearOperator):
 
         V = self.domain
         i = tuple(slice(s, e + 1) for s, e in zip(V.starts, V.ends))
-        np.multiply(self._data, v[i], out=out[i])
+        xp.multiply(self._data, v[i], out=out[i])
 
         out.ghost_regions_in_sync = False
 
@@ -2086,12 +2114,12 @@ class StencilDiagonalMatrix(LinearOperator):
             assert out.domain is self.codomain
             assert out.codomain is self.domain
             if conjugate and self.dtype is complex:
-                np.conjugate(self._data, out=out._data, casting='no')
+                xp.conjugate(self._data, out=out._data, casting='no')
             else:
-                np.copyto(out._data, self._data, casting='no')
+                xp.copyto(out._data, self._data, casting='no')
         else:
             if conjugate and self.dtype is complex:
-                data = np.conjugate(self._data, casting='no')
+                data = xp.conjugate(self._data, casting='no')
             else:
                 data = self._data.copy()
             out = StencilDiagonalMatrix(self.codomain, self.domain, data)
@@ -2113,7 +2141,7 @@ class StencilDiagonalMatrix(LinearOperator):
             assert isinstance(out, StencilDiagonalMatrix)
             assert out.domain is self.domain
             assert out.codomain is self.codomain
-            np.copyto(out._data, self._data, casting='no')
+            xp.copyto(out._data, self._data, casting='no')
 
         return out
 
@@ -2164,13 +2192,13 @@ class StencilDiagonalMatrix(LinearOperator):
 
         # Calculate entries, or set `out=self` in default case
         if inverse:
-            data = np.divide(1, diag, out=data)
+            data = xp.divide(1, diag, out=data)
             if sqrt:
-                data = np.sqrt(data, out=data)
+                data = xp.sqrt(data, out=data)
         elif sqrt:
-            data = np.sqrt(diag, out=data)
+            data = xp.sqrt(diag, out=data)
         elif out not in (None, self):
-            np.copyto(data, diag)
+            xp.copyto(data, diag)
         else:
             out = self
 
@@ -2253,7 +2281,7 @@ class StencilInterfaceMatrix(LinearOperator):
 
         dims[c_axis] = W.pads[c_axis] + 1-diff + 2*W.shifts[c_axis]*W.pads[c_axis]
         diags        = [compute_diag_len(p, md, mc) for p,md,mc in zip(self._pads, Vin.shifts, W.shifts)]
-        self._data   = np.zeros(dims + diags, dtype=W.dtype)
+        self._data   = xp.zeros(dims + diags, dtype=W.dtype)
 
         # Parallel attributes
         if W.parallel and not isinstance(W.cart, InterfaceCartDecomposition):
@@ -2379,7 +2407,7 @@ class StencilInterfaceMatrix(LinearOperator):
         bb        = [p*m+p+1-n-s%m for p,m,n,s in zip(gpads, dm, ndiags, starts)]
         nn        = v.shape
 
-        for xx in np.ndindex( *nrows ):
+        for xx in xp.ndindex( *nrows ):
             ii    = [ mi*pi + x for mi,pi,x in zip(cm, gpads, xx) ]
             jj    = tuple( slice(b-d+(x+s%mj)//mi*mj,b-d+(x+s%mj)//mi*mj+n) for x,mi,mj,b,s,n,d in zip(xx,cm,dm,bb,starts,ndiags,diff) )
             jj    = [flip_axis(i,n) if f==-1 else i for i,f,n in zip(jj,flip,nn)]
@@ -2387,7 +2415,7 @@ class StencilInterfaceMatrix(LinearOperator):
             ii_kk = tuple( ii + kk )
 
             ii[c_axis] += c_start
-            out[tuple(ii)] = np.dot( mat[ii_kk].flat, v[jj].flat )
+            out[tuple(ii)] = xp.dot( mat[ii_kk].flat, v[jj].flat )
 
 
         new_nrows = nrows.copy()
@@ -2397,7 +2425,7 @@ class StencilInterfaceMatrix(LinearOperator):
             del rows[d]
 
             for n in range(er):
-                for xx in np.ndindex(*rows):
+                for xx in xp.ndindex(*rows):
                     xx = list(xx)
                     xx.insert(d, nrows[d]+n)
 
@@ -2409,7 +2437,7 @@ class StencilInterfaceMatrix(LinearOperator):
                     kk     = [slice(None,n-e) for n,e in zip(ndiags, ee)]
                     ii_kk  = tuple( ii + kk )
                     ii[c_axis] += c_start
-                    out[tuple(ii)] = np.dot( mat[ii_kk].flat, v[jj].flat )
+                    out[tuple(ii)] = xp.dot( mat[ii_kk].flat, v[jj].flat )
 
             new_nrows[d] += er
 
@@ -2430,7 +2458,7 @@ class StencilInterfaceMatrix(LinearOperator):
 
         # Call low-level '_transpose' function (works on Numpy arrays directly)
         if conjugate:
-            M._transpose_func(np.conjugate(M._data), out._data, **M._transpose_args)
+            M._transpose_func(xp.conjugate(M._data), out._data, **M._transpose_args)
         else:
             M._transpose_func(M._data, out._data, **M._transpose_args)
         return out
@@ -2463,7 +2491,7 @@ class StencilInterfaceMatrix(LinearOperator):
         sl   = [(s if mi > mj else 0) + (s % mi + mi//mj if mi < mj else 0)+(s if mi == mj else 0)\
                  for s, p, mi, mj in zip(starts, pp, cm, dm)]
 
-        si   = [(mi * p - mi * (int(np.ceil((p + 1)/mj)) - 1) if mi > mj else 0) + \
+        si   = [(mi * p - mi * (int(xp.ceil((p + 1)/mj)) - 1) if mi > mj else 0) + \
                  (mi * p - mi * (p//mi) + d * (mi - 1) if mi < mj else 0) + \
                  (mj * p - mj * (p//mi) + d * (mi - 1) if mi == mj else 0)\
                   for mi, mj, p, d in zip(cm, dm, pp, diff)]
@@ -2489,17 +2517,17 @@ class StencilInterfaceMatrix(LinearOperator):
         ncols[dim] = pads[dim] + 1 - diff_c + 2*cm[dim]*pads[dim]
 
         args = {}
-        args['n']   = np.int64(nrows)
-        args['nc']  = np.int64(ncols)
-        args['gp']  = np.int64(gpads)
-        args['p']   = np.int64(pp)
-        args['dm']  = np.int64(dm)
-        args['cm']  = np.int64(cm)
-        args['nd']  = np.int64(ndiags)
-        args['ndT'] = np.int64(ndiagsT)
-        args['si']  = np.int64(si)
-        args['sk']  = np.int64(sk)
-        args['sl']  = np.int64(sl)
+        args['n']   = xp.int64(nrows)
+        args['nc']  = xp.int64(ncols)
+        args['gp']  = xp.int64(gpads)
+        args['p']   = xp.int64(pp)
+        args['dm']  = xp.int64(dm)
+        args['cm']  = xp.int64(cm)
+        args['nd']  = xp.int64(ndiags)
+        args['ndT'] = xp.int64(ndiagsT)
+        args['si']  = xp.int64(si)
+        args['sk']  = xp.int64(sk)
+        args['sl']  = xp.int64(sl)
 
         return args
 
@@ -2693,7 +2721,7 @@ class StencilInterfaceMatrix(LinearOperator):
         dm          = self.domain.shifts
         cm          = self.codomain.shifts
 
-        ravel_multi_index = np.ravel_multi_index
+        ravel_multi_index = xp.ravel_multi_index
 
         # COO storage
         rows = []
@@ -2703,7 +2731,7 @@ class StencilInterfaceMatrix(LinearOperator):
         local = tuple( [slice(m*p,-m*p) if p != 0 else slice(0, None) for m,p in zip(cm, pp)] + [slice(None)] * nd )
         pp = [compute_diag_len(p,mj,mi)-(p+1) for p,mi,mj in zip(self._pads, cm, dm)]
 
-        for (index,value) in np.ndenumerate( self._data[local] ):
+        for (index,value) in xp.ndenumerate( self._data[local] ):
             if value:
                 # index = [i1, i2, ..., p1+j1-i1, p2+j2-i2, ...]
 
@@ -2731,7 +2759,7 @@ class StencilInterfaceMatrix(LinearOperator):
 
         M = coo_matrix(
                     (data,(rows,cols)),
-                    shape = [np.prod(nr),np.prod(nc)],
+                    shape = [xp.prod(nr),xp.prod(nc)],
                     dtype = self.domain.dtype)
 
         return M
@@ -2863,10 +2891,10 @@ class StencilInterfaceMatrix(LinearOperator):
 
                     self._args = {}
                     for i in range(len(nrows)):
-                        self._args['s00_{i}'.format(i=i+1)] = np.int64(starts[i])
+                        self._args['s00_{i}'.format(i=i+1)] = xp.int64(starts[i])
 
                     for i in range(len(nrows)):
-                        self._args['n00_{i}'.format(i=i+1)] = np.int64(nrows[i])
+                        self._args['n00_{i}'.format(i=i+1)] = xp.int64(nrows[i])
 
                 else:
                     dot = LinearOperatorDot(self._ndim,
@@ -2892,13 +2920,13 @@ class StencilInterfaceMatrix(LinearOperator):
                     self._args = {}
 
                     for i in range(len(nrows)):
-                        self._args['s00_{i}'.format(i=i+1)] = np.int64(starts[i])
+                        self._args['s00_{i}'.format(i=i+1)] = xp.int64(starts[i])
 
                     for i in range(len(nrows)):
-                        self._args['n00_{i}'.format(i=i+1)] = np.int64(nrows[i])
+                        self._args['n00_{i}'.format(i=i+1)] = xp.int64(nrows[i])
 
                     for i in range(len(nrows)):
-                        self._args['ne00_{i}'.format(i=i+1)] = np.int64(nrows_extra[i])
+                        self._args['ne00_{i}'.format(i=i+1)] = xp.int64(nrows_extra[i])
 
             else:
                 dot = LinearOperatorDot(self._ndim,
