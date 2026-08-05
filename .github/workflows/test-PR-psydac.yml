@@ -60,7 +60,7 @@ jobs:
       - name: Initialize test directory
         run: |
           mkdir pytest
-          cp mpi_tester.py pytest
+          cp scripts/mpi_tester.py pytest
 
       - name: Run single-process tests with Pytest on Ubuntu
         run: |

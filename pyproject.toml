@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name            = "feectools"
-version         = "0.1.4"
+version         = "0.1.5"
 description     = "Slimmed-down fork of Psydac (https://github.com/pyccel/psydac) with less functionality and fewer dependencies."
 readme          = "README.md"
 requires-python = ">= 3.10"
@@ -107,3 +107,15 @@ ignore_errors = true
 
 [tool.coverage.html]
 directory = "coverage_html_report"
+
+[tool.pytest.ini_options]
+markers = [
+    "mpi: mark test as requiring MPI",
+    "petsc: mark test as requiring PETSc",
+    "parallel: mark test as parallel",
+]
+testpaths = ["feectools"]
+norecursedirs = [".git", ".venv", "env", "__pycache__", "*.egg-info"]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
