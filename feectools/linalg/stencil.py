@@ -2221,15 +2221,6 @@ class StencilMatrix(LinearOperator):
                 xp.conjugate(self._data, out=out._data, casting='no')
             else:
                 xp.copyto(out._data, self._data, casting='no')
-
-        else:
-
-            if out is None:
-                data = xp.conjugate(self._data, casting='no')
-            else:
-                xp.conjugate(self._data, out=out._data, casting='no')
-
-        if out is None:
         else:
             if conjugate and self.dtype is complex:
                 data = xp.conjugate(self._data, casting='no')
