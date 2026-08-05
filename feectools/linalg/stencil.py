@@ -33,7 +33,8 @@ __all__ = (
     'StencilInterfaceMatrix'
 )
 
-#========================================================================def _to_numpy_int64(val):
+#========================================================================
+def _to_numpy_int64(val):
     """Convert CuPy or NumPy scalar/array to numpy int64."""
     import numpy as _np
     if hasattr(val, 'get'):
