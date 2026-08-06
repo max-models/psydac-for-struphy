@@ -35,7 +35,7 @@ class MatrixMemoryTracker:
     @property
     def nbytes(self):
         """Local (per-MPI-rank) memory footprint, in bytes, of all currently alive registered matrices."""
-        return int(sum(matrix.nbytes for matrix in self._matrices))
+        return int(sum(matrix.nbytes for matrix in tuple(self._matrices)))
 
 
 stencil_matrix_memory = MatrixMemoryTracker()
