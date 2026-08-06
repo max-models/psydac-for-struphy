@@ -69,14 +69,18 @@ def partition_coefficients(domain_decomposition, spaces, min_blocks=None):
         min_blocks = [None] * ndims
 
     for s, e, V, mb in zip(global_starts, global_ends, spaces, min_blocks):
+        s_host = s.get() if hasattr(s, 'get') else np.asarray(s)
+        e_host = e.get() if hasattr(e, 'get') else np.asarray(e)
+        local_sizes = e_host - s_host + 1
+
         if V.periodic or mb is None:
-            assert all(e-s+1 >= V.degree), f"Local number of elements (after domain decomposition) is to small for spline degree p={V.degree}: {e-s+1} is not >= {V.degree} everywhere.\n \
+            assert all(local_sizes >= V.degree), f"Local number of elements (after domain decomposition) is to small for spline degree p={V.degree}: {local_sizes} is not >= {V.degree} everywhere.\n \
             You can:\n \
                 1. increase Nel\n \
                 2. lower p\n \
                 3. decrease the MPI size."
         else:
-            assert all(e-s+1 >= mb)
+            assert all(local_sizes >= mb)
 
     return global_starts, global_ends
 

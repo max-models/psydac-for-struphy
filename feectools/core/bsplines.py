@@ -691,25 +691,29 @@ def elevate_knots(knots, degree, periodic, multiplicity=1, tol=1e-15, out=None):
         Knots sequence of spline space of degree p+1.
     """
     multiplicity = int(multiplicity)
-    knots = xp.ascontiguousarray(knots, dtype=float)
+    if isinstance(knots, (list, tuple)):
+        knots = np.asarray(knots, dtype=float)
+    if hasattr(knots, 'get'):
+        knots = knots.get()  # Convert CuPy to NumPy
+    knots = np.ascontiguousarray(knots, dtype=float)
     if out is None:
         if periodic:
-            out = xp.zeros(knots.shape[0] + 2, dtype=float)
+            out = np.zeros(knots.shape[0] + 2, dtype=float)
         else:
             shape = 2*(degree + 2)
             if len(knots) - 2 * (degree + 1) > 0:
-                uniques = (xp.diff(knots[degree + 1:-degree - 1]) > tol).nonzero()
+                uniques = (np.diff(knots[degree + 1:-degree - 1]) > tol).nonzero()
                 shape += multiplicity * (1 + uniques[0].shape[0])
-            out = xp.zeros(shape, dtype=float)
+            out = np.zeros(shape, dtype=float)
     else:
         if periodic:
-            assert out.shape == (knots.shape[0] + 2,) and out.dtype == xp.dtype('float')
+            assert out.shape == (knots.shape[0] + 2,) and out.dtype == np.dtype('float')
         else:
             shape = 2*(degree + 2)
             if len(knots) - 2 * (degree + 1) > 0:
-                uniques = (xp.diff(knots[degree + 1:-degree - 1]) > tol).nonzero()
+                uniques = (np.diff(knots[degree + 1:-degree - 1]) > tol).nonzero()
                 shape += multiplicity * (1 + uniques[0].shape[0])
-            assert out.shape == shape and out.dtype == xp.dtype('float')
+            assert out.shape == shape and out.dtype == np.dtype('float')
 
     elevate_knots_p(knots, degree, periodic, out, multiplicity, tol)
     return out
