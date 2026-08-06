@@ -14,6 +14,7 @@ from scipy.sparse import coo_matrix, diags as sp_diags
 
 from feectools.ddm.mpi import mpi as MPI
 from feectools.linalg.basic  import VectorSpace, Vector, LinearOperator
+from feectools.linalg.memory import stencil_matrix_memory
 from feectools.ddm.cart      import find_mpi_type, CartDecomposition, InterfaceCartDecomposition
 from feectools.ddm.utilities import get_data_exchanger
 from feectools.api.settings  import PSYDAC_BACKENDS
@@ -637,7 +638,7 @@ class StencilVector(Vector):
 
     # ...
     def _toarray_parallel_no_pads(self, order='C'):
-        a         = xp.zeros( self.space.npts, self.dtype )
+        a         = xp.zeros( self.space.npts, dtype=self.dtype )
         idx_from  = tuple( slice(m*p,-m*p) if p != 0 else slice(0, None) for p,m in zip(self.pads, self.space.shifts) )
         idx_to    = tuple( slice(s,e+1) for s,e in zip(self.starts,self.ends) )
         a[idx_to] = self._data[idx_from]
@@ -649,7 +650,7 @@ class StencilVector(Vector):
         pads = [m*p for m,p in zip(self.space.shifts, self.pads)]
         # Step 0: create extended n-dimensional array with zero values
         shape = tuple( n+2*p for n,p in zip( self.space.npts, pads ) )
-        a = xp.zeros( shape, self.dtype )
+        a = xp.zeros( shape, dtype=self.dtype )
 
         # Step 1: write extended data chunk (local to process) onto array
         idx = tuple( slice(s,e+2*p+1) for s,e,p in
@@ -905,8 +906,14 @@ class StencilMatrix(LinearOperator):
 
     precompiled : bool
         Whether to use precompiled kernels for .dot() and .transpose()
+
+    dry_run : bool
+        If True, only compute the shape of the data array (:attr:`data_shape`) and return early,
+        without allocating the (potentially large) data array and without setting up the
+        dot/transpose kernels. The resulting object is *not* usable as a linear operator; its only
+        purpose is to report the memory footprint the matrix would have via :attr:`nbytes`.
     """
-    def __init__( self, V, W, pads=None , backend=None, precompiled=True):
+    def __init__( self, V, W, pads=None , backend=None, precompiled=True, dry_run=False):
 
         assert isinstance(V, StencilVectorSpace)
         assert isinstance(W, StencilVectorSpace)
@@ -918,13 +925,21 @@ class StencilMatrix(LinearOperator):
             for p,vp in zip(pads, V.pads):
                 assert p<=vp
 
-        self._pads     = pads or tuple(V.pads)
-        dims           = list(W.shape)
-        diags          = [compute_diag_len(p, md, mc) for p,md,mc in zip(self._pads, V.shifts, W.shifts)]
-        self._data     = xp.zeros(tuple(int(d) for d in (dims + diags)), dtype=W.dtype)
-        self._domain   = V
-        self._codomain = W
-        self._ndim     = len(dims)
+        self._pads       = pads or tuple(V.pads)
+        dims             = list(W.shape)
+        diags            = [compute_diag_len(p, md, mc) for p,md,mc in zip(self._pads, V.shifts, W.shifts)]
+        self._data_shape = tuple(int(d) for d in (dims + diags))
+        self._domain     = V
+        self._codomain   = W
+        self._ndim       = len(dims)
+        self._dry_run    = dry_run
+
+        # memory estimation only: do not allocate the data array, see the nbytes property
+        if dry_run:
+            return
+
+        self._data       = xp.zeros(self._data_shape, dtype=W.dtype)
+        stencil_matrix_memory.register(self)
         self._backend  = backend
         self._precompiled = precompiled
         self._is_T     = False
@@ -975,6 +990,17 @@ class StencilMatrix(LinearOperator):
             backend = PSYDAC_BACKENDS.get(os.environ.get('PSYDAC_BACKEND')) or PSYDAC_BACKENDS['python']
         self.set_backend(backend, precompiled)
 
+    # ...
+    def __getattr__(self, name):
+        # only called when the attribute was not found the usual way; give a helpful
+        # message for the attributes that are missing on a dry-run matrix
+        if self.__dict__.get('_dry_run', False):
+            raise AttributeError(
+                f"'{type(self).__name__}.{name}' is not available because the matrix was created with "
+                "dry_run=True (memory estimation only, no data allocated)."
+            )
+        raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
+
     #--------------------------------------
     # Abstract interface
     #--------------------------------------
@@ -991,6 +1017,28 @@ class StencilMatrix(LinearOperator):
     @property
     def dtype(self):
         return self._domain.dtype
+
+    # ...
+    @property
+    def dry_run(self):
+        """Whether the matrix was created for memory estimation only, i.e. without allocating data."""
+        return self._dry_run
+
+    # ...
+    @property
+    def data_shape(self):
+        """Shape of the local data array (n_rows in each direction + n_diagonals in each direction)."""
+        return self._data_shape
+
+    # ...
+    @property
+    def nbytes(self):
+        """Local (per-MPI-rank) memory footprint of the data array, in bytes. Also available
+        for matrices created with ``dry_run=True``, i.e. before/without allocating the data."""
+        nbytes = xp.dtype(self._codomain.dtype).itemsize
+        for n in self._data_shape:
+            nbytes *= n
+        return int(nbytes)
 
     # ...
     def dot(self, v, out=None):
@@ -2076,6 +2124,11 @@ class StencilDiagonalMatrix(LinearOperator):
     def dtype(self):
         return self._data.dtype
 
+    @property
+    def nbytes(self):
+        """Local (per-MPI-rank) memory footprint of the data array, in bytes."""
+        return int(self._data.nbytes)
+
     def tosparse(self):
         return sp_diags(self._data.ravel())
 
@@ -2368,6 +2421,12 @@ class StencilInterfaceMatrix(LinearOperator):
     @property
     def dtype(self):
         return self.domain.dtype
+
+    # ...
+    @property
+    def nbytes(self):
+        """Local (per-MPI-rank) memory footprint of the data array, in bytes."""
+        return int(self._data.nbytes)
 
     # ...
     def dot(self, v, out=None):
