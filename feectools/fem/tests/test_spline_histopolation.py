@@ -1,5 +1,10 @@
+#---------------------------------------------------------------------------#
+# This file is part of PSYDAC which is released under MIT License. See the  #
+# LICENSE file or go to https://github.com/pyccel/psydac/blob/devel/LICENSE #
+# for full license details.                                                 #
+#---------------------------------------------------------------------------#
 import pytest
-import numpy as np
+import cunumpy as xp
 import matplotlib.pyplot as plt
 from scipy.integrate import quad
 
@@ -18,7 +23,7 @@ def histopolate_polynomial(basis, ncells, degree):
     periodic = False
 
     # Polynomial to be approximated
-    poly_coeffs = np.random.random_sample( degree+1 ) # 0 <= c < 1
+    poly_coeffs = xp.random.random_sample( degree+1 ) # 0 <= c < 1
     poly_coeffs = 1.0 - poly_coeffs                   # 0 < c <= 1
     f = lambda x : horner( x, *poly_coeffs )
 
@@ -29,7 +34,7 @@ def histopolate_polynomial(basis, ncells, degree):
 
     # Compute histopolant
     xg = Vh.ext_greville
-    Ig = np.array([quad(f, xg[i], xg[i+1])[0] for i in range(len(xg)-1)])
+    Ig = xp.array([quad(f, xg[i], xg[i+1])[0] for i in range(len(xg)-1)])
     Vh.compute_histopolant(Ig, fh)
 
     return domain, f, fh
@@ -43,11 +48,11 @@ def test_histopolation_exact(basis, ncells, degree, num_pts=100, tol=1e-11):
     domain, f, fh = histopolate_polynomial(basis, ncells, degree)
 
     # Compare to exact solution
-    x  = np.linspace(*domain, num=num_pts)
+    x  = xp.linspace(*domain, num=num_pts)
     y  = f(x)
-    yh = np.array([fh(xi) for xi in x])
+    yh = xp.array([fh(xi) for xi in x])
 
-    assert np.allclose(yh, y, rtol=tol, atol=tol)
+    assert xp.allclose(yh, y, rtol=tol, atol=tol)
 
 #==============================================================================
 @pytest.mark.parametrize('basis', ['B', 'M'])
@@ -61,21 +66,21 @@ def test_histopolation_cosine(basis, ncells, degree, periodic, num_pts=100):
     f = AnalyticalProfile1D_Cos()
 
     # Define spline space and field
-    grid, dx = np.linspace(*f.domain, num=ncells+1, retstep=True)
+    grid, dx = xp.linspace(*f.domain, num=ncells+1, retstep=True)
     Vh = SplineSpace(degree=degree, grid=grid, periodic=periodic)
     fh = FemField(Vh)
 
     # Compute histopolant
     xg = Vh.histopolation_grid
-    Ig = np.array([quad(f.eval, xl, xr)[0] for xl, xr in zip(xg[:-1], xg[1:])])
+    Ig = xp.array([quad(f.eval, xl, xr)[0] for xl, xr in zip(xg[:-1], xg[1:])])
     Vh.compute_histopolant(Ig, fh)
 
     # Compare to exact solution
-    x  = np.linspace(*f.domain, num=num_pts)
+    x  = xp.linspace(*f.domain, num=num_pts)
     y  = f.eval(x)
-    yh = np.array([fh(xi) for xi in x])
+    yh = xp.array([fh(xi) for xi in x])
 
-    max_norm_err = np.max(abs(y - yh))
+    max_norm_err = xp.max(abs(y - yh))
     err_bound    = spline_1d_error_bound(f, dx, degree)
 
     assert max_norm_err < err_bound
@@ -85,11 +90,11 @@ def test_histopolation_cosine(basis, ncells, degree, periodic, num_pts=100):
 #==============================================================================
 def compare_and_plot(domain, f, fh, num_pts=100):
 
-    x  = np.linspace(*domain, num=num_pts)
+    x  = xp.linspace(*domain, num=num_pts)
     y  = f(x)
-    yh = np.array([fh(xi) for xi in x])
+    yh = xp.array([fh(xi) for xi in x])
 
-    max_norm_err = np.max(abs(yh - y))
+    max_norm_err = xp.max(abs(yh - y))
     print("Maximum error on evaluation grid: {}".format(max_norm_err))
 
     fig, ax = plt.subplots(1, 1)

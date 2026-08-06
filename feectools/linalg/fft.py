@@ -2,7 +2,7 @@ from feectools.linalg.basic import LinearOperator, LinearSolver
 from feectools.linalg.stencil import StencilVectorSpace
 from feectools.linalg.kron import KroneckerLinearSolver
 
-import numpy as np
+import cunumpy as xp
 import scipy.fft as scifft
 import os
 
@@ -47,14 +47,14 @@ class DistributedFFTBase(LinearOperator):
 
         @property
         def space(self):
-            return np.ndarray
+            return xp.ndarray
 
         def transpose(self):
             raise NotImplementedError('transpose() is not implemented for OneDimSolvers')
         
         def solve(self, rhs, out=None):
             if out is None:
-                out = np.empty_like(rhs)
+                out = xp.empty_like(rhs)
             
             if out is not rhs:
                 out[:] = rhs
@@ -119,7 +119,7 @@ class DistributedFFT(DistributedFFTBase):
     def __init__(self, space, norm=None, workers=os.environ.get('OMP_NUM_THREADS', None)):
         # only allow complex data types
         assert isinstance(space, StencilVectorSpace)
-        assert np.dtype(space.dtype).kind == 'c'
+        assert xp.dtype(space.dtype).kind == 'c'
         workers = int(workers) if workers is not None else None
 
         super().__init__(space, lambda out: scifft.fft(
@@ -147,7 +147,7 @@ class DistributedIFFT(DistributedFFTBase):
     def __init__(self, space, norm=None, workers=os.environ.get('OMP_NUM_THREADS', None)):
         # only allow complex data types
         assert isinstance(space, StencilVectorSpace)
-        assert np.dtype(space.dtype).kind == 'c'
+        assert xp.dtype(space.dtype).kind == 'c'
         workers = int(workers) if workers is not None else None
         
         super().__init__(space, lambda out: scifft.ifft(

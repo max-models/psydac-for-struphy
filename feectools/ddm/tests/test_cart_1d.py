@@ -1,6 +1,9 @@
-# Contents of test_cart_1d.py
-
-import numpy as np
+#---------------------------------------------------------------------------#
+# This file is part of PSYDAC which is released under MIT License. See the  #
+# LICENSE file or go to https://github.com/pyccel/psydac/blob/devel/LICENSE #
+# for full license details.                                                 #
+#---------------------------------------------------------------------------#
+import cunumpy as xp
 
 from feectools.ddm.blocking_data_exchanger    import BlockingCartDataExchanger
 from feectools.ddm.nonblocking_data_exchanger import NonBlockingCartDataExchanger
@@ -10,7 +13,7 @@ from feectools.ddm.nonblocking_data_exchanger import NonBlockingCartDataExchange
 #===============================================================================
 def run_cart_1d( data_exchanger_type, verbose=False ):
 
-    import numpy as np
+    import cunumpy as xp
     from feectools.ddm.mpi import mpi as MPI
     from feectools.ddm.cart import DomainDecomposition, CartDecomposition
 
@@ -45,7 +48,7 @@ def run_cart_1d( data_exchanger_type, verbose=False ):
 
     global_ends        = [ee]
     global_ends[0][-1] = n1-1
-    global_starts      = [np.array([0] + (global_ends[0][:-1]+1).tolist())]
+    global_starts      = [xp.array([0] + (global_ends[0][:-1]+1).tolist())]
 
     # Decomposition of Cartesian domain
     cart = CartDecomposition(
@@ -58,7 +61,7 @@ def run_cart_1d( data_exchanger_type, verbose=False ):
     )
 
     # Local 1D array (extended domain)
-    u = np.zeros( cart.shape, dtype=int )
+    u = xp.zeros( cart.shape, dtype=int )
 
     # Global indices of first and last elements of array
     s1, = cart.starts
@@ -111,7 +114,7 @@ def run_cart_1d( data_exchanger_type, verbose=False ):
 import pytest
 
 @pytest.mark.parametrize( 'data_exchanger_type', [BlockingCartDataExchanger, NonBlockingCartDataExchanger] )
-@pytest.mark.parallel
+@pytest.mark.mpi
 def test_cart_1d( data_exchanger_type ):
 
     namespace = run_cart_1d( data_exchanger_type )

@@ -3,7 +3,7 @@
 This module provides iterative solvers and preconditioners.
 
 """
-import numpy as np
+import cunumpy as xp
 from math import sqrt
 
 from feectools.utilities.utils  import is_real
@@ -1160,7 +1160,7 @@ class MinimumResidual(InverseLinearOperator):
         itn   = 0
         rnorm = 0
 
-        eps = np.finfo(b.dtype).eps
+        eps = xp.finfo(b.dtype).eps
 
         A.dot(x, out=y)
         y -= b
@@ -1178,7 +1178,7 @@ class MinimumResidual(InverseLinearOperator):
         rhs2    = 0
         tnorm2  = 0
         gmax    = 0
-        gmin    = np.finfo(b.dtype).max
+        gmin    = xp.finfo(b.dtype).max
         cs      = -1
         sn      = 0
         w_new  *= 0.0
@@ -1645,7 +1645,7 @@ class LSMR(InverseLinearOperator):
 
             test1 = normr / normb
             if (normA * normr) != 0:test2 = normar / (normA * normr)
-            else:test2 = np.infty
+            else:test2 = xp.infty
             test3 = 1 / condA
             t1    = test1 / (1 + normA * normx / normb)
             rtol  = btol + atol * normA * normx / normb
@@ -1736,7 +1736,7 @@ class GMRES(InverseLinearOperator):
         self._tmps = {key: self.domain.zeros() for key in ("r", "p")}
 
         # Initialize upper Hessenberg matrix
-        self._H = np.zeros((self._options["maxiter"] + 1, self._options["maxiter"]), dtype=A.domain.dtype)
+        self._H = xp.zeros((self._options["maxiter"] + 1, self._options["maxiter"]), dtype=A.domain.dtype)
         self._Q = []
         self._info = None
 
@@ -1862,7 +1862,7 @@ class GMRES(InverseLinearOperator):
     def solve_triangular(self, T, d):
         # Backwards substitution. Assumes T is upper triangular
         k = T.shape[0]
-        y = np.zeros((k,), dtype=self._A.domain.dtype)
+        y = xp.zeros((k,), dtype=self._A.domain.dtype)
 
         for k1 in range(k):
             temp = 0.

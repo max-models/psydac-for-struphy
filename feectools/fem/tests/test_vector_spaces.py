@@ -1,7 +1,10 @@
-# -*- coding: UTF-8 -*-
-
+#---------------------------------------------------------------------------#
+# This file is part of PSYDAC which is released under MIT License. See the  #
+# LICENSE file or go to https://github.com/pyccel/psydac/blob/devel/LICENSE #
+# for full license details.                                                 #
+#---------------------------------------------------------------------------#
 import pytest
-from numpy import linspace
+import cunumpy as xp
 
 from feectools.fem.basic   import FemField
 from feectools.fem.splines import SplineSpace
@@ -13,8 +16,8 @@ from feectools.linalg.block import BlockVector, BlockVectorSpace
 
 def test_vector_space_2d():
     p = 2
-    grid_1 = linspace(0., 1., 3)
-    grid_2 = linspace(0., 1., 5)
+    grid_1 = xp.linspace(0., 1., 3)
+    grid_2 = xp.linspace(0., 1., 5)
 
     # ... first component
     V1 = SplineSpace(p-1, grid=grid_1)
@@ -71,9 +74,9 @@ def test_vector_space_2d():
 
 def test_vector_space_3d():
     p = 2
-    grid_1 = linspace(0., 1., 3)
-    grid_2 = linspace(0., 1., 5)
-    grid_3 = linspace(0., 1., 7)
+    grid_1 = xp.linspace(0., 1., 3)
+    grid_2 = xp.linspace(0., 1., 5)
+    grid_3 = xp.linspace(0., 1., 7)
 
     # ... first component
     V1 = SplineSpace(p-1, grid=grid_1)

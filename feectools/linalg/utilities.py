@@ -1,6 +1,6 @@
 # coding: utf-8
 
-import numpy as np
+import cunumpy as xp
 from math import sqrt
 
 from feectools.linalg.basic   import Vector
@@ -114,11 +114,11 @@ def petsc_to_psydac(x, Xh, out=None):
 
         # Find shift for process k:
         # ..get number of points for each block, each process and each dimension:
-        npts_local_per_block_per_process = np.array(get_npts_per_block(Xh)) #indexed [b,k,d] for block b and process k and dimension d
+        npts_local_per_block_per_process = xp.array(get_npts_per_block(Xh)) #indexed [b,k,d] for block b and process k and dimension d
         # ..get local sizes for each block and each process:
-        local_sizes_per_block_per_process = np.prod(npts_local_per_block_per_process, axis=-1) #indexed [b,k] for block b and process k
+        local_sizes_per_block_per_process = xp.prod(npts_local_per_block_per_process, axis=-1) #indexed [b,k] for block b and process k
         # ..sum the sizes over all the blocks and the previous processes:
-        index_shift = 0 + np.sum(local_sizes_per_block_per_process[:,:comm.Get_rank()], dtype=int) #global variable
+        index_shift = 0 + xp.sum(local_sizes_per_block_per_process[:,:comm.Get_rank()], dtype=int) #global variable
 
         for local_petsc_index in range(localsize):
             block_index, psydac_index = petsc_local_to_psydac(Xh, local_petsc_index)
@@ -143,11 +143,11 @@ def petsc_to_psydac(x, Xh, out=None):
 
         # Find shift for process k:
         # ..get number of points for each process and each dimension:
-        npts_local_per_block_per_process = np.array(get_npts_per_block(Xh))[0] #indexed [k,d] for process k and dimension d
+        npts_local_per_block_per_process = xp.array(get_npts_per_block(Xh))[0] #indexed [k,d] for process k and dimension d
         # ..get local sizes for each process:
-        local_sizes_per_block_per_process = np.prod(npts_local_per_block_per_process, axis=-1) #indexed [k] for process k
+        local_sizes_per_block_per_process = xp.prod(npts_local_per_block_per_process, axis=-1) #indexed [k] for process k
         # ..sum the sizes over all the previous processes:
-        index_shift = 0 + np.sum(local_sizes_per_block_per_process[:comm.Get_rank()], dtype=int) #global variable
+        index_shift = 0 + xp.sum(local_sizes_per_block_per_process[:comm.Get_rank()], dtype=int) #global variable
 
         for local_petsc_index in range(localsize):
             block_index, psydac_index = petsc_local_to_psydac(Xh, local_petsc_index) 
@@ -184,17 +184,29 @@ def _sym_ortho(a, b):
            http://www.stanford.edu/group/SOL/dissertations/sou-cheng-choi-thesis.pdf
     """
     if b == 0:
-        return np.sign(a), 0, abs(a)
+        return _scalar_sign(a), 0, abs(a)
     elif a == 0:
-        return 0, np.sign(b), abs(b)
+        return 0, _scalar_sign(b), abs(b)
     elif abs(b) > abs(a):
         tau = a / b
-        s = np.sign(b) / sqrt(1 + tau * tau)
+        s = _scalar_sign(b) / sqrt(1 + tau * tau)
         c = s * tau
         r = b / s
     else:
         tau = b / a
-        c = np.sign(a) / sqrt(1+tau*tau)
+        c = _scalar_sign(a) / sqrt(1+tau*tau)
         s = c * tau
         r = a / c
     return c, s, r
+
+#==============================================================================
+def _scalar_sign(x):
+    """
+    Sign of a real Python scalar. `xp.sign` (array_api_compat) requires its
+    argument to expose a `.dtype` attribute, which plain Python floats don't have.
+    """
+    if x > 0:
+        return 1.0
+    elif x < 0:
+        return -1.0
+    return 0.0

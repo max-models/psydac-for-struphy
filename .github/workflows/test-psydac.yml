@@ -54,18 +54,18 @@ jobs:
           --cov feectools
           --cov-config $GITHUB_WORKSPACE/pyproject.toml
           --cov-report xml
-          --pyargs feectools -m "not parallel and not petsc"
+          --pyargs feectools -m "not mpi and not petsc"
 
       - name: Run single-process tests with Pytest on Ubuntu
         if: matrix.os == 'ubuntu-latest'
         working-directory: ./pytest
         run: |
-          python -m pytest -n auto --pyargs feectools -m "not parallel and not petsc"
+          python -m pytest -n auto --pyargs feectools -m "not mpi and not petsc"
 
       - name: Run single-process PETSc tests with Pytest
         working-directory: ./pytest
         run: |
-          python -m pytest -n auto --pyargs feectools -m "not parallel and petsc"
+          python -m pytest -n auto --pyargs feectools -m "not mpi and petsc"
 
       - name: Install project with mpi
         run: |
@@ -75,12 +75,12 @@ jobs:
       - name: Run MPI tests with Pytest
         working-directory: ./pytest
         run: |
-          python mpi_tester.py --mpirun="mpiexec -n 4 ${MPI_OPTS}" --pyargs feectools -m "parallel and not petsc"
+          python mpi_tester.py --mpirun="mpiexec -n 4 ${MPI_OPTS}" --pyargs feectools -m "mpi and not petsc"
 
       - name: Run MPI PETSc tests with Pytest
         working-directory: ./pytest
         run: |
-          python mpi_tester.py --mpirun="mpiexec -n 4 ${MPI_OPTS}" --pyargs feectools -m "parallel and petsc"
+          python mpi_tester.py --mpirun="mpiexec -n 4 ${MPI_OPTS}" --pyargs feectools -m "mpi and petsc"
 
       - name: Remove test directory
         if: always()

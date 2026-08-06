@@ -11,7 +11,7 @@ from abc import ABC, abstractmethod
 from types import LambdaType 
 from inspect import signature
 
-import numpy as np
+import cunumpy as xp
 from scipy.sparse import coo_matrix
 
 from feectools.utilities.utils import is_real
@@ -189,8 +189,8 @@ class Vector(ABC):
         
         Please note that x.conjugate(out=x) modifies x in place and returns x.
 
-        If the field is real (i.e. `self.dtype in (np.float32, np.float64)`) this method is equivalent to `copy`.
-        If the field is complex (i.e. `self.dtype in (np.complex64, np.complex128)`) this method returns
+        If the field is real (i.e. `self.dtype in (xp.float32, xp.float64)`) this method is equivalent to `copy`.
+        If the field is complex (i.e. `self.dtype in (xp.complex64, xp.complex128)`) this method returns
         the complex conjugate of `self`, element-wise.
 
         The behavior of this function is similar to `numpy.conjugate(self, out=None)`.
@@ -240,8 +240,8 @@ class Vector(ABC):
     def conj(self, out=None):
         """Compute the complex conjugate vector.
 
-        If the field is real (i.e. `self.dtype in (np.float32, np.float64)`) this method is equivalent to `copy`.
-        If the field is complex (i.e. `self.dtype in (np.complex64, np.complex128)`) this method returns
+        If the field is real (i.e. `self.dtype in (xp.float32, xp.float64)`) this method is equivalent to `copy`.
+        If the field is complex (i.e. `self.dtype in (xp.complex64, xp.complex128)`) this method returns
         the complex conjugate of `self`, element-wise.
 
         The behavior of this function is similar to `numpy.conj(self, out=None)`.
@@ -340,7 +340,7 @@ class LinearOperator(ABC):
         unless c = 0 or c = 1, in which case either a ZeroOperator or self is returned.
 
         """
-        assert np.isscalar(c)
+        assert xp.isscalar(c)
         if c==0:
             return ZeroOperator(self.domain, self.codomain)
         elif c == 1:
@@ -588,7 +588,7 @@ class ZeroOperator(LinearOperator):
         return ZeroOperator(self.domain, self.codomain)
 
     def toarray(self):
-        return np.zeros(self.shape, dtype=self.dtype) 
+        return xp.zeros(self.shape, dtype=self.dtype) 
 
     def tosparse(self):
         from scipy.sparse import csr_matrix
@@ -624,7 +624,7 @@ class ZeroOperator(LinearOperator):
         return -B
 
     def __mul__(self, c):
-        assert np.isscalar(c)
+        assert xp.isscalar(c)
         return self
 
     def __matmul__(self, B):
@@ -670,7 +670,7 @@ class IdentityOperator(LinearOperator):
         return IdentityOperator(self.domain, self.codomain)
 
     def toarray(self):
-        return np.diag(np.ones(self.domain.dimension , dtype=self.dtype)) 
+        return xp.diag(xp.ones(self.domain.dimension , dtype=self.dtype)) 
 
     def tosparse(self):
         from scipy.sparse import identity
@@ -711,8 +711,8 @@ class ScaledLinearOperator(LinearOperator):
 
         assert isinstance(domain, VectorSpace)
         assert isinstance(codomain, VectorSpace)
-        assert np.isscalar(c)
-        assert np.iscomplexobj(c) == (codomain._dtype == complex)
+        assert xp.isscalar(c)
+        assert xp.iscomplexobj(c) == (codomain._dtype == complex)
         assert isinstance(A, LinearOperator)
         assert domain   == A.domain
         assert codomain == A.codomain
@@ -762,7 +762,7 @@ class ScaledLinearOperator(LinearOperator):
         return self._scalar * self._operator.tosparse().tocsr()
 
     def transpose(self, conjugate=False):
-        return ScaledLinearOperator(domain=self.codomain, codomain=self.domain, c=self._scalar if not conjugate else np.conjugate(self._scalar), A=self._operator.transpose(conjugate=conjugate))
+        return ScaledLinearOperator(domain=self.codomain, codomain=self.domain, c=self._scalar if not conjugate else xp.conjugate(self._scalar), A=self._operator.transpose(conjugate=conjugate))
 
     def __neg__(self):
         return ScaledLinearOperator(domain=self.domain, codomain=self.codomain, c=-1*self._scalar, A=self._operator)
@@ -836,6 +836,7 @@ class SumLinearOperator(LinearOperator):
     def dtype(self):
         return None
 
+
     def tosparse(self):
         from scipy.sparse import csr_matrix
         out = csr_matrix(self.shape, dtype=self.dtype)
@@ -844,7 +845,7 @@ class SumLinearOperator(LinearOperator):
         return out
 
     def toarray(self):
-        out = np.zeros(self.shape, dtype=self.dtype)
+        out = xp.zeros(self.shape, dtype=self.dtype)
         for a in self._addends:
             out += a.toarray()
         return out

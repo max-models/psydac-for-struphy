@@ -1,9 +1,10 @@
 import pytest
-import numpy as np
+import cunumpy as xp
 
 from feectools.linalg.block import BlockLinearOperator, BlockVector, BlockVectorSpace
 from feectools.linalg.basic import LinearOperator, ZeroOperator, IdentityOperator, ComposedLinearOperator, SumLinearOperator, PowerLinearOperator, ScaledLinearOperator
 from feectools.linalg.stencil import StencilVectorSpace, StencilVector, StencilMatrix
+from feectools.linalg.memory import stencil_matrix_memory
 from feectools.linalg.solvers import ConjugateGradient, inverse
 from feectools.ddm.cart       import DomainDecomposition, CartDecomposition
 
@@ -15,7 +16,7 @@ p1array = [1, 3]
 p2array = [1, 3]
 
 def array_equal(a, b):
-    return np.array_equal(a.toarray(), b.toarray())
+    return xp.array_equal(a.toarray(), b.toarray())
 
 def sparse_equal(a, b):
     return (a.tosparse() != b.tosparse()).nnz == 0
@@ -23,7 +24,7 @@ def sparse_equal(a, b):
 def assert_pos_def(A):
     assert isinstance(A, LinearOperator)
     A_array = A.toarray()
-    assert np.all(np.linalg.eigvals(A_array) > 0)
+    assert xp.all(xp.linalg.eigvals(A_array) > 0)
 
 def compute_global_starts_ends(domain_decomposition, npts):
     ndims         = len(npts)
@@ -36,7 +37,7 @@ def compute_global_starts_ends(domain_decomposition, npts):
 
         global_ends  [axis]     = ee.copy()
         global_ends  [axis][-1] = npts[axis]-1
-        global_starts[axis]     = np.array([0] + (global_ends[axis][:-1]+1).tolist())
+        global_starts[axis]     = xp.array([0] + (global_ends[axis][:-1]+1).tolist())
 
     return global_starts, global_ends
 
@@ -51,7 +52,7 @@ def get_StencilVectorSpace(npts, pads, periods):
 
 def get_positive_definite_StencilMatrix(V):
 
-    np.random.seed(2)
+    xp.random.seed(2)
     assert isinstance(V, StencilVectorSpace)
     [n1, n2] = V._npts
     [p1, p2] = V._pads
@@ -63,12 +64,12 @@ def get_positive_definite_StencilMatrix(V):
     for i in range(0, p1+1):
         if i != 0:
             for j in range(-p2, p2+1):
-                S[:, :, i, j] = 2*np.random.random()-1
+                S[:, :, i, j] = 2*xp.random.random()-1
         else:
             for j in range(1, p2+1):
-                S[:, :, i, j] = 2*np.random.random()-1
+                S[:, :, i, j] = 2*xp.random.random()-1
     S += S.T
-    S[:, :, 0, 0] = ((n1 * n2) - 1) / np.random.random()
+    S[:, :, 0, 0] = ((n1 * n2) - 1) / xp.random.random()
     S /= S[0, 0, 0, 0]
     S.remove_spurious_entries()
 
@@ -161,7 +162,7 @@ def test_square_stencil_basic(n1, n2, p1, p2, P1=False, P2=False):
     S2a = S2.toarray()
 
     # Construct exact matrices by hand
-    A1 = np.zeros( S.shape )
+    A1 = xp.zeros( S.shape )
     for i1 in range(n1):
         for i2 in range(n2):
             for k1 in range(-p1,p1+1):
@@ -173,7 +174,7 @@ def test_square_stencil_basic(n1, n2, p1, p2, P1=False, P2=False):
                     if (P1 or 0 <= i1+k1 < n1) and (P2 or 0 <= i2+k2 < n2):
                         A1[i,j] = nonzero_values[k1,k2]
 
-    A2 = np.zeros( S.shape )
+    A2 = xp.zeros( S.shape )
     for i1 in range(n1):
         for i2 in range(n2):
             for k1 in range(-p1,p1+1):
@@ -186,12 +187,12 @@ def test_square_stencil_basic(n1, n2, p1, p2, P1=False, P2=False):
                         A2[i,j] = nonzero_values1[k1,k2]
 
     # Check shape and data in 2D array
-    assert np.array_equal(v.toarray(), np.ones(n1 * n2))
+    assert xp.array_equal(v.toarray(), xp.ones(n1 * n2))
 
     assert Sa.shape == S.shape
-    assert np.array_equal( Sa, A1 )
+    assert xp.array_equal( Sa, A1 )
     assert S1a.shape == S1.shape
-    assert np.array_equal( S1a, A2 )
+    assert xp.array_equal( S1a, A2 )
 
     ###
     ### 2. Test general basic operations
@@ -217,9 +218,9 @@ def test_square_stencil_basic(n1, n2, p1, p2, P1=False, P2=False):
     ## ___Multiplication, Composition, Raising to a Power___
 
     # Multiplying and Dividing a StencilMatrix by a scalar returns a StencilMatrix
-    assert isinstance(np.pi * S, StencilMatrix)
-    assert isinstance(S * np.pi, StencilMatrix)
-    assert isinstance(S / np.pi, StencilMatrix)
+    assert isinstance(xp.pi * S, StencilMatrix)
+    assert isinstance(S * xp.pi, StencilMatrix)
+    assert isinstance(S / xp.pi, StencilMatrix)
 
     # Composing StencilMatrices works
     assert isinstance(S @ S1, ComposedLinearOperator)
@@ -229,10 +230,10 @@ def test_square_stencil_basic(n1, n2, p1, p2, P1=False, P2=False):
 
     ## ___Transposing___
     
-    assert not np.array_equal(S2a, S2a.T) # using a nonsymmetric matrix throughout
+    assert not xp.array_equal(S2a, S2a.T) # using a nonsymmetric matrix throughout
     assert isinstance(S2.T, StencilMatrix)
-    assert np.array_equal(S2.T.toarray(), S2a.T)
-    assert np.array_equal(S2.T.T.toarray(), S2a)
+    assert xp.array_equal(S2.T.toarray(), S2a.T)
+    assert xp.array_equal(S2.T.T.toarray(), S2a)
 
     ###
     ### 3. Test special cases
@@ -379,9 +380,9 @@ def test_square_block_basic(n1, n2, p1, p2, P1=False, P2=False):
     ## ___Multiplication, Composition, Raising to a Power___
 
     # Multiplying and Dividing a BlockLO by a scalar returns a BlockLO
-    assert isinstance(np.pi * B, BlockLinearOperator)
-    assert isinstance(B * np.pi, BlockLinearOperator)
-    assert isinstance(B / np.pi, BlockLinearOperator)
+    assert isinstance(xp.pi * B, BlockLinearOperator)
+    assert isinstance(B * xp.pi, BlockLinearOperator)
+    assert isinstance(B / xp.pi, BlockLinearOperator)
 
     # Composing BlockLOs works
     assert isinstance(B @ B1, ComposedLinearOperator)
@@ -390,10 +391,10 @@ def test_square_block_basic(n1, n2, p1, p2, P1=False, P2=False):
     assert isinstance(B**3, PowerLinearOperator)
 
     ## ___Transposing___
-    assert not np.array_equal(B2.toarray(), B2.toarray().T) # using a nonsymmetric matrix throughout
+    assert not xp.array_equal(B2.toarray(), B2.toarray().T) # using a nonsymmetric matrix throughout
     assert isinstance(B2.T, BlockLinearOperator)
-    assert np.array_equal(B2.T.toarray(), B2.toarray().T)
-    assert np.array_equal(B2.T.T.toarray(), B2.toarray())
+    assert xp.array_equal(B2.T.toarray(), B2.toarray().T)
+    assert xp.array_equal(B2.T.T.toarray(), B2.toarray())
 
     ###
     ### 3. Test special cases
@@ -453,7 +454,7 @@ def test_in_place_operations(n1, n2, p1, p2, P1=False, P2=False):
     Vc._dtype = complex
     v = StencilVector(V)
     vc = StencilVector(Vc)
-    v_array = np.zeros(n1*n2)
+    v_array = xp.zeros(n1*n2)
 
     for i in range(n1):
         for j in range(n2):
@@ -473,13 +474,13 @@ def test_in_place_operations(n1, n2, p1, p2, P1=False, P2=False):
     I4 *= 3j
     v4 = I4.dot(vc)
 
-    assert np.array_equal(v.toarray(), v_array)
+    assert xp.array_equal(v.toarray(), v_array)
     assert isinstance(I1, ZeroOperator)
     assert isinstance(I2, IdentityOperator)
     assert isinstance(I3, ScaledLinearOperator)
-    assert np.array_equal(v3.toarray(), np.dot(v_array, 3))
+    assert xp.array_equal(v3.toarray(), xp.dot(v_array, 3))
     assert isinstance(I4, ScaledLinearOperator)
-    assert np.array_equal(v4.toarray(), np.dot(v_array, 3j))
+    assert xp.array_equal(v4.toarray(), xp.dot(v_array, 3j))
 
     # testing __iadd__ and __isub__ although not explicitly implemented (in the LinearOperator class)
 
@@ -518,7 +519,7 @@ def test_in_place_operations(n1, n2, p1, p2, P1=False, P2=False):
     w = S.dot(v)
 
     assert isinstance(S, StencilMatrix)
-    assert np.array_equal(w.toarray(), np.dot(np.dot(2, Sa), v_array))
+    assert xp.array_equal(w.toarray(), xp.dot(xp.dot(2, Sa), v_array))
 
     Z3 -= T
     T -= Z2
@@ -528,7 +529,7 @@ def test_in_place_operations(n1, n2, p1, p2, P1=False, P2=False):
 
     assert isinstance(Z3, StencilMatrix)
     assert isinstance(T, StencilMatrix)
-    assert np.array_equal(w2.toarray(), np.dot(np.dot(2, Sa), v_array))
+    assert xp.array_equal(w2.toarray(), xp.dot(xp.dot(2, Sa), v_array))
  
 #===============================================================================
 @pytest.mark.parametrize('n1', n1array)
@@ -626,10 +627,10 @@ def test_inverse_transpose_interaction(n1, n2, p1, p2, P1=False, P2=False):
     ###
 
     # Square root test
-    scaled_matrix = B * np.random.random() # Ensure the diagonal elements != 1
+    scaled_matrix = B * xp.random.random() # Ensure the diagonal elements != 1
     diagonal_values = scaled_matrix.diagonal(sqrt=False).toarray()
     sqrt_diagonal_values = scaled_matrix.diagonal(sqrt=True).toarray()
-    assert np.array_equal(sqrt_diagonal_values, np.sqrt(diagonal_values))
+    assert xp.array_equal(sqrt_diagonal_values, xp.sqrt(diagonal_values))
 
     tol = 1e-5
     C = inverse(B, 'cg', tol=tol)
@@ -784,29 +785,29 @@ def test_operator_evaluation(n1, n2, p1, p2):
     b0 = ( B**0 @ u ).toarray()
     b1 = ( B**1 @ u ).toarray()
     b2 = ( B**2 @ u ).toarray()
-    assert np.array_equal(uarr, b0)
-    assert np.linalg.norm( np.dot(Bmat, uarr) - b1 ) < 1e-10
-    assert np.linalg.norm( np.dot(Bmat, np.dot(Bmat, uarr)) - b2 ) < 1e-10
+    assert xp.array_equal(uarr, b0)
+    assert xp.linalg.norm( xp.dot(Bmat, uarr) - b1 ) < 1e-10
+    assert xp.linalg.norm( xp.dot(Bmat, xp.dot(Bmat, uarr)) - b2 ) < 1e-10
 
     bi0 = ( B_ILO**0 @ u ).toarray()
     bi1 = ( B_ILO**1 @ u ).toarray()
     bi2 = ( B_ILO**2 @ u ).toarray()
-    B_inv_mat = np.linalg.inv(Bmat)
-    b_inv_arr = np.matrix.flatten(B_inv_mat)
-    error_est = 2 + n1 * n2 * np.max( [ np.abs(b_inv_arr[i]) for i in range(len(b_inv_arr)) ] )
-    assert np.array_equal(uarr, bi0)
-    bi12 = np.linalg.solve(Bmat, uarr)
-    bi22 = np.linalg.solve(Bmat, bi12)
-    assert np.linalg.norm( (Bmat @ bi12) - uarr ) < tol
-    assert np.linalg.norm( (Bmat @ bi22) - bi12 ) < error_est * tol
+    B_inv_mat = xp.linalg.inv(Bmat)
+    b_inv_arr = xp.matrix.flatten(B_inv_mat)
+    error_est = 2 + n1 * n2 * xp.max( [ xp.abs(b_inv_arr[i]) for i in range(len(b_inv_arr)) ] )
+    assert xp.array_equal(uarr, bi0)
+    bi12 = xp.linalg.solve(Bmat, uarr)
+    bi22 = xp.linalg.solve(Bmat, bi12)
+    assert xp.linalg.norm( (Bmat @ bi12) - uarr ) < tol
+    assert xp.linalg.norm( (Bmat @ bi22) - bi12 ) < error_est * tol
 
     zeros = U.zeros().toarray()
     z0 = ( Z**0 @ u ).toarray()
     z1 = ( Z**1 @ u ).toarray()
     z2 = ( Z**2 @ u ).toarray()
-    assert np.array_equal(uarr, z0)
-    assert np.array_equal(zeros, z1)
-    assert np.array_equal(zeros, z2)
+    assert xp.array_equal(uarr, z0)
+    assert xp.array_equal(zeros, z1)
+    assert xp.array_equal(zeros, z2)
 
     Smat = S.toarray()
     assert_pos_def(S)
@@ -814,28 +815,28 @@ def test_operator_evaluation(n1, n2, p1, p2):
     s0 = ( S**0 @ v ).toarray()
     s1 = ( S**1 @ v ).toarray()
     s2 = ( S**2 @ v ).toarray()
-    assert np.array_equal(varr, s0)
-    assert np.linalg.norm( np.dot(Smat, varr) - s1 ) < 1e-10
-    assert np.linalg.norm( np.dot(Smat, np.dot(Smat, varr)) - s2 ) < 1e-10
+    assert xp.array_equal(varr, s0)
+    assert xp.linalg.norm( xp.dot(Smat, varr) - s1 ) < 1e-10
+    assert xp.linalg.norm( xp.dot(Smat, xp.dot(Smat, varr)) - s2 ) < 1e-10
 
     si0 = ( S_ILO**0 @ v ).toarray()
     si1 = ( S_ILO**1 @ v ).toarray()
     si2 = ( S_ILO**2 @ v ).toarray()
-    S_inv_mat = np.linalg.inv(Smat)
-    s_inv_arr = np.matrix.flatten(S_inv_mat)
-    error_est = 2 + n1 * n2 * np.max( [ np.abs(s_inv_arr[i]) for i in range(len(s_inv_arr)) ] )
-    assert np.array_equal(varr, si0)
-    si12 = np.linalg.solve(Smat, varr)
-    si22 = np.linalg.solve(Smat, si12)
-    assert np.linalg.norm( (Smat @ si12) - varr ) < tol
-    assert np.linalg.norm( (Smat @ si22) - si12 ) < error_est * tol
+    S_inv_mat = xp.linalg.inv(Smat)
+    s_inv_arr = xp.matrix.flatten(S_inv_mat)
+    error_est = 2 + n1 * n2 * xp.max( [ xp.abs(s_inv_arr[i]) for i in range(len(s_inv_arr)) ] )
+    assert xp.array_equal(varr, si0)
+    si12 = xp.linalg.solve(Smat, varr)
+    si22 = xp.linalg.solve(Smat, si12)
+    assert xp.linalg.norm( (Smat @ si12) - varr ) < tol
+    assert xp.linalg.norm( (Smat @ si22) - si12 ) < error_est * tol
 
     i0 = ( I**0 @ v ).toarray()
     i1 = ( I**1 @ v ).toarray()
     i2 = ( I**2 @ v ).toarray()
-    assert np.array_equal(varr, i0)
-    assert np.array_equal(varr, i1)
-    assert np.array_equal(varr, i2)
+    assert xp.array_equal(varr, i0)
+    assert xp.array_equal(varr, i1)
+    assert xp.array_equal(varr, i2)
 
     ### 2.2 SumLO tests
     Sum1 = B + B_ILO + B + B_ILO
@@ -844,16 +845,16 @@ def test_operator_evaluation(n1, n2, p1, p2):
     sum2 = Sum2 @ v
     u_approx = B @ (0.5*(sum1 - 2*B@u))
     v_approx = S @ (0.5*(sum2 - 2*S@v))
-    assert np.linalg.norm( (u_approx - u).toarray() ) < tol
-    assert np.linalg.norm( (v_approx - v).toarray() ) < tol
+    assert xp.linalg.norm( (u_approx - u).toarray() ) < tol
+    assert xp.linalg.norm( (v_approx - v).toarray() ) < tol
 
     ### 2.3 CompLO tests
     C1 = B @ (-B)
     C2 = S @ (-S)
     c1 = ( C1 @ u ).toarray()
     c2 = ( C2 @ v ).toarray()
-    assert np.array_equal(-c1, b2)
-    assert np.array_equal(-c2, s2)
+    assert xp.array_equal(-c1, b2)
+    assert xp.array_equal(-c2, s2)
 
     ### 2.4 Huge composition
     ZV = ZeroOperator(V, V)
@@ -863,7 +864,7 @@ def test_operator_evaluation(n1, n2, p1, p2):
     H4 = 2 * (S**1 @ S**0)
     H5 = ZV @ I
     H = H1 @ ( H2 + H3 - H4 + H5 ).T
-    assert np.linalg.norm( (H @ v).toarray() - v.toarray() ) < 10 * tol
+    assert xp.linalg.norm( (H @ v).toarray() - v.toarray() ) < 10 * tol
 
     ### 2.5 InverseLO test
 
@@ -893,17 +894,17 @@ def test_operator_evaluation(n1, n2, p1, p2):
     # Several break-criteria in the LSMR algorithm require different way to determine success
     # than asserting rnorm < tol, as that is not required. Even though it should?
 
-    assert np.linalg.norm( (S @ xs_cg - v).toarray() ) < tol
-    assert np.linalg.norm( (S @ xs_pcg - v).toarray() ) < tol
-    assert np.linalg.norm( (S @ xs_bicg - v).toarray() ) < tol
+    assert xp.linalg.norm( (S @ xs_cg - v).toarray() ) < tol
+    assert xp.linalg.norm( (S @ xs_pcg - v).toarray() ) < tol
+    assert xp.linalg.norm( (S @ xs_bicg - v).toarray() ) < tol
     assert S_lsmr.get_success() == True
-    assert np.linalg.norm( (S @ xs_mr - v).toarray() ) < tol
+    assert xp.linalg.norm( (S @ xs_mr - v).toarray() ) < tol
 
-    assert np.linalg.norm( (B @ xb_cg - u).toarray() ) < tol
-    assert np.linalg.norm( (B @ xb_pcg - u).toarray() ) < tol
-    assert np.linalg.norm( (B @ xb_bicg - u).toarray() ) < tol
+    assert xp.linalg.norm( (B @ xb_cg - u).toarray() ) < tol
+    assert xp.linalg.norm( (B @ xb_pcg - u).toarray() ) < tol
+    assert xp.linalg.norm( (B @ xb_bicg - u).toarray() ) < tol
     assert B_lsmr.get_success() == True
-    assert np.linalg.norm( (B @ xb_mr - u).toarray() ) < tol
+    assert xp.linalg.norm( (B @ xb_mr - u).toarray() ) < tol
 
 #===============================================================================
 
@@ -956,8 +957,8 @@ def test_internal_storage():
     assert len(Z2_1.tmp_vectors) == 3
     assert len(Z2_2.tmp_vectors) == 3
     assert len(Z2_3.tmp_vectors) == 3
-    assert np.array_equal( y1_1.toarray(), y1_2.toarray() ) & np.array_equal( y1_2.toarray(), y1_3.toarray() )
-    assert np.array_equal( y2_1.toarray(), y2_2.toarray() ) & np.array_equal( y2_2.toarray(), y2_3.toarray() )
+    assert xp.array_equal( y1_1.toarray(), y1_2.toarray() ) & xp.array_equal( y1_2.toarray(), y1_3.toarray() )
+    assert xp.array_equal( y2_1.toarray(), y2_2.toarray() ) & xp.array_equal( y2_2.toarray(), y2_3.toarray() )
 
 #===============================================================================
 @pytest.mark.parametrize('solver', ['cg', 'pcg', 'bicg', 'minres', 'lsmr'])
@@ -975,7 +976,7 @@ def test_x0update(solver):
     b = StencilVector(V)
     for n in range(n1):
         b[n, :] = 1.
-    assert np.array_equal(b.toarray(), np.ones(n1*n2, dtype=float))
+    assert xp.array_equal(b.toarray(), xp.ones(n1*n2, dtype=float))
 
     # Create Inverse
     tol = 1e-6
@@ -1026,7 +1027,7 @@ def test_dot_inner():
 
     # Set the values of b and c randomly from a uniform distribution over the
     # interval [0, 1)
-    rng = np.random.default_rng(seed=42)
+    rng = xp.random.default_rng(seed=42)
     for bj in b:
         Vj = bj.space
         rng.random(size=Vj.shape, dtype=Vj.dtype, out=bj._data)
@@ -1056,6 +1057,60 @@ def test_dot_inner():
     assert r0 == r1
     assert r0 == r2
     assert r0 == r3
+
+#===============================================================================
+# DRY-RUN / MEMORY REGISTRATION TESTS
+#===============================================================================
+
+def test_stencil_matrix_dry_run_no_data_no_register():
+    """A dry-run StencilMatrix must not allocate _data and must not register."""
+    V = get_StencilVectorSpace(npts=[4, 5], pads=[1, 2], periods=[False, False])
+    stencil_matrix_memory.clear()
+
+    m = StencilMatrix(V, V, dry_run=True)
+
+    assert m.dry_run
+    assert not hasattr(m, '_data'), "dry_run matrix must not allocate _data"
+    assert stencil_matrix_memory.n_matrices == 0, "dry_run matrix must not register in tracker"
+
+
+def test_stencil_matrix_dry_run_data_shape_and_nbytes():
+    """data_shape and nbytes must be usable on a dry-run matrix without error."""
+    V = get_StencilVectorSpace(npts=[4, 5], pads=[1, 2], periods=[False, False])
+
+    m = StencilMatrix(V, V, dry_run=True)
+
+    assert isinstance(m.data_shape, tuple)
+    assert len(m.data_shape) > 0
+    assert isinstance(m.nbytes, int)
+    assert m.nbytes > 0
+
+
+def test_stencil_matrix_allocated_registers_and_contributes_nbytes():
+    """An allocated StencilMatrix must register and contribute to tracker nbytes."""
+    import gc
+    stencil_matrix_memory.clear()
+    gc.collect()
+
+    V = get_StencilVectorSpace(npts=[4, 5], pads=[1, 2], periods=[False, False])
+    m = StencilMatrix(V, V)
+
+    assert not m.dry_run
+    assert hasattr(m, '_data'), "allocated matrix must have _data"
+    assert stencil_matrix_memory.n_matrices >= 1
+    assert stencil_matrix_memory.nbytes >= m.nbytes
+
+
+def test_stencil_matrix_dry_run_nbytes_matches_allocated():
+    """nbytes reported by a dry-run matrix must equal the nbytes of the equivalent allocated one."""
+    V = get_StencilVectorSpace(npts=[4, 5], pads=[1, 2], periods=[False, False])
+
+    m_dry  = StencilMatrix(V, V, dry_run=True)
+    m_alloc = StencilMatrix(V, V)
+
+    assert m_dry.nbytes == m_alloc.nbytes
+    assert m_dry.data_shape == m_alloc.data_shape
+
 
 #===============================================================================
 # SCRIPT FUNCTIONALITY
