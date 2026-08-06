@@ -1,6 +1,7 @@
 # -*- coding: UTF-8 -*-
 
-import numpy as np
+import cunumpy as xp
+from cunumpy.xp import array_backend
 
 from feectools.linalg.kron           import KroneckerLinearSolver, KroneckerStencilMatrix
 from feectools.linalg.stencil        import StencilMatrix, StencilVectorSpace
@@ -159,23 +160,32 @@ class GlobalGeometricProjector(metaclass=ABCMeta):
                     local_intp_x = intp_x[j]
 
                     # for the grids, make interpolation appear like quadrature
-                    local_x = local_intp_x[:, np.newaxis]
-                    local_w = np.ones_like(local_x)
+                    local_x = local_intp_x[:, xp.newaxis]
+                    local_w = xp.ones_like(local_x)
                     solvercells += [V._interpolator]
                     
                     # make 1D collocation matrix in stencil format
-                    row_indices, col_indices = np.nonzero(V.imat)
+                    if array_backend.backend == "cupy":
+                        V_imat = xp.asarray(V.imat)  # converts to cupy array if not already
+                    else:
+                        V_imat = V.imat
+
+                    
+                    row_indices, col_indices = xp.nonzero(V_imat)
 
                     for row_i, col_i in zip(row_indices, col_indices):
 
                         # only consider row indices on process
-                        if row_i in range(V_cart.starts[0], V_cart.ends[0] + 1):
+                        if row_i in range(int(V_cart.starts[0]), int(V_cart.ends[0]) + 1):
                             row_i_loc = row_i - s
 
-                            M._data[row_i_loc + m*p, (col_i + p - row_i)%V.imat.shape[1]] = V.imat[row_i, col_i]
+                            
+                            M._data[row_i_loc + m*p, (col_i + p - row_i)%V.imat.shape[1]] = V_imat[row_i, col_i]
 
                     # check if stencil matrix was built correctly
-                    assert np.allclose(M.toarray()[s:e + 1], V.imat[s:e + 1])
+                    # assert xp.allclose(M.toarray()[s:e + 1], V_imat[s:e + 1])
+                    assert xp.allclose(M.toarray()[int(s):int(e) + 1], V_imat[int(s):int(e) + 1])
+
                     # TODO Fix toarray() for multiplicity m > 1
                     matrixcells += [M.copy()]
                     
@@ -197,18 +207,20 @@ class GlobalGeometricProjector(metaclass=ABCMeta):
                     solvercells += [V._histopolator]
                     
                     # make 1D collocation matrix in stencil format
-                    row_indices, col_indices = np.nonzero(V.hmat)
+                    if array_backend.backend == "cupy":
+                        row_indices, col_indices = xp.nonzero(xp.array(V.hmat))
+                    else:
+                        row_indices, col_indices = xp.nonzero(V.hmat)
 
                     for row_i, col_i in zip(row_indices, col_indices):
 
                         # only consider row indices on process
-                        if row_i in range(V_cart.starts[0], V_cart.ends[0] + 1):
+                        if row_i in range(int(V_cart.starts[0]), int(V_cart.ends[0]) + 1):
                             row_i_loc = row_i - s
-
-                            M._data[row_i_loc + m*p, (col_i + p - row_i)%V.hmat.shape[1]] = V.hmat[row_i, col_i]
+                            M._data[row_i_loc + m*p, (col_i + p - row_i)%V.hmat.shape[1]] = V.hmat[int(row_i), int(col_i)]
 
                     # check if stencil matrix was built correctly
-                    assert np.allclose(M.toarray()[s:e + 1], V.hmat[s:e + 1])
+                    assert xp.allclose(M.toarray()[int(s):int(e) + 1], V.hmat[int(s):int(e) + 1])
 
                     matrixcells += [M.copy()]
                     
@@ -781,12 +793,12 @@ def evaluate_dofs_1d_0form(
         ):
     
     # evaluate input functions at interpolation points (make sure that points are in [0, 1])
-    assert np.all(np.logical_and(intp_x1 >= 0., intp_x1 <= 1.))
+    assert xp.all(xp.logical_and(intp_x1 >= 0., intp_x1 <= 1.))
     
-    E1, = np.meshgrid(intp_x1, indexing='ij')
+    E1, = xp.meshgrid(intp_x1, indexing='ij')
     f_pts = f(E1)
     
-    F_temp = np.zeros_like(F, order='C')
+    F_temp = xp.zeros_like(F, order='C')
     
     dof_kernels.evaluate_dofs_1d_0form(F_temp, f_pts)
     
@@ -801,11 +813,11 @@ def evaluate_dofs_1d_1form(
         ):
 
     # evaluate input functions at quadrature points (make sure that points are in [0, 1])
-    E1, = np.meshgrid(quad_x1.flatten()%1., indexing='ij')
+    E1, = xp.meshgrid(quad_x1.flatten()%1., indexing='ij')
     f_pts = f(E1)
     
     # call kernel
-    F_temp = np.zeros_like(F, order='C')
+    F_temp = xp.zeros_like(F, order='C')
     
     dof_kernels.evaluate_dofs_1d_1form(quad_w1, F_temp, f_pts)
     
@@ -822,13 +834,13 @@ def evaluate_dofs_2d_0form(
         ):
     
     # evaluate input functions at interpolation points (make sure that points are in [0, 1])
-    assert np.all(np.logical_and(intp_x1 >= 0., intp_x1 <= 1.))
-    assert np.all(np.logical_and(intp_x2 >= 0., intp_x2 <= 1.))
+    assert xp.all(xp.logical_and(intp_x1 >= 0., intp_x1 <= 1.))
+    assert xp.all(xp.logical_and(intp_x2 >= 0., intp_x2 <= 1.))
     
-    E1, E2 = np.meshgrid(intp_x1, intp_x2, indexing='ij')
+    E1, E2 = xp.meshgrid(intp_x1, intp_x2, indexing='ij')
     f_pts = f(E1, E2)
     
-    F_temp = np.zeros_like(F, order='C')
+    F_temp = xp.zeros_like(F, order='C')
     
     dof_kernels.evaluate_dofs_2d_0form(F_temp, f_pts)
     
@@ -844,18 +856,18 @@ def evaluate_dofs_2d_1form_hcurl(
         ):
 
     # evaluate input functions at quadrature/interpolation points (make sure that points are in [0, 1])
-    assert np.all(np.logical_and(intp_x1 >= 0., intp_x1 <= 1.))
-    assert np.all(np.logical_and(intp_x2 >= 0., intp_x2 <= 1.))
+    assert xp.all(xp.logical_and(intp_x1 >= 0., intp_x1 <= 1.))
+    assert xp.all(xp.logical_and(intp_x2 >= 0., intp_x2 <= 1.))
     
-    E1, E2 = np.meshgrid(quad_x1.flatten()%1., intp_x2, indexing='ij')
+    E1, E2 = xp.meshgrid(quad_x1.flatten()%1., intp_x2, indexing='ij')
     f1_pts = f1(E1, E2)
     
-    E1, E2 = np.meshgrid(intp_x1, quad_x2.flatten()%1., indexing='ij')
+    E1, E2 = xp.meshgrid(intp_x1, quad_x2.flatten()%1., indexing='ij')
     f2_pts = f2(E1, E2)
     
     # call kernel
-    F1_temp = np.zeros_like(F1, order='C')
-    F2_temp = np.zeros_like(F2, order='C')
+    F1_temp = xp.zeros_like(F1, order='C')
+    F2_temp = xp.zeros_like(F2, order='C')
     
     dof_kernels.evaluate_dofs_2d_1form_hcurl(quad_w1, quad_w2, F1_temp, F2_temp, f1_pts, f2_pts)
     
@@ -872,18 +884,18 @@ def evaluate_dofs_2d_1form_hdiv(
         ):
 
     # evaluate input functions at quadrature/interpolation points (make sure that points are in [0, 1])
-    assert np.all(np.logical_and(intp_x1 >= 0., intp_x1 <= 1.))
-    assert np.all(np.logical_and(intp_x2 >= 0., intp_x2 <= 1.))
+    assert xp.all(xp.logical_and(intp_x1 >= 0., intp_x1 <= 1.))
+    assert xp.all(xp.logical_and(intp_x2 >= 0., intp_x2 <= 1.))
     
-    E1, E2 = np.meshgrid(intp_x1, quad_x2.flatten()%1., indexing='ij')
+    E1, E2 = xp.meshgrid(intp_x1, quad_x2.flatten()%1., indexing='ij')
     f1_pts = f1(E1, E2)
     
-    E1, E2 = np.meshgrid(quad_x1.flatten()%1., intp_x2, indexing='ij')
+    E1, E2 = xp.meshgrid(quad_x1.flatten()%1., intp_x2, indexing='ij')
     f2_pts = f2(E1, E2)
     
     # call kernel
-    F1_temp = np.zeros_like(F1, order='C')
-    F2_temp = np.zeros_like(F2, order='C')
+    F1_temp = xp.zeros_like(F1, order='C')
+    F2_temp = xp.zeros_like(F2, order='C')
     
     dof_kernels.evaluate_dofs_2d_1form_hdiv(quad_w1, quad_w2, F1_temp, F2_temp, f1_pts, f2_pts)
     
@@ -899,11 +911,11 @@ def evaluate_dofs_2d_2form(
         ):
 
     # evaluate input functions at quadrature points (make sure that points are in [0, 1])
-    E1, E2 = np.meshgrid(quad_x1.flatten()%1., quad_x2.flatten()%1., indexing='ij')
+    E1, E2 = xp.meshgrid(quad_x1.flatten()%1., quad_x2.flatten()%1., indexing='ij')
     f_pts = f(E1, E2)
     
     # call kernel
-    F_temp = np.zeros_like(F, order='C')
+    F_temp = xp.zeros_like(F, order='C')
     
     dof_kernels.evaluate_dofs_2d_2form(quad_w1, quad_w2, F_temp, f_pts)
     
@@ -917,16 +929,16 @@ def evaluate_dofs_2d_vec(
         ):
     
     # evaluate input functions at interpolation points (make sure that points are in [0, 1])
-    assert np.all(np.logical_and(intp_x1 >= 0., intp_x1 <= 1.))
-    assert np.all(np.logical_and(intp_x2 >= 0., intp_x2 <= 1.))
+    assert xp.all(xp.logical_and(intp_x1 >= 0., intp_x1 <= 1.))
+    assert xp.all(xp.logical_and(intp_x2 >= 0., intp_x2 <= 1.))
     
-    E1, E2 = np.meshgrid(intp_x1, intp_x2, indexing='ij')
+    E1, E2 = xp.meshgrid(intp_x1, intp_x2, indexing='ij')
     f1_pts = f1(E1, E2)
     f2_pts = f2(E1, E2)
     
     # call kernel
-    F1_temp = np.zeros_like(F1, order='C')
-    F2_temp = np.zeros_like(F2, order='C')
+    F1_temp = xp.zeros_like(F1, order='C')
+    F2_temp = xp.zeros_like(F2, order='C')
     
     dof_kernels.evaluate_dofs_2d_vec(F1_temp, F2_temp, f1_pts, f2_pts)
     
@@ -944,14 +956,14 @@ def evaluate_dofs_3d_0form(
         ):
     
     # evaluate input functions at interpolation points (make sure that points are in [0, 1])
-    assert np.all(np.logical_and(intp_x1 >= 0., intp_x1 <= 1.))
-    assert np.all(np.logical_and(intp_x2 >= 0., intp_x2 <= 1.))
-    assert np.all(np.logical_and(intp_x3 >= 0., intp_x3 <= 1.))
+    assert xp.all(xp.logical_and(intp_x1 >= 0., intp_x1 <= 1.))
+    assert xp.all(xp.logical_and(intp_x2 >= 0., intp_x2 <= 1.))
+    assert xp.all(xp.logical_and(intp_x3 >= 0., intp_x3 <= 1.))
     
-    E1, E2, E3 = np.meshgrid(intp_x1, intp_x2, intp_x3, indexing='ij')
+    E1, E2, E3 = xp.meshgrid(intp_x1, intp_x2, intp_x3, indexing='ij')
     f_pts = f(E1, E2, E3)
     
-    F_temp = np.zeros_like(F, order='C')
+    F_temp = xp.zeros_like(F, order='C')
     
     dof_kernels.evaluate_dofs_3d_0form(F_temp, f_pts)
     
@@ -967,23 +979,23 @@ def evaluate_dofs_3d_1form(
         ):
 
     # evaluate input functions at quadrature/interpolation points (make sure that points are in [0, 1])
-    assert np.all(np.logical_and(intp_x1 >= 0., intp_x1 <= 1.))
-    assert np.all(np.logical_and(intp_x2 >= 0., intp_x2 <= 1.))
-    assert np.all(np.logical_and(intp_x3 >= 0., intp_x3 <= 1.))
+    assert xp.all(xp.logical_and(intp_x1 >= 0., intp_x1 <= 1.))
+    assert xp.all(xp.logical_and(intp_x2 >= 0., intp_x2 <= 1.))
+    assert xp.all(xp.logical_and(intp_x3 >= 0., intp_x3 <= 1.))
     
-    E1, E2, E3 = np.meshgrid(quad_x1.flatten()%1., intp_x2, intp_x3, indexing='ij')
+    E1, E2, E3 = xp.meshgrid(quad_x1.flatten()%1., intp_x2, intp_x3, indexing='ij')
     f1_pts = f1(E1, E2, E3)
     
-    E1, E2, E3 = np.meshgrid(intp_x1, quad_x2.flatten()%1., intp_x3, indexing='ij')
+    E1, E2, E3 = xp.meshgrid(intp_x1, quad_x2.flatten()%1., intp_x3, indexing='ij')
     f2_pts = f2(E1, E2, E3)
     
-    E1, E2, E3 = np.meshgrid(intp_x1, intp_x2, quad_x3.flatten()%1., indexing='ij')
+    E1, E2, E3 = xp.meshgrid(intp_x1, intp_x2, quad_x3.flatten()%1., indexing='ij')
     f3_pts = f3(E1, E2, E3)
     
     # call kernel
-    F1_temp = np.zeros_like(F1, order='C')
-    F2_temp = np.zeros_like(F2, order='C')
-    F3_temp = np.zeros_like(F3, order='C')
+    F1_temp = xp.zeros_like(F1, order='C')
+    F2_temp = xp.zeros_like(F2, order='C')
+    F3_temp = xp.zeros_like(F3, order='C')
     
     dof_kernels.evaluate_dofs_3d_1form(quad_w1, quad_w2, quad_w3, F1_temp, F2_temp, F3_temp, f1_pts, f2_pts, f3_pts)
     
@@ -1001,23 +1013,23 @@ def evaluate_dofs_3d_2form(
         ):
 
     # evaluate input functions at quadrature/interpolation points (make sure that points are in [0, 1])
-    assert np.all(np.logical_and(intp_x1 >= 0., intp_x1 <= 1.))
-    assert np.all(np.logical_and(intp_x2 >= 0., intp_x2 <= 1.))
-    assert np.all(np.logical_and(intp_x3 >= 0., intp_x3 <= 1.))
+    assert xp.all(xp.logical_and(intp_x1 >= 0., intp_x1 <= 1.))
+    assert xp.all(xp.logical_and(intp_x2 >= 0., intp_x2 <= 1.))
+    assert xp.all(xp.logical_and(intp_x3 >= 0., intp_x3 <= 1.))
     
-    E1, E2, E3 = np.meshgrid(intp_x1, quad_x2.flatten()%1., quad_x3.flatten()%1., indexing='ij')
+    E1, E2, E3 = xp.meshgrid(intp_x1, quad_x2.flatten()%1., quad_x3.flatten()%1., indexing='ij')
     f1_pts = f1(E1, E2, E3)
     
-    E1, E2, E3 = np.meshgrid(quad_x1.flatten()%1., intp_x2, quad_x3.flatten()%1., indexing='ij')
+    E1, E2, E3 = xp.meshgrid(quad_x1.flatten()%1., intp_x2, quad_x3.flatten()%1., indexing='ij')
     f2_pts = f2(E1, E2, E3)
     
-    E1, E2, E3 = np.meshgrid(quad_x1.flatten()%1., quad_x2.flatten()%1., intp_x3, indexing='ij')
+    E1, E2, E3 = xp.meshgrid(quad_x1.flatten()%1., quad_x2.flatten()%1., intp_x3, indexing='ij')
     f3_pts = f3(E1, E2, E3)
     
     # call kernel
-    F1_temp = np.zeros_like(F1, order='C')
-    F2_temp = np.zeros_like(F2, order='C')
-    F3_temp = np.zeros_like(F3, order='C')
+    F1_temp = xp.zeros_like(F1, order='C')
+    F2_temp = xp.zeros_like(F2, order='C')
+    F3_temp = xp.zeros_like(F3, order='C')
     
     dof_kernels.evaluate_dofs_3d_2form(quad_w1, quad_w2, quad_w3, F1_temp, F2_temp, F3_temp, f1_pts, f2_pts, f3_pts)
     
@@ -1034,11 +1046,11 @@ def evaluate_dofs_3d_3form(
         ):
 
     # evaluate input functions at quadrature points (make sure that points are in [0, 1])
-    E1, E2, E3 = np.meshgrid(quad_x1.flatten()%1., quad_x2.flatten()%1., quad_x3.flatten()%1., indexing='ij')
+    E1, E2, E3 = xp.meshgrid(quad_x1.flatten()%1., quad_x2.flatten()%1., quad_x3.flatten()%1., indexing='ij')
     f_pts = f(E1, E2, E3)
     
     # call kernel
-    F_temp = np.zeros_like(F, order='C')
+    F_temp = xp.zeros_like(F, order='C')
     
     dof_kernels.evaluate_dofs_3d_3form(quad_w1, quad_w2, quad_w3, F_temp, f_pts)
     
@@ -1052,19 +1064,19 @@ def evaluate_dofs_3d_vec(
         ):
     
     # evaluate input functions at interpolation points (make sure that points are in [0, 1])
-    assert np.all(np.logical_and(intp_x1 >= 0., intp_x1 <= 1.))
-    assert np.all(np.logical_and(intp_x2 >= 0., intp_x2 <= 1.))
-    assert np.all(np.logical_and(intp_x3 >= 0., intp_x3 <= 1.))
+    assert xp.all(xp.logical_and(intp_x1 >= 0., intp_x1 <= 1.))
+    assert xp.all(xp.logical_and(intp_x2 >= 0., intp_x2 <= 1.))
+    assert xp.all(xp.logical_and(intp_x3 >= 0., intp_x3 <= 1.))
     
-    E1, E2, E3 = np.meshgrid(intp_x1, intp_x2, intp_x3, indexing='ij')
+    E1, E2, E3 = xp.meshgrid(intp_x1, intp_x2, intp_x3, indexing='ij')
     f1_pts = f1(E1, E2, E3)
     f2_pts = f2(E1, E2, E3)
     f3_pts = f3(E1, E2, E3)
     
     # call kernel
-    F1_temp = np.zeros_like(F1, order='C')
-    F2_temp = np.zeros_like(F2, order='C')
-    F3_temp = np.zeros_like(F3, order='C')
+    F1_temp = xp.zeros_like(F1, order='C')
+    F2_temp = xp.zeros_like(F2, order='C')
+    F3_temp = xp.zeros_like(F3, order='C')
     
     dof_kernels.evaluate_dofs_3d_vec(F1_temp, F2_temp, F3_temp, f1_pts, f2_pts, f3_pts)
     

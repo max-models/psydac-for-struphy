@@ -1,4 +1,4 @@
-import numpy as np
+import cunumpy as xp
 
 from sympde.topology            import element_of
 from sympde.topology.space      import ScalarFunction
@@ -18,8 +18,8 @@ __all__ = ('knots_to_insert', 'knot_insertion_projection_operator')
 def knots_to_insert(coarse_grid, fine_grid, tol=1e-14):
     """ Compute the point difference between the fine grid and coarse grid."""
 #    assert len(coarse_grid)*2-2 == len(fine_grid)-1
-    indices1 =  (np.abs(fine_grid  [:,None] - coarse_grid) < tol).any(0)
-    indices2 = ~(np.abs(coarse_grid[:,None] - fine_grid  ) < tol).any(0)
+    indices1 =  (xp.abs(fine_grid  [:,None] - coarse_grid) < tol).any(0)
+    indices2 = ~(xp.abs(coarse_grid[:,None] - fine_grid  ) < tol).any(0)
 
     intersection = coarse_grid[indices1]
     T            = fine_grid[indices2]
@@ -91,7 +91,7 @@ def knot_insertion_projection_operator(domain, codomain):
 
             if d.basis == 'M':
                 assert c.basis == 'M'
-                P = np.diag(1 / d._scaling_array) @ P @ np.diag(c._scaling_array)
+                P = xp.diag(1 / d._scaling_array) @ P @ xp.diag(c._scaling_array)
 
             ops.append(P.T)
 
@@ -101,12 +101,12 @@ def knot_insertion_projection_operator(domain, codomain):
 
             if d.basis == 'M':
                 assert c.basis == 'M'
-                P = np.diag(1 / c._scaling_array) @ P @ np.diag(d._scaling_array)
+                P = xp.diag(1 / c._scaling_array) @ P @ xp.diag(d._scaling_array)
 
             ops.append(P)
 
         else:
-            ops.append(np.eye(d.nbasis))
+            ops.append(xp.eye(d.nbasis))
 
     return KroneckerDenseMatrix(domain.coeff_space, codomain.coeff_space, *ops)
 

@@ -1,7 +1,9 @@
-# coding: utf-8
-# Copyright 2018 Yaman Güçlü
-
-import numpy as np
+#---------------------------------------------------------------------------#
+# This file is part of PSYDAC which is released under MIT License. See the  #
+# LICENSE file or go to https://github.com/pyccel/psydac/blob/devel/LICENSE #
+# for full license details.                                                 #
+#---------------------------------------------------------------------------#
+import cunumpy as xp
 
 #===============================================================================
 def horner( x, *poly_coeffs ):
@@ -18,10 +20,10 @@ def random_grid( domain, ncells, random_fraction ):
     """ Create random grid over 1D domain with given number of cells.
     """
     # Create uniform grid on [0,1]
-    x = np.linspace( 0.0, 1.0, ncells+1 )
+    x = xp.linspace( 0.0, 1.0, ncells+1 )
 
     # Apply random displacement to all points, then sort grid
-    x += (np.random.random_sample( ncells+1 )-0.5) * (random_fraction/ncells)
+    x += (xp.random.random_sample( ncells+1 )-0.5) * (random_fraction/ncells)
     x.sort()
 
     # Apply linear transformation y=m*x+q to match domain limits

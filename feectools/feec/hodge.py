@@ -1,5 +1,4 @@
 import os
-import numpy as np
 
 from sympde.topology import elements_of
 from sympde.topology.space import ScalarFunction

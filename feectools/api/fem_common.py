@@ -2,7 +2,7 @@ from typing import Iterable
 
 from sympy import Expr, ImmutableDenseMatrix, Matrix
 
-import numpy as np
+import cunumpy as xp
 
 from sympde.expr.basic           import BasicForm
 from sympde.expr.evaluation      import KernelExpression
@@ -215,8 +215,8 @@ def collect_spaces(space, *args):
 
 #==============================================================================
 def compute_diag_len(p, md, mc):
-    n = ((np.ceil((p+1)/mc)-1)*md).astype('int')
-    n = n-np.minimum(0, n-p)+p+1
+    n = ((xp.ceil((p+1)/mc)-1)*md).astype('int')
+    n = n-xp.minimum(0, n-p)+p+1
     return n.astype('int')
 
 #==============================================================================

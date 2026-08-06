@@ -1,5 +1,5 @@
 
-import numpy as np
+import cunumpy as xp
 import pytest
 from feectools.linalg.solvers import inverse
 from feectools.linalg.stencil import StencilVectorSpace, StencilMatrix, StencilVector
@@ -9,7 +9,7 @@ from feectools.ddm.cart import DomainDecomposition, CartDecomposition
 
 def define_data_hermitian(n, p, dtype=float):
     domain_decomposition = DomainDecomposition([n - p], [False])
-    cart = CartDecomposition(domain_decomposition, [n], [np.array([0])], [np.array([n - 1])], [p], [1])
+    cart = CartDecomposition(domain_decomposition, [n], [xp.array([0])], [xp.array([n - 1])], [p], [1])
     # ... Vector Spaces
     V = StencilVectorSpace(cart,dtype=dtype)
     e = V.ends[0]
@@ -29,12 +29,12 @@ def define_data_hermitian(n, p, dtype=float):
 
     # Build exact solution
     xe = StencilVector(V)
-    xe[s:e + 1] = factor*np.random.random(e + 1 - s)
+    xe[s:e + 1] = factor*xp.random.random(e + 1 - s)
     return(V, A, xe)
 
 def define_data(n, p, matrix_data, dtype=float):
     domain_decomposition = DomainDecomposition([n - p], [False])
-    cart = CartDecomposition(domain_decomposition, [n], [np.array([0])], [np.array([n - 1])], [p], [1])
+    cart = CartDecomposition(domain_decomposition, [n], [xp.array([0])], [xp.array([n - 1])], [p], [1])
     # ... Vector Spaces
     V = StencilVectorSpace(cart, dtype=dtype)
     e = V.ends[0]
@@ -51,7 +51,7 @@ def define_data(n, p, matrix_data, dtype=float):
 
     # Build exact solution
     xe = StencilVector(V)
-    xe[s:e + 1] = np.random.random(e + 1 - s)
+    xe[s:e + 1] = xp.random.random(e + 1 - s)
     return(V, A, xe)
 
 
@@ -126,29 +126,29 @@ def test_solver_tridiagonal(n, p, dtype, solver, verbose=False):
     x = solv @ be
     info = solv.get_info()
     solv_x0 = solv._options["x0"]
-    assert np.array_equal(x.toarray(), solv_x0.toarray())
+    assert xp.array_equal(x.toarray(), solv_x0.toarray())
     assert x is not solv_x0
 
     x2 = solv @ be2
     solv_x0 = solv._options["x0"]
-    assert np.array_equal(x2.toarray(), solv_x0.toarray())
+    assert xp.array_equal(x2.toarray(), solv_x0.toarray())
     assert x2 is not solv_x0
 
     xt = solvt.solve(bet)
     solvt_x0 = solvt._options["x0"]
-    assert np.array_equal(xt.toarray(), solvt_x0.toarray())
+    assert xp.array_equal(xt.toarray(), solvt_x0.toarray())
     assert xt is not solvt_x0
 
     xh = solvh.dot(beh)
     solvh_x0 = solvh._options["x0"]
-    assert np.array_equal(xh.toarray(), solvh_x0.toarray())
+    assert xp.array_equal(xh.toarray(), solvh_x0.toarray())
     assert xh is not solvh_x0
 
     if solver != 'pcg':
         # PCG only works with operators with diagonal
         xc = solv2 @ be2
         solv2_x0 = solv2._options["x0"]
-        assert np.array_equal(xc.toarray(), solv2_x0.toarray())
+        assert xp.array_equal(xc.toarray(), solv2_x0.toarray())
         assert xc is not solv2_x0
 
 
@@ -161,17 +161,17 @@ def test_solver_tridiagonal(n, p, dtype, solver, verbose=False):
         bc = A @ A @ xc
 
     err = b - be
-    err_norm = np.linalg.norm( err.toarray() )
+    err_norm = xp.linalg.norm( err.toarray() )
     err2 = b2 - be2
-    err2_norm = np.linalg.norm( err2.toarray() )
+    err2_norm = xp.linalg.norm( err2.toarray() )
     errt = bt - bet
-    errt_norm = np.linalg.norm( errt.toarray() )
+    errt_norm = xp.linalg.norm( errt.toarray() )
     errh = bh - beh
-    errh_norm = np.linalg.norm( errh.toarray() )
+    errh_norm = xp.linalg.norm( errh.toarray() )
 
     if solver != 'pcg': 
         errc = bc - be2
-        errc_norm = np.linalg.norm( errc.toarray() )
+        errc_norm = xp.linalg.norm( errc.toarray() )
 
     #---------------------------------------------------------------------------
     # TERMINAL OUTPUT

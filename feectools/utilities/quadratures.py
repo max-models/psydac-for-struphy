@@ -1,16 +1,17 @@
-# -*- coding: UTF-8 -*-
-#! /usr/bin/python
-
+#---------------------------------------------------------------------------#
+# This file is part of PSYDAC which is released under MIT License. See the  #
+# LICENSE file or go to https://github.com/pyccel/psydac/blob/devel/LICENSE #
+# for full license details.                                                 #
+#---------------------------------------------------------------------------#
 """
 This module contains some routines to generate quadrature points in 1D
 it has also a routine uniform, which generates uniform points
 with weights equal to 1
 """
 
-import numpy as np
-
 from math import cos, pi
-from numpy import zeros
+
+import cunumpy as xp
 
 
 __all__ = ('gauss_legendre', 'gauss_lobatto', 'quadrature')
@@ -55,8 +56,8 @@ def gauss_legendre(m, tol=1e-13):
         dp = m*(p0 - t*p1)/(1.0 - t**2)
         return p1, dp
 
-    A = zeros(m)
-    x = zeros(m)
+    A = xp.zeros(m)
+    x = xp.zeros(m)
     nRoots = (m + 1) // 2          # Number of non-neg. roots
     for i in range(nRoots):
         t = cos(pi*(i + 0.75)/(m + 0.5))  # Approx. root
@@ -78,11 +79,11 @@ def gauss_lobatto(k):
     Returns nodal abscissas {x} and weights {A} of
     Gauss-Legendre m-point quadrature.
     """
-    beta = .5 / np.sqrt(1-(2 * np.arange(1., k + 1)) ** (-2)) #3-term recurrence coeffs
-    beta[-1] = np.sqrt((k / (2 * k-1.)))
-    T = np.diag(beta, 1) + np.diag(beta, -1) # jacobi matrix
-    D, V = np.linalg.eig(T) # eigenvalue decomposition
-    xg = np.real(D); i = xg.argsort(); xg.sort() # nodes (= Legendres points)
+    beta = .5 / xp.sqrt(1-(2 * xp.arange(1., k + 1)) ** (-2)) #3-term recurrence coeffs
+    beta[-1] = xp.sqrt((k / (2 * k-1.)))
+    T = xp.diag(beta, 1) + xp.diag(beta, -1) # jacobi matrix
+    D, V = xp.linalg.eig(T) # eigenvalue decomposition
+    xg = xp.real(D); i = xg.argsort(); xg.sort() # nodes (= Legendres points)
     w = 2 * (V[0, :]) ** 2; # weights
 
     return xg, w[i]
@@ -102,8 +103,8 @@ def quadrature(a, k, method="legendre"):
 
     grid = a
     N = len(a)
-    xgl = np.zeros((N-1, k + 1))
-    wgl = np.zeros((N-1, k + 1))
+    xgl = xp.zeros((N-1, k + 1))
+    wgl = xp.zeros((N-1, k + 1))
     for i in range (0, N-1):
         xmin = grid[i];xmax = grid[i + 1];dx = 0.5 * (xmax-xmin)
         tab = dx * x + dx + xmin
