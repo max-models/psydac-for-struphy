@@ -1055,13 +1055,16 @@ class StencilMatrix(LinearOperator):
         import numpy as _np
         self_data_np = _to_numpy_array(self._data)
         v_data_np = _to_numpy_array(v._data)
-        out_data_np = _np.empty(out._data.shape, dtype=out._data.dtype)
-        
+        # zeros, not empty: the compiled kernel only writes the interior
+        # (non-padding) region, so padding must be pre-initialized to avoid
+        # leaking uninitialized memory into ghost regions of the output.
+        out_data_np = _np.zeros(out._data.shape, dtype=out._data.dtype)
+
         # Convert args that might be CuPy arrays
         args_np = {}
         for key, val in self._args.items():
             args_np[key] = _to_numpy_array(val)
-        
+
         self._func(self_data_np, v_data_np, out_data_np, **args_np)
         
         # Copy result back to CuPy array if needed
@@ -1112,7 +1115,8 @@ class StencilMatrix(LinearOperator):
         import numpy as _np
         self_data_np = _to_numpy_array(self._data)
         v_data_conj_np = _to_numpy_array(xp.conjugate(v._data))
-        out_data_np = _np.empty(out._data.shape, dtype=out._data.dtype)
+        # zeros, not empty: see comment in dot() above.
+        out_data_np = _np.zeros(out._data.shape, dtype=out._data.dtype)
         
         # Convert args that might be CuPy arrays
         args_np = {}
