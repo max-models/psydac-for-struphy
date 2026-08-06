@@ -4,6 +4,7 @@ import cunumpy as xp
 from feectools.linalg.block import BlockLinearOperator, BlockVector, BlockVectorSpace
 from feectools.linalg.basic import LinearOperator, ZeroOperator, IdentityOperator, ComposedLinearOperator, SumLinearOperator, PowerLinearOperator, ScaledLinearOperator
 from feectools.linalg.stencil import StencilVectorSpace, StencilVector, StencilMatrix
+from feectools.linalg.memory import stencil_matrix_memory
 from feectools.linalg.solvers import ConjugateGradient, inverse
 from feectools.ddm.cart       import DomainDecomposition, CartDecomposition
 
@@ -1056,6 +1057,58 @@ def test_dot_inner():
     assert r0 == r1
     assert r0 == r2
     assert r0 == r3
+
+#===============================================================================
+# DRY-RUN / MEMORY REGISTRATION TESTS
+#===============================================================================
+
+def test_stencil_matrix_dry_run_no_data_no_register():
+    """A dry-run StencilMatrix must not allocate _data and must not register."""
+    V = get_StencilVectorSpace(npts=[4, 5], pads=[1, 2], periods=[False, False])
+    stencil_matrix_memory.clear()
+
+    m = StencilMatrix(V, V, dry_run=True)
+
+    assert m.dry_run
+    assert not hasattr(m, '_data'), "dry_run matrix must not allocate _data"
+    assert stencil_matrix_memory.n_matrices == 0, "dry_run matrix must not register in tracker"
+
+
+def test_stencil_matrix_dry_run_data_shape_and_nbytes():
+    """data_shape and nbytes must be usable on a dry-run matrix without error."""
+    V = get_StencilVectorSpace(npts=[4, 5], pads=[1, 2], periods=[False, False])
+
+    m = StencilMatrix(V, V, dry_run=True)
+
+    assert isinstance(m.data_shape, tuple)
+    assert len(m.data_shape) > 0
+    assert isinstance(m.nbytes, int)
+    assert m.nbytes > 0
+
+
+def test_stencil_matrix_allocated_registers_and_contributes_nbytes():
+    """An allocated StencilMatrix must register and contribute to tracker nbytes."""
+    V = get_StencilVectorSpace(npts=[4, 5], pads=[1, 2], periods=[False, False])
+    stencil_matrix_memory.clear()
+
+    m = StencilMatrix(V, V)
+
+    assert not m.dry_run
+    assert hasattr(m, '_data'), "allocated matrix must have _data"
+    assert stencil_matrix_memory.n_matrices == 1
+    assert stencil_matrix_memory.nbytes == m.nbytes
+
+
+def test_stencil_matrix_dry_run_nbytes_matches_allocated():
+    """nbytes reported by a dry-run matrix must equal the nbytes of the equivalent allocated one."""
+    V = get_StencilVectorSpace(npts=[4, 5], pads=[1, 2], periods=[False, False])
+
+    m_dry  = StencilMatrix(V, V, dry_run=True)
+    m_alloc = StencilMatrix(V, V)
+
+    assert m_dry.nbytes == m_alloc.nbytes
+    assert m_dry.data_shape == m_alloc.data_shape
+
 
 #===============================================================================
 # SCRIPT FUNCTIONALITY
