@@ -23,7 +23,7 @@ def to_bnd(A):
     ua   = dmat.offsets.max()
     cmat = dmat.tocsr()
 
-    A_bnd = xp.zeros((1+ua+2*la, cmat.shape[1]), A.dtype)
+    A_bnd = xp.zeros((1+ua+2*la, cmat.shape[1]), dtype=A.dtype)
 
     for i,j in zip(*cmat.nonzero()):
         A_bnd[la+ua+i-j, j] = cmat[i,j]
