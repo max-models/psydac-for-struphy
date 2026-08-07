@@ -140,7 +140,7 @@ class SplineSpace( FemSpace ):
 
         # Create space of spline coefficients
         domain_decomposition = DomainDecomposition([self._ncells], [periodic])
-        cart     = CartDecomposition(domain_decomposition, [nbasis], [xp.array([0])],[xp.array([nbasis-1])], [self._pads], [multiplicity])
+        cart     = CartDecomposition(domain_decomposition, [nbasis], [_np.array([0])],[_np.array([nbasis-1])], [self._pads], [multiplicity])
         self._coeff_space = StencilVectorSpace(cart)
 
         # Store flag: object NOT YET prepared for interpolation / histopolation
@@ -189,7 +189,7 @@ class SplineSpace( FemSpace ):
             # Convert to CSC format and compute sparse LU decomposition
             
             # Convert to LAPACK banded format (see DGBTRF function)
-            if array_backend.backend == "cupy":
+            if hasattr(imat, 'get'):
                 imat = imat.get()
             else:
                 imat = _np.asanyarray(imat)
@@ -231,7 +231,7 @@ class SplineSpace( FemSpace ):
             xgrid    = self.ext_greville,
             multiplicity = self._multiplicity
         )
-        if array_backend.backend == "cupy":
+        if hasattr(imat, 'get'):
             imat = imat.get()
         else:
             imat = _np.asanyarray(imat)

@@ -1,9 +1,5 @@
-#---------------------------------------------------------------------------#
-# This file is part of PSYDAC which is released under MIT License. See the  #
-# LICENSE file or go to https://github.com/pyccel/psydac/blob/devel/LICENSE #
-# for full license details.                                                 #
-#---------------------------------------------------------------------------#
 import cunumpy as xp
+import numpy as np
 import numpy.ma as ma
 
 from sympy.ntheory import factorint

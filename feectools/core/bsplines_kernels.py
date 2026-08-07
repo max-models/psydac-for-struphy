@@ -7,6 +7,8 @@
 # This file holds the pyccelisable versions of the functions in bsplines.py
 # This will be changed once pyccel can return arrays and can get out=None arguments
 # like Numpy functions.
+# NOTE: This file must use ONLY numpy for pyccel compilation compatibility.
+# Backend conversion (NumPy/CuPy) happens at the Python wrapper level.
 
 from pyccel.decorators import pure
 from numpy import shape, abs
@@ -401,6 +403,9 @@ def basis_funs_all_ders_p(knots: 'float[:]', degree: int, x: float, span: int, n
     .. [1] L. Piegl and W. Tiller. The NURBS Book, 2nd ed.,
         Springer-Verlag Berlin Heidelberg GmbH, 1997.
     """
+    # Detect backend from output array
+    # Backend array operations removed - always use numpy
+    
     sh_a  = np.empty(2)
     sh_b  = np.empty(2)
     left  = np.empty(degree)
@@ -556,6 +561,9 @@ def collocation_matrix_p(knots: 'float[:]', degree: int, periodic: bool, normali
         multiplicity applies to each interior knot.
         
     """
+    # Detect backend from output array
+    # Backend array operations removed - always use numpy
+    
     # Number of basis functions (in periodic case remove degree repeated elements)
     nb = len(knots)-degree-1
     if periodic:
@@ -565,7 +573,7 @@ def collocation_matrix_p(knots: 'float[:]', degree: int, periodic: bool, normali
     nx = len(xgrid)
 
     basis = np.zeros((nx, degree + 1))
-    spans = np.zeros(nx, dtype=int)
+    spans = np.zeros(nx, dtype=int)  # Keep indices on CPU
     find_spans_p(knots, degree, xgrid, spans)
     basis_funs_array_p(knots, degree, xgrid, spans, basis)
 
@@ -644,6 +652,9 @@ def histopolation_matrix_p(knots: 'float[:]', degree: int, periodic: bool, norma
     contains the integrals of each B-spline basis function :math:`B_j` between
     two successive grid points.
     """
+    # Detect backend from output array
+    # Backend array operations removed - always use numpy
+    
     nb = len(knots) - degree - 1
     if periodic:
         nb -= degree + 1 - multiplicity
@@ -700,7 +711,7 @@ def histopolation_matrix_p(knots: 'float[:]', degree: int, periodic: bool, norma
     m = colloc.shape[0] - 1
     n = colloc.shape[1] - 1
 
-    spans = np.zeros(colloc.shape[0], dtype=int)
+    spans = np.zeros(colloc.shape[0], dtype=int)  # Keep indices on CPU
     for i in range(colloc.shape[0]):
         local_span = 0
         for j in range(colloc.shape[1]):
@@ -767,7 +778,10 @@ def merge_sort(a: 'float[:]'):
     """
     if len(a) != 1 and len(a) != 0:
         n = len(a)
-
+        
+        # Detect backend and use the appropriate array module
+        # Backend array operations removed - always use numpy
+        
         a1 = np.zeros(n // 2)
         a1[:] = a[:n // 2]
         a2 = np.zeros(n - n // 2)
@@ -1167,12 +1181,16 @@ def basis_ders_on_quad_grid_p(knots: 'float[:]', degree: int, quad_grid: 'float[
     """
     ne = quad_grid.shape[0]
     nq = quad_grid.shape[1]
+    
+    # Detect backend from output array
+    # Backend array operations removed - always use numpy
+    
     if normalization:
         integrals = np.zeros(knots.shape[0] - degree - 1)
         basis_integrals_p(knots, degree, integrals)
         scaling = 1.0 /integrals
 
-    temp_spans = np.zeros(len(knots), dtype=int)
+    temp_spans = np.zeros(len(knots), dtype=int)  # Keep indices on CPU
     actual_index = elements_spans_p(knots, degree, temp_spans)
     spans = temp_spans[:actual_index]
 

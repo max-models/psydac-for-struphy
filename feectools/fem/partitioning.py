@@ -1,6 +1,7 @@
 # -*- coding: UTF-8 -*-
 import os
 
+import numpy as np
 import cunumpy as xp
 
 from feectools.ddm.cart       import CartDecomposition, InterfaceCartDecomposition, create_interfaces_cart
@@ -56,6 +57,10 @@ def partition_coefficients(domain_decomposition, spaces, min_blocks=None):
         ee = domain_decomposition.global_element_ends  [axis]
         m  = multiplicity[axis]
 
+        # Convert to numpy if CuPy (needed for MPI operations later)
+        if hasattr(ee, 'get'):
+            ee = ee.get()
+        
         global_ends  [axis]     = m*(ee+1)-1
         global_ends  [axis][-1] = npts[axis]-1
         global_starts[axis]     = xp.array([0] + (global_ends[axis][:-1]+1).tolist())
@@ -64,14 +69,18 @@ def partition_coefficients(domain_decomposition, spaces, min_blocks=None):
         min_blocks = [None] * ndims
 
     for s, e, V, mb in zip(global_starts, global_ends, spaces, min_blocks):
+        s_host = s.get() if hasattr(s, 'get') else np.asarray(s)
+        e_host = e.get() if hasattr(e, 'get') else np.asarray(e)
+        local_sizes = e_host - s_host + 1
+
         if V.periodic or mb is None:
-            assert all(e-s+1 >= V.degree), f"Local number of elements (after domain decomposition) is to small for spline degree p={V.degree}: {e-s+1} is not >= {V.degree} everywhere.\n \
+            assert all(local_sizes >= V.degree), f"Local number of elements (after domain decomposition) is to small for spline degree p={V.degree}: {local_sizes} is not >= {V.degree} everywhere.\n \
             You can:\n \
                 1. increase Nel\n \
                 2. lower p\n \
                 3. decrease the MPI size."
         else:
-            assert all(e-s+1 >= mb)
+            assert all(local_sizes >= mb)
 
     return global_starts, global_ends
 

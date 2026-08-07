@@ -205,17 +205,29 @@ def _sym_ortho(a, b):
            http://www.stanford.edu/group/SOL/dissertations/sou-cheng-choi-thesis.pdf
     """
     if b == 0:
-        return xp.sign(a), 0, abs(a)
+        return _scalar_sign(a), 0, abs(a)
     elif a == 0:
-        return 0, xp.sign(b), abs(b)
+        return 0, _scalar_sign(b), abs(b)
     elif abs(b) > abs(a):
         tau = a / b
-        s = xp.sign(b) / sqrt(1 + tau * tau)
+        s = _scalar_sign(b) / sqrt(1 + tau * tau)
         c = s * tau
         r = b / s
     else:
         tau = b / a
-        c = xp.sign(a) / sqrt(1+tau*tau)
+        c = _scalar_sign(a) / sqrt(1+tau*tau)
         s = c * tau
         r = a / c
     return c, s, r
+
+#==============================================================================
+def _scalar_sign(x):
+    """
+    Sign of a real Python scalar. `xp.sign` (array_api_compat) requires its
+    argument to expose a `.dtype` attribute, which plain Python floats don't have.
+    """
+    if x > 0:
+        return 1.0
+    elif x < 0:
+        return -1.0
+    return 0.0

@@ -17,6 +17,7 @@ References:
 """
 import cunumpy as xp
 from cunumpy.xp import array_backend
+import numpy as np
 
 from feectools.core.bsplines_kernels import (find_span_p,
                                           find_spans_p,
@@ -352,9 +353,9 @@ def collocation_matrix(knots, degree, periodic, normalization, xgrid, out=None, 
         if periodic:
             nb -= degree + 1 - multiplicity
 
-        out = xp.zeros((int(xgrid.shape[0]), int(nb)), dtype=float)
+        out = np.zeros((int(xgrid.shape[0]), int(nb)), dtype=float)
     else:
-        assert out.shape == ((int(xgrid.shape[0]), int(nb))) and out.dtype == xp.dtype('float')
+        assert out.shape == ((int(xgrid.shape[0]), int(nb))) and out.dtype == np.dtype('float')
 
     bool_normalization = normalization == "M"
     multiplicity = int(multiplicity)
@@ -437,9 +438,9 @@ def histopolation_matrix(knots, degree, periodic, normalization, xgrid, multipli
 
     if out is None:
         if periodic:
-            out = xp.zeros((len(xgrid), len(knots) - 2 * int(degree) - 2 + int(multiplicity)), dtype=float)
+            out = np.zeros((len(xgrid), len(knots) - 2 * int(degree) - 2 + int(multiplicity)), dtype=float)
         else:
-            out = xp.zeros((len(xgrid) - 1, len(elevated_knots) - (int(degree) + 1) - 1 - 1), dtype=float)
+            out = np.zeros((len(xgrid) - 1, len(elevated_knots) - (int(degree) + 1) - 1 - 1), dtype=float)
     else:
         if periodic:
             assert out.shape == (len(xgrid), len(knots) - 2 * degree - 2 + multiplicity)
@@ -514,10 +515,15 @@ def greville(knots, degree, periodic, out=None, multiplicity=1):
         Abscissas of all Greville points.
 
     """
-    knots = xp.ascontiguousarray(knots, dtype=float)
+    # Greville points are index arrays, keep on NumPy
+    if isinstance(knots, (list, tuple)):
+        knots = np.asarray(knots, dtype=float)
+    if hasattr(knots, 'get'):
+        knots = knots.get()  # Convert CuPy to NumPy
+    knots = np.ascontiguousarray(knots, dtype=float)
     if out is None:
         n = len(knots) - 2 * degree - 2 + multiplicity if periodic else len(knots) - degree - 1
-        out = xp.zeros(int(n))
+        out = np.zeros(int(n))
     multiplicity = int(multiplicity)
     greville_p(knots, degree, periodic, out, multiplicity)
     return out
@@ -568,7 +574,7 @@ def elements_spans(knots, degree, out=None):
     """
     knots = xp.ascontiguousarray(knots, dtype=float)
     if out is None:
-        out = xp.zeros(len(knots), dtype=xp.int64)
+        out = np.zeros(len(knots), dtype=xp.int64)
     else:
         assert out.shape == knots.shape and out.dtype == xp.dtype('int64')
     i_final = elements_spans_p(knots, degree, out)
@@ -617,7 +623,11 @@ def make_knots(breaks, degree, periodic, multiplicity=1, out=None):
 
     # Consistency checks
     assert len(breaks) > 1
-    assert all( xp.diff(breaks) > 0 )
+    # Convert to numpy for comparison since assertion needs Python bool
+    breaks_np = breaks.get() if hasattr(breaks, 'get') else breaks
+    if isinstance(breaks_np, (list, tuple)):
+        breaks_np = np.asarray(breaks_np)
+    assert all( np.diff(breaks_np) > 0 )
     assert degree >= 0
     assert 1 <= multiplicity and multiplicity <= degree + 1
     # Cast potential numpy.int64 into python native int
@@ -626,9 +636,14 @@ def make_knots(breaks, degree, periodic, multiplicity=1, out=None):
     if periodic:
         assert len(breaks) > degree
 
-    breaks = xp.ascontiguousarray(breaks, dtype=float)
+    # Keep breaks on NumPy for initialization - knots are index arrays needed for CPU operations
+    breaks = np.asarray(breaks, dtype=float) if isinstance(breaks, (list, tuple)) else breaks
+    if hasattr(breaks, 'get'):
+        breaks = breaks.get()  # Convert CuPy to NumPy
+    breaks = np.ascontiguousarray(breaks, dtype=float)
     if out is None:
-        out = xp.zeros(multiplicity * len(breaks[1:-1]) + 2 + 2 * degree)
+        # Knots are index arrays, keep them on NumPy
+        out = np.zeros(multiplicity * len(breaks[1:-1]) + 2 + 2 * degree)
     else:
         assert out.shape == (multiplicity * len(breaks[1:-1]) + 2 + 2 * degree,) \
             and out.dtype == xp.dtype('float')
@@ -676,25 +691,29 @@ def elevate_knots(knots, degree, periodic, multiplicity=1, tol=1e-15, out=None):
         Knots sequence of spline space of degree p+1.
     """
     multiplicity = int(multiplicity)
-    knots = xp.ascontiguousarray(knots, dtype=float)
+    if isinstance(knots, (list, tuple)):
+        knots = np.asarray(knots, dtype=float)
+    if hasattr(knots, 'get'):
+        knots = knots.get()  # Convert CuPy to NumPy
+    knots = np.ascontiguousarray(knots, dtype=float)
     if out is None:
         if periodic:
-            out = xp.zeros(knots.shape[0] + 2, dtype=float)
+            out = np.zeros(knots.shape[0] + 2, dtype=float)
         else:
             shape = 2*(degree + 2)
             if len(knots) - 2 * (degree + 1) > 0:
-                uniques = (xp.diff(knots[degree + 1:-degree - 1]) > tol).nonzero()
+                uniques = (np.diff(knots[degree + 1:-degree - 1]) > tol).nonzero()
                 shape += multiplicity * (1 + uniques[0].shape[0])
-            out = xp.zeros(shape, dtype=float)
+            out = np.zeros(shape, dtype=float)
     else:
         if periodic:
-            assert out.shape == (knots.shape[0] + 2,) and out.dtype == xp.dtype('float')
+            assert out.shape == (knots.shape[0] + 2,) and out.dtype == np.dtype('float')
         else:
             shape = 2*(degree + 2)
             if len(knots) - 2 * (degree + 1) > 0:
-                uniques = (xp.diff(knots[degree + 1:-degree - 1]) > tol).nonzero()
+                uniques = (np.diff(knots[degree + 1:-degree - 1]) > tol).nonzero()
                 shape += multiplicity * (1 + uniques[0].shape[0])
-            assert out.shape == shape and out.dtype == xp.dtype('float')
+            assert out.shape == shape and out.dtype == np.dtype('float')
 
     elevate_knots_p(knots, degree, periodic, out, multiplicity, tol)
     return out
@@ -751,14 +770,18 @@ def quadrature_grid(breaks, quad_rule_x, quad_rule_w):
     assert min(quad_rule_x) >= -1
     assert max(quad_rule_x) <= +1
 
-    breaks = xp.ascontiguousarray(breaks, dtype=float)
+    # Convert breaks to numpy if CuPy (breaks/grids should stay on CPU)
+    if hasattr(breaks, 'get'):
+        breaks = breaks.get()
+    breaks = np.ascontiguousarray(breaks, dtype=float)
 
     if array_backend.backend == "cupy":
-        quad_rule_x = xp.ascontiguousarray(xp.array(quad_rule_x), dtype=float)
-        quad_rule_w = xp.ascontiguousarray( xp.array(quad_rule_w), dtype=float )
-    else:
-        quad_rule_x = xp.ascontiguousarray(quad_rule_x, dtype=float)
-        quad_rule_w = xp.ascontiguousarray( quad_rule_w, dtype=float )
+        # Convert CuPy arrays to NumPy
+        quad_rule_x = quad_rule_x.get() if hasattr(quad_rule_x, 'get') else quad_rule_x
+        quad_rule_w = quad_rule_w.get() if hasattr(quad_rule_w, 'get') else quad_rule_w
+    
+    quad_rule_x = np.ascontiguousarray(quad_rule_x, dtype=float)
+    quad_rule_w = np.ascontiguousarray(quad_rule_w, dtype=float)
     
 
     out1 = xp.zeros((len(breaks) - 1, len(quad_rule_x)))
@@ -914,7 +937,7 @@ def cell_index(breaks, i_grid, tol=1e-15, out=None):
     breaks = xp.ascontiguousarray(breaks, dtype=float)
     i_grid = xp.ascontiguousarray(i_grid, dtype=float)
     if out is None:
-        out = xp.zeros_like(i_grid, dtype=xp.int64)
+        out = np.zeros_like(i_grid, dtype=xp.int64)
     else:
         assert out.shape == i_grid.shape and out.dtype == xp.dtype('int64')
     status = cell_index_p(breaks, i_grid, tol, out)
