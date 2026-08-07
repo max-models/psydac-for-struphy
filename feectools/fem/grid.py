@@ -1,8 +1,7 @@
-#---------------------------------------------------------------------------#
-# This file is part of PSYDAC which is released under MIT License. See the  #
-# LICENSE file or go to https://github.com/pyccel/psydac/blob/devel/LICENSE #
-# for full license details.                                                 #
-#---------------------------------------------------------------------------#
+# coding: utf-8
+#
+# Copyright 2018 Yaman Güçlü
+
 import cunumpy as xp
 
 from feectools.core.bsplines         import elements_spans

@@ -2,6 +2,7 @@
 
 import cunumpy as xp
 from cunumpy.xp import array_backend
+import numpy as np
 
 from feectools.linalg.kron           import KroneckerLinearSolver, KroneckerStencilMatrix
 from feectools.linalg.stencil        import StencilMatrix, StencilVectorSpace
@@ -24,6 +25,18 @@ __all__ = ('GlobalGeometricProjector', 'GlobalGeometricProjectorH1', 'GlobalGeom
            'evaluate_dofs_1d_0form', 'evaluate_dofs_1d_1form',
            'evaluate_dofs_2d_0form', 'evaluate_dofs_2d_1form_hcurl', 'evaluate_dofs_2d_1form_hdiv', 'evaluate_dofs_2d_2form',
            'evaluate_dofs_3d_0form', 'evaluate_dofs_3d_1form', 'evaluate_dofs_3d_2form', 'evaluate_dofs_3d_3form')
+
+
+def _to_numpy_for_kernel(*args):
+    """Convert CuPy arrays to NumPy for compiled kernel calls."""
+    result = []
+    for arg in args:
+        if hasattr(arg, 'get'):  # CuPy array
+            result.append(arg.get())
+        else:
+            result.append(arg)
+    return result if len(result) > 1 else result[0]
+
 
 #==============================================================================
 class GlobalGeometricProjector(metaclass=ABCMeta):
@@ -207,8 +220,9 @@ class GlobalGeometricProjector(metaclass=ABCMeta):
                     solvercells += [V._histopolator]
                     
                     # make 1D collocation matrix in stencil format
+                    # Always use NumPy for indices since they're used for indexing/comparison
                     if array_backend.backend == "cupy":
-                        row_indices, col_indices = xp.nonzero(xp.array(V.hmat))
+                        row_indices, col_indices = np.nonzero(np.asarray(V.hmat))
                     else:
                         row_indices, col_indices = xp.nonzero(V.hmat)
 
@@ -800,7 +814,10 @@ def evaluate_dofs_1d_0form(
     
     F_temp = xp.zeros_like(F, order='C')
     
-    dof_kernels.evaluate_dofs_1d_0form(F_temp, f_pts)
+    F_temp_np, f_pts_np = _to_numpy_for_kernel(F_temp, f_pts)
+    dof_kernels.evaluate_dofs_1d_0form(F_temp_np, f_pts_np)
+    if hasattr(F_temp, 'get'):
+        F_temp[:] = xp.asarray(F_temp_np)
     
     F[:] = F_temp
         
@@ -819,7 +836,10 @@ def evaluate_dofs_1d_1form(
     # call kernel
     F_temp = xp.zeros_like(F, order='C')
     
-    dof_kernels.evaluate_dofs_1d_1form(quad_w1, F_temp, f_pts)
+    quad_w1_np, F_temp_np, f_pts_np = _to_numpy_for_kernel(quad_w1, F_temp, f_pts)
+    dof_kernels.evaluate_dofs_1d_1form(quad_w1_np, F_temp_np, f_pts_np)
+    if hasattr(F_temp, 'get'):
+        F_temp[:] = xp.asarray(F_temp_np)
     
     F[:] = F_temp
 
@@ -842,7 +862,10 @@ def evaluate_dofs_2d_0form(
     
     F_temp = xp.zeros_like(F, order='C')
     
-    dof_kernels.evaluate_dofs_2d_0form(F_temp, f_pts)
+    F_temp_np, f_pts_np = _to_numpy_for_kernel(F_temp, f_pts)
+    dof_kernels.evaluate_dofs_2d_0form(F_temp_np, f_pts_np)
+    if hasattr(F_temp, 'get'):
+        F_temp[:] = xp.asarray(F_temp_np)
     
     F[:, :] = F_temp
 
@@ -869,7 +892,12 @@ def evaluate_dofs_2d_1form_hcurl(
     F1_temp = xp.zeros_like(F1, order='C')
     F2_temp = xp.zeros_like(F2, order='C')
     
-    dof_kernels.evaluate_dofs_2d_1form_hcurl(quad_w1, quad_w2, F1_temp, F2_temp, f1_pts, f2_pts)
+    quad_w1_np, quad_w2_np, F1_temp_np, F2_temp_np, f1_pts_np, f2_pts_np = _to_numpy_for_kernel(quad_w1, quad_w2, F1_temp, F2_temp, f1_pts, f2_pts)
+    dof_kernels.evaluate_dofs_2d_1form_hcurl(quad_w1_np, quad_w2_np, F1_temp_np, F2_temp_np, f1_pts_np, f2_pts_np)
+    if hasattr(F1_temp, 'get'):
+        F1_temp[:] = xp.asarray(F1_temp_np)
+    if hasattr(F2_temp, 'get'):
+        F2_temp[:] = xp.asarray(F2_temp_np)
     
     F1[:, :] = F1_temp
     F2[:, :] = F2_temp
@@ -897,7 +925,12 @@ def evaluate_dofs_2d_1form_hdiv(
     F1_temp = xp.zeros_like(F1, order='C')
     F2_temp = xp.zeros_like(F2, order='C')
     
-    dof_kernels.evaluate_dofs_2d_1form_hdiv(quad_w1, quad_w2, F1_temp, F2_temp, f1_pts, f2_pts)
+    quad_w1_np, quad_w2_np, F1_temp_np, F2_temp_np, f1_pts_np, f2_pts_np = _to_numpy_for_kernel(quad_w1, quad_w2, F1_temp, F2_temp, f1_pts, f2_pts)
+    dof_kernels.evaluate_dofs_2d_1form_hdiv(quad_w1_np, quad_w2_np, F1_temp_np, F2_temp_np, f1_pts_np, f2_pts_np)
+    if hasattr(F1_temp, 'get'):
+        F1_temp[:] = xp.asarray(F1_temp_np)
+    if hasattr(F2_temp, 'get'):
+        F2_temp[:] = xp.asarray(F2_temp_np)
     
     F1[:, :] = F1_temp
     F2[:, :] = F2_temp
@@ -917,7 +950,10 @@ def evaluate_dofs_2d_2form(
     # call kernel
     F_temp = xp.zeros_like(F, order='C')
     
-    dof_kernels.evaluate_dofs_2d_2form(quad_w1, quad_w2, F_temp, f_pts)
+    quad_w1_np, quad_w2_np, F_temp_np, f_pts_np = _to_numpy_for_kernel(quad_w1, quad_w2, F_temp, f_pts)
+    dof_kernels.evaluate_dofs_2d_2form(quad_w1_np, quad_w2_np, F_temp_np, f_pts_np)
+    if hasattr(F_temp, 'get'):
+        F_temp[:] = xp.asarray(F_temp_np)
     
     F[:, :] = F_temp
 
@@ -940,7 +976,12 @@ def evaluate_dofs_2d_vec(
     F1_temp = xp.zeros_like(F1, order='C')
     F2_temp = xp.zeros_like(F2, order='C')
     
-    dof_kernels.evaluate_dofs_2d_vec(F1_temp, F2_temp, f1_pts, f2_pts)
+    F1_temp_np, F2_temp_np, f1_pts_np, f2_pts_np = _to_numpy_for_kernel(F1_temp, F2_temp, f1_pts, f2_pts)
+    dof_kernels.evaluate_dofs_2d_vec(F1_temp_np, F2_temp_np, f1_pts_np, f2_pts_np)
+    if hasattr(F1_temp, 'get'):
+        F1_temp[:] = xp.asarray(F1_temp_np)
+    if hasattr(F2_temp, 'get'):
+        F2_temp[:] = xp.asarray(F2_temp_np)
     
     F1[:, :] = F1_temp
     F2[:, :] = F2_temp
@@ -965,7 +1006,10 @@ def evaluate_dofs_3d_0form(
     
     F_temp = xp.zeros_like(F, order='C')
     
-    dof_kernels.evaluate_dofs_3d_0form(F_temp, f_pts)
+    F_temp_np, f_pts_np = _to_numpy_for_kernel(F_temp, f_pts)
+    dof_kernels.evaluate_dofs_3d_0form(F_temp_np, f_pts_np)
+    if hasattr(F_temp, 'get'):
+        F_temp[:] = xp.asarray(F_temp_np)
     
     F[:, :, :] = F_temp
 
@@ -997,7 +1041,14 @@ def evaluate_dofs_3d_1form(
     F2_temp = xp.zeros_like(F2, order='C')
     F3_temp = xp.zeros_like(F3, order='C')
     
-    dof_kernels.evaluate_dofs_3d_1form(quad_w1, quad_w2, quad_w3, F1_temp, F2_temp, F3_temp, f1_pts, f2_pts, f3_pts)
+    quad_w1_np, quad_w2_np, quad_w3_np, F1_temp_np, F2_temp_np, F3_temp_np, f1_pts_np, f2_pts_np, f3_pts_np = _to_numpy_for_kernel(quad_w1, quad_w2, quad_w3, F1_temp, F2_temp, F3_temp, f1_pts, f2_pts, f3_pts)
+    dof_kernels.evaluate_dofs_3d_1form(quad_w1_np, quad_w2_np, quad_w3_np, F1_temp_np, F2_temp_np, F3_temp_np, f1_pts_np, f2_pts_np, f3_pts_np)
+    if hasattr(F1_temp, 'get'):
+        F1_temp[:] = xp.asarray(F1_temp_np)
+    if hasattr(F2_temp, 'get'):
+        F2_temp[:] = xp.asarray(F2_temp_np)
+    if hasattr(F3_temp, 'get'):
+        F3_temp[:] = xp.asarray(F3_temp_np)
     
     F1[:, :, :] = F1_temp
     F2[:, :, :] = F2_temp
@@ -1031,7 +1082,14 @@ def evaluate_dofs_3d_2form(
     F2_temp = xp.zeros_like(F2, order='C')
     F3_temp = xp.zeros_like(F3, order='C')
     
-    dof_kernels.evaluate_dofs_3d_2form(quad_w1, quad_w2, quad_w3, F1_temp, F2_temp, F3_temp, f1_pts, f2_pts, f3_pts)
+    quad_w1_np, quad_w2_np, quad_w3_np, F1_temp_np, F2_temp_np, F3_temp_np, f1_pts_np, f2_pts_np, f3_pts_np = _to_numpy_for_kernel(quad_w1, quad_w2, quad_w3, F1_temp, F2_temp, F3_temp, f1_pts, f2_pts, f3_pts)
+    dof_kernels.evaluate_dofs_3d_2form(quad_w1_np, quad_w2_np, quad_w3_np, F1_temp_np, F2_temp_np, F3_temp_np, f1_pts_np, f2_pts_np, f3_pts_np)
+    if hasattr(F1_temp, 'get'):
+        F1_temp[:] = xp.asarray(F1_temp_np)
+    if hasattr(F2_temp, 'get'):
+        F2_temp[:] = xp.asarray(F2_temp_np)
+    if hasattr(F3_temp, 'get'):
+        F3_temp[:] = xp.asarray(F3_temp_np)
     
     F1[:, :, :] = F1_temp
     F2[:, :, :] = F2_temp
@@ -1052,7 +1110,10 @@ def evaluate_dofs_3d_3form(
     # call kernel
     F_temp = xp.zeros_like(F, order='C')
     
-    dof_kernels.evaluate_dofs_3d_3form(quad_w1, quad_w2, quad_w3, F_temp, f_pts)
+    quad_w1_np, quad_w2_np, quad_w3_np, F_temp_np, f_pts_np = _to_numpy_for_kernel(quad_w1, quad_w2, quad_w3, F_temp, f_pts)
+    dof_kernels.evaluate_dofs_3d_3form(quad_w1_np, quad_w2_np, quad_w3_np, F_temp_np, f_pts_np)
+    if hasattr(F_temp, 'get'):
+        F_temp[:] = xp.asarray(F_temp_np)
     
     F[:, :, :] = F_temp
 
@@ -1078,7 +1139,14 @@ def evaluate_dofs_3d_vec(
     F2_temp = xp.zeros_like(F2, order='C')
     F3_temp = xp.zeros_like(F3, order='C')
     
-    dof_kernels.evaluate_dofs_3d_vec(F1_temp, F2_temp, F3_temp, f1_pts, f2_pts, f3_pts)
+    F1_temp_np, F2_temp_np, F3_temp_np, f1_pts_np, f2_pts_np, f3_pts_np = _to_numpy_for_kernel(F1_temp, F2_temp, F3_temp, f1_pts, f2_pts, f3_pts)
+    dof_kernels.evaluate_dofs_3d_vec(F1_temp_np, F2_temp_np, F3_temp_np, f1_pts_np, f2_pts_np, f3_pts_np)
+    if hasattr(F1_temp, 'get'):
+        F1_temp[:] = xp.asarray(F1_temp_np)
+    if hasattr(F2_temp, 'get'):
+        F2_temp[:] = xp.asarray(F2_temp_np)
+    if hasattr(F3_temp, 'get'):
+        F3_temp[:] = xp.asarray(F3_temp_np)
     
     F1[:, :, :] = F1_temp
     F2[:, :, :] = F2_temp
