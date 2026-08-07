@@ -1,8 +1,6 @@
-#---------------------------------------------------------------------------#
-# This file is part of PSYDAC which is released under MIT License. See the  #
-# LICENSE file or go to https://github.com/pyccel/psydac/blob/devel/LICENSE #
-# for full license details.                                                 #
-#---------------------------------------------------------------------------#
+# coding: utf-8
+
+import cunumpy as xp
 from itertools import product
 
 import cunumpy as xp
@@ -113,4 +111,3 @@ class PetscCart:
         to_is   = self.petsc.IS().createGeneral(indices, comm=cart.comm)
 
         return self.petsc.Scatter().create(gvec, from_is, natural, to_is)
-

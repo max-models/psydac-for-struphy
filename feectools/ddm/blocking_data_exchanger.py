@@ -1,8 +1,5 @@
-#---------------------------------------------------------------------------#
-# This file is part of PSYDAC which is released under MIT License. See the  #
-# LICENSE file or go to https://github.com/pyccel/psydac/blob/devel/LICENSE #
-# for full license details.                                                 #
-#---------------------------------------------------------------------------#
+# coding: utf-8
+
 import cunumpy as xp
 import numpy as np
 from feectools.ddm.mpi import mpi as MPI

@@ -9,7 +9,6 @@ from types import MappingProxyType
 
 import cunumpy as xp
 from cunumpy.xp import array_backend
-from types        import MappingProxyType
 from scipy.sparse import coo_matrix, diags as sp_diags
 
 from feectools.ddm.mpi import mpi as MPI
@@ -35,8 +34,23 @@ __all__ = (
     'StencilInterfaceMatrix'
 )
 
-#===============================================================================
-# Dictionary used to select correct kernel functions based on dimensionality
+#========================================================================
+def _to_numpy_int64(val):
+    """Convert CuPy or NumPy scalar/array to numpy int64."""
+    import numpy as _np
+    if hasattr(val, 'get'):
+        # CuPy array - convert to NumPy first
+        val = val.get()
+    return _np.int64(val)
+
+def _to_numpy_array(val):
+    """Convert CuPy array to NumPy array, preserving dtype. Return as-is if already NumPy."""
+    if hasattr(val, 'get'):
+        # CuPy array - convert to NumPy
+        return val.get()
+    return val
+
+#========================================================================# Dictionary used to select correct kernel functions based on dimensionality
 kernels = {
     'axpy'  : (None,   axpy_1d,   axpy_2d,   axpy_3d),
     'inner' : (None,  inner_1d,  inner_2d,  inner_3d),
@@ -47,7 +61,7 @@ kernels = {
                     'C': (None, stencil2coo_1d_C, stencil2coo_2d_C, stencil2coo_3d_C)}
 }
 
-#===============================================================================
+#========================================================================
 def compute_diag_len(pads, shifts_domain, shifts_codomain, return_padding=False):
     """
     Compute the diagonal length and the padding of the stencil matrix for each direction,
@@ -83,7 +97,7 @@ def compute_diag_len(pads, shifts_domain, shifts_codomain, return_padding=False)
     else:
         return n.astype('int')
 
-#===============================================================================
+#========================================================================
 class StencilVectorSpace(VectorSpace):
     """
     Vector space for n-dimensional stencil format. Two different initializations
@@ -301,10 +315,22 @@ class StencilVectorSpace(VectorSpace):
             else:
                 a = float(a)
 
-        self._axpy_func(a, x._data, y._data)
+        x_data_np = _to_numpy_array(x._data)
+        y_data_np = _to_numpy_array(y._data)
+        self._axpy_func(a, x_data_np, y_data_np)
+        # Copy result back if CuPy
+        if hasattr(y._data, 'get'):
+            import cupy as cp
+            y._data[:] = cp.asarray(y_data_np)
 
         for axis, ext in self.interfaces:
-            self._axpy_func(a, x._interface_data[axis, ext], y._interface_data[axis, ext])
+            x_int_np = _to_numpy_array(x._interface_data[axis, ext])
+            y_int_np = _to_numpy_array(y._interface_data[axis, ext])
+            self._axpy_func(a, x_int_np, y_int_np)
+            # Copy result back if CuPy
+            if hasattr(y._interface_data[axis, ext], 'get'):
+                import cupy as cp
+                y._interface_data[axis, ext][:] = cp.asarray(y_int_np)
 
         x._sync = x._sync and y._sync
 
@@ -431,7 +457,7 @@ class StencilVectorSpace(VectorSpace):
 
             self._interfaces[axis, ext] = space
 
-#===============================================================================
+#========================================================================
 class StencilVector(Vector):
     """
     Vector in n-dimensional stencil format.
@@ -638,7 +664,7 @@ class StencilVector(Vector):
 
     # ...
     def _toarray_parallel_no_pads(self, order='C'):
-        a         = xp.zeros( self.space.npts, dtype=self.dtype )
+        a         = xp.zeros(self.space.npts, dtype=self.dtype)
         idx_from  = tuple( slice(m*p,-m*p) if p != 0 else slice(0, None) for p,m in zip(self.pads, self.space.shifts) )
         idx_to    = tuple( slice(s,e+1) for s,e in zip(self.starts,self.ends) )
         a[idx_to] = self._data[idx_from]
@@ -650,7 +676,7 @@ class StencilVector(Vector):
         pads = [m*p for m,p in zip(self.space.shifts, self.pads)]
         # Step 0: create extended n-dimensional array with zero values
         shape = tuple( n+2*p for n,p in zip( self.space.npts, pads ) )
-        a = xp.zeros( shape, dtype=self.dtype )
+        a = xp.zeros(shape, dtype=self.dtype)
 
         # Step 1: write extended data chunk (local to process) onto array
         idx = tuple( slice(s,e+2*p+1) for s,e,p in
@@ -882,7 +908,7 @@ class StencilVector(Vector):
             index.append(l)
         return tuple(index)
 
-#===============================================================================
+#========================================================================
 class StencilMatrix(LinearOperator):
     """
     Matrix in n-dimensional stencil format.
@@ -1073,7 +1099,28 @@ class StencilMatrix(LinearOperator):
         if not v.ghost_regions_in_sync:
             v.update_ghost_regions()
 
-        self._func(self._data, v._data, out._data, **self._args)
+        # Convert arrays for compiled kernel - create NumPy output
+        import numpy as _np
+        self_data_np = _to_numpy_array(self._data)
+        v_data_np = _to_numpy_array(v._data)
+        # zeros, not empty: the compiled kernel only writes the interior
+        # (non-padding) region, so padding must be pre-initialized to avoid
+        # leaking uninitialized memory into ghost regions of the output.
+        out_data_np = _np.zeros(out._data.shape, dtype=out._data.dtype)
+
+        # Convert args that might be CuPy arrays
+        args_np = {}
+        for key, val in self._args.items():
+            args_np[key] = _to_numpy_array(val)
+
+        self._func(self_data_np, v_data_np, out_data_np, **args_np)
+        
+        # Copy result back to CuPy array if needed
+        if hasattr(out._data, 'get'):
+            import cupy as cp
+            out._data[:] = cp.asarray(out_data_np)
+        else:
+            out._data[:] = out_data_np
 
         # IMPORTANT: flag that ghost regions are not up-to-date
         out.ghost_regions_in_sync = False
@@ -1112,7 +1159,28 @@ class StencilMatrix(LinearOperator):
         if not v.ghost_regions_in_sync:
             v.update_ghost_regions()
 
+        # Convert arrays for compiled kernel - create NumPy output
+        import numpy as _np
+        self_data_np = _to_numpy_array(self._data)
+        v_data_conj_np = _to_numpy_array(xp.conjugate(v._data))
+        # zeros, not empty: see comment in dot() above.
+        out_data_np = _np.zeros(out._data.shape, dtype=out._data.dtype)
+        
+        # Convert args that might be CuPy arrays
+        args_np = {}
+        for key, val in self._args.items():
+            args_np[key] = _to_numpy_array(val)
+        
         # Instead of computing A_*x, this function computes (A*x_)_
+        self._func(self_data_np, v_data_conj_np, out_data_np, **args_np)
+        
+        # Copy result back to CuPy array if needed
+        if hasattr(out._data, 'get'):
+            import cupy as cp
+            out_data_conj = cp.conjugate(cp.asarray(out_data_np))
+            out._data[:] = out_data_conj
+        else:
+            out._data[:] = _np.conjugate(out_data_np)
         self._func(self._data, xp.conjugate(v._data), out._data, **self._args)
         xp.conjugate(out._data, out=out._data)
 
@@ -1150,10 +1218,21 @@ class StencilMatrix(LinearOperator):
             out = StencilMatrix(M.codomain, M.domain, pads=self._pads, backend=self._backend, precompiled=self._precompiled)
 
         # Call low-level '_transpose' function (works on Numpy arrays directly)
+        # Convert CuPy arrays to NumPy for compiled kernels
+        M_data_np = _to_numpy_array(M._data)
+        out_data_np = _to_numpy_array(out._data)
+        
         if conjugate:
+            self._transpose_func(_to_numpy_array(xp.conjugate(M_data_np)), out_data_np, **self._transpose_args)
             self._transpose_func(xp.conjugate(M._data), out._data, **self._transpose_args)
         else:
-            self._transpose_func(M._data, out._data, **self._transpose_args)
+            self._transpose_func(M_data_np, out_data_np, **self._transpose_args)
+        
+        # Copy results back to CuPy if needed
+        if array_backend.backend == "cupy":
+            import cupy as cp
+            out._data[:] = cp.asarray(out_data_np)
+        
         return out
 
     # ...
@@ -1630,6 +1709,11 @@ class StencilMatrix(LinearOperator):
 
         import numpy as _np
         # Pyccel kernels require explicit numpy.int64 type arguments
+        # Handle CuPy arrays by explicitly converting to NumPy
+        pp = []
+        for p, mi, mj in zip(self._pads, cm, dm):
+            diag_len = compute_diag_len(p, mj, mi) - (p + 1)
+            pp.append(_to_numpy_int64(diag_len))
         pp = [_np.int64(compute_diag_len(p,mj,mi)-(p+1)) for p,mi,mj in zip(self._pads, cm, dm)]
 
         # Range of data owned by local process (no ghost regions)
@@ -1640,6 +1724,31 @@ class StencilMatrix(LinearOperator):
         rows = xp.zeros(size, dtype='int64')
         cols = xp.zeros(size, dtype='int64')
         data = xp.zeros(size, dtype=self.dtype)
+        nrl = [_to_numpy_int64(e-s+1) for s,e in zip(self.codomain.starts, self.codomain.ends)]
+        ncl = [_to_numpy_int64(i) for i in self._data.shape[nd:]]
+        ss = [_to_numpy_int64(i) for i in ss]
+        nr = [_to_numpy_int64(i) for i in nr]
+        nc = [_to_numpy_int64(i) for i in nc]
+        dm = [_to_numpy_int64(i) for i in dm]
+        cm = [_to_numpy_int64(i) for i in cm]
+        cpads = [_to_numpy_int64(i) for i in cpads]
+        pp = [_to_numpy_int64(i) for i in pp]
+
+        stencil2coo = kernels['stencil2coo'][order][nd]
+        # Convert CuPy arrays to NumPy for the compiled kernel
+        self_data_np = _to_numpy_array(self._data)
+        data_np = _to_numpy_array(data)
+        rows_np = _to_numpy_array(rows)
+        cols_np = _to_numpy_array(cols)
+        
+        ind = stencil2coo(self_data_np, data_np, rows_np, cols_np, *nrl, *ncl, *ss, *nr, *nc, *dm, *cm, *cpads, *pp)
+        
+        # Copy results back to CuPy arrays if needed
+        if array_backend.backend == "cupy":
+            import cupy as cp
+            data[:ind] = cp.asarray(data_np[:ind])
+            rows[:ind] = cp.asarray(rows_np[:ind])
+            cols[:ind] = cp.asarray(cols_np[:ind])
         nrl = [_np.int64(e-s+1) for s,e in zip(self.codomain.starts, self.codomain.ends)]
         ncl = [_np.int64(i) for i in self._data.shape[nd:]]
         ss = [_np.int64(i) for i in ss]
@@ -2071,7 +2180,7 @@ class StencilMatrix(LinearOperator):
 
         return self._diag_indices
 
-#===============================================================================
+#========================================================================
 class StencilDiagonalMatrix(LinearOperator):
     """
     Linear operator which operates between stencil vector spaces, and which can
@@ -2246,6 +2355,7 @@ class StencilDiagonalMatrix(LinearOperator):
         # Calculate entries, or set `out=self` in default case
         if inverse:
             data = xp.divide(1, diag, out=data)
+        elif out:
             if sqrt:
                 data = xp.sqrt(data, out=data)
         elif sqrt:
@@ -2261,8 +2371,7 @@ class StencilDiagonalMatrix(LinearOperator):
 
         return out
 
-#===============================================================================
-# TODO [YG, 28.01.2021]:
+#========================================================================# TODO [YG, 28.01.2021]:
 # - Check if StencilMatrix should be subclassed
 # - Reimplement magic methods (some are simply copied from StencilMatrix)
 def flip_axis(index, n):
@@ -3011,5 +3120,6 @@ class StencilInterfaceMatrix(LinearOperator):
 
             self._func = dot.func
 
-#===============================================================================
+#========================================================================
+
 del VectorSpace, Vector

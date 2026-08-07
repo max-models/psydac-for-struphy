@@ -81,6 +81,11 @@ class MockMPI:
 
 
 try:
+    # Disable MPI when using CuPy due to known segfault issues with OpenMPI + CUDA
+    import os
+    if os.environ.get('ARRAY_BACKEND') == 'cupy':
+        raise ImportError("MPI disabled when using CuPy backend")
+    
     from mpi4py import MPI
 
     _comm = MPI.COMM_WORLD

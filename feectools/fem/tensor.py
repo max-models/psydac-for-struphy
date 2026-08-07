@@ -8,6 +8,7 @@ of compact support
 from feectools.ddm.mpi import mpi as MPI
     
 import cunumpy as xp
+import numpy as np
 import itertools
 import h5py
 import os
