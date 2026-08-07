@@ -1,8 +1,9 @@
-#---------------------------------------------------------------------------#
-# This file is part of PSYDAC which is released under MIT License. See the  #
-# LICENSE file or go to https://github.com/pyccel/psydac/blob/devel/LICENSE #
-# for full license details.                                                 #
-#---------------------------------------------------------------------------#
+# coding: utf-8
+#
+# Copyright 2018 Yaman Güçlü
+
+import cunumpy as xp
+import numpy as np
 from numbers import Number
 
 import cunumpy as xp
@@ -71,7 +72,13 @@ def unroll_edges(domain, xgrid):
 
     xA, xB = domain
 
-    assert all(xp.diff(xgrid) >= 0)
+    # Convert to numpy if needed (grid arrays should be on CPU)
+    if hasattr(xgrid, 'get'):
+        xgrid = xgrid.get()
+    xgrid = np.asarray(xgrid)
+
+    # Convert to numpy for comparison
+    assert all(np.diff(xgrid) >= 0)
     assert xA < xB
     assert xA <= xgrid[0]
     assert xgrid[-1] <= xB
@@ -80,10 +87,14 @@ def unroll_edges(domain, xgrid):
         return xgrid
 
     elif xgrid[0] != xA:
-        return xp.array([xgrid[-1] - (xB-xA), *xgrid])
+        # Make sure scalars are converted to Python float
+        new_point = float(xgrid[-1]) - float(xB-xA)
+        return np.concatenate([[new_point], xgrid])
 
     elif xgrid[-1] != xB:
-        return xp.array([*xgrid, xgrid[0] + (xB-xA)])
+        # Make sure scalars are converted to Python float
+        new_point = float(xgrid[0]) + float(xB-xA)
+        return np.concatenate([xgrid, [new_point]])
 
 #===============================================================================
 def roll_edges(domain, points):
@@ -92,9 +103,27 @@ def roll_edges(domain, points):
     """
     xA, xB = domain
     assert xA < xB
-    points -=xA
-    points %=(xB-xA)
-    points +=xA
+    
+    # Convert domain bounds to same backend as points to ensure compatibility
+    # First, normalize xA and xB to Python float or correct backend
+    if hasattr(xA, 'get'):
+        xA = float(xA.get())
+    elif hasattr(xA, '__array__'):
+        xA = float(xA)
+    
+    if hasattr(xB, 'get'):
+        xB = float(xB.get())
+    elif hasattr(xB, '__array__'):
+        xB = float(xB)
+    
+    # Now convert to backend of points if needed
+    if hasattr(points, 'get'):  # CuPy array
+        xA = xp.asarray(xA)
+        xB = xp.asarray(xB)
+    
+    points -= xA
+    points %= (xB - xA)
+    points += xA
 
 #===============================================================================
 def split_field(uh, spaces, out=None):

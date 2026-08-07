@@ -1,8 +1,19 @@
 # coding: utf-8
 
 import os
+import numpy as np
 import cunumpy as xp
+from cunumpy.xp import array_backend
 from itertools import product
+
+# Initialize CUDA context before MPI if using CuPy backend
+if array_backend.backend == "cupy":
+    try:
+        import cupy as cp
+        cp.cuda.Device(0).use()
+        cp.cuda.Stream.null.synchronize()
+    except Exception:
+        pass
 
 from feectools.ddm.mpi import mpi as MPI
 from feectools.ddm.mpi import MockMPI
@@ -43,6 +54,17 @@ def find_mpi_type( dtype ):
 
     return mpi_type
 
+#===============================================================================
+def _cuda_sync_before_mpi():
+    """Synchronize CUDA before MPI operations to avoid conflicts."""
+    if array_backend.backend == "cupy":
+        try:
+            import cupy as cp
+            cp.cuda.Stream.null.synchronize()
+        except Exception:
+            pass
+
+#===============================================================================
 class MultiPatchDomainDecomposition:
     """
     Cartesian decomposition of multiple N-Cube grids.
@@ -260,11 +282,14 @@ class DomainDecomposition:
 
         if comm is None:
             # compute the coords for all processes
-            self._global_coords = xp.array([xp.unravel_index(xp.int64(rank), nprocs) for rank in range(self._size)])
+            self._global_coords = np.array([np.unravel_index(int(rank), nprocs) for rank in range(self._size)])
             self._coords        = self._global_coords[self._rank]
             self._rank_in_topo  = 0
             self._ranks_in_topo = xp.array([0])
         else:
+            # Synchronize CUDA before MPI operations
+            _cuda_sync_before_mpi()
+            
             # Create a MPI cart
             self._comm_cart = comm.Create_cart(
                 dims    = self._nprocs,
@@ -288,6 +313,7 @@ class DomainDecomposition:
         # Create (N-1)-dimensional communicators within the Cartesian topology
         self._subcomm = [None]*self._ndims
         for i in range(self._ndims):
+            _cuda_sync_before_mpi()  # Synchronize before each Sub() call
             remain_dims     = [i==j for j in range( self._ndims )]
             self._subcomm[i] = self._comm_cart.Sub( remain_dims )
 
@@ -467,8 +493,9 @@ class CartDecomposition():
         # Store input arguments
         self._domain_decomposition = domain_decomposition
         self._npts          = tuple( npts    )
-        self._global_starts = tuple( [ xp.asarray(gs) for gs in global_starts]  )
-        self._global_ends   = tuple( [ xp.asarray(ge) for ge in global_ends]    )
+        # Convert to NumPy arrays for MPI compatibility (MPI can't handle CuPy arrays)
+        self._global_starts = tuple( [ np.asarray(gs.get() if hasattr(gs, 'get') else gs) for gs in global_starts]  )
+        self._global_ends   = tuple( [ np.asarray(ge.get() if hasattr(ge, 'get') else ge) for ge in global_ends]    )
         self._pads          = tuple( pads    )
         self._shifts        = tuple( shifts  )
         self._periods       = domain_decomposition.periods
@@ -494,10 +521,12 @@ class CartDecomposition():
 
         # Know my coordinates in the topology
         self._coords = domain_decomposition.coords
+        # Convert coords to NumPy for indexing (MPI coords should be on CPU)
+        coords_np = [c.get() if hasattr(c, 'get') else c for c in self._coords]
 
         # Start/end values of global indices (without ghost regions)
-        self._starts = tuple( self._global_starts[axis][c] for axis,c in zip(range(self._ndims), self._coords) )
-        self._ends   = tuple( self._global_ends  [axis][c] for axis,c in zip(range(self._ndims), self._coords) )
+        self._starts = tuple( self._global_starts[axis][c] for axis,c in zip(range(self._ndims), coords_np) )
+        self._ends   = tuple( self._global_ends  [axis][c] for axis,c in zip(range(self._ndims), coords_np) )
 
         # List of 1D global indices (without ghost regions)
         # self._grids = tuple( range(s,e+1) for s,e in zip( self._starts, self._ends ) )
@@ -906,7 +935,7 @@ class CartDecomposition():
         if len([i for i in shift if i==0]) == 2 and rank_dest != MPI.PROC_NULL:
             direction = [i for i,s in enumerate(shift) if s != 0][0]
             comm = self._subcomm[direction]
-            # local_dest_rank = self._comm_cart.group.Translate_ranks(xp.array([rank_dest]), comm.group)[0]
+            # local_dest_rank = self._comm_cart.group.Translate_ranks(np.array([rank_dest]), comm.group)[0]
             local_dest_rank = self._comm_cart.group.Translate_ranks([int(rank_dest)], comm.group)[0]
 
         else:
@@ -921,7 +950,7 @@ class CartDecomposition():
         if len([i for i in shift if i==0]) == 2 and rank_source != MPI.PROC_NULL:
             direction = [i for i,s in enumerate(shift) if s != 0][0]
             comm = self._subcomm[direction]
-            # local_source_rank = self._comm_cart.group.Translate_ranks(xp.array([rank_source]), comm.group)[0]
+            # local_source_rank = self._comm_cart.group.Translate_ranks(np.array([rank_source]), comm.group)[0]
             local_source_rank = self._comm_cart.group.Translate_ranks([int(rank_source)], comm.group)[0]
         else:
             local_source_rank = rank_source
