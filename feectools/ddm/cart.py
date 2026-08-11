@@ -1,10 +1,10 @@
 # coding: utf-8
 
 import os
-import numpy as np
-import cunumpy as xp
-from cunumpy.xp import array_backend
+import numpy as xp  # this module is host-only MPI/index bookkeeping, never device data
 from itertools import product
+
+from cunumpy.xp import array_backend, to_numpy
 
 # Initialize CUDA context before MPI if using CuPy backend
 if array_backend.backend == "cupy":
@@ -481,6 +481,12 @@ class CartDecomposition():
 
     """
     def __init__( self, domain_decomposition, npts, global_starts, global_ends, pads, shifts ):
+
+        # global_starts/global_ends are host-side decomposition metadata; callers
+        # may hand them in as CuPy arrays (e.g. built with cunumpy under the CuPy
+        # backend), so coerce them to NumPy up front.
+        global_starts = [ to_numpy(gs) for gs in global_starts ]
+        global_ends   = [ to_numpy(ge) for ge in global_ends   ]
 
         # Check input arguments
         # TODO: check that arguments are identical across all processes

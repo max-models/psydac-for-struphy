@@ -2,7 +2,7 @@
 import os
 
 import numpy as np
-import cunumpy as xp
+import numpy as xp  # this module is host-only MPI/index bookkeeping, never device data
 
 from feectools.ddm.cart       import CartDecomposition, InterfaceCartDecomposition, create_interfaces_cart
 from feectools.core.bsplines  import elements_spans

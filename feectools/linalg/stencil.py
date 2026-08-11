@@ -3,11 +3,14 @@
 # LICENSE file or go to https://github.com/pyccel/psydac/blob/devel/LICENSE #
 # for full license details.                                                 #
 #---------------------------------------------------------------------------#
+
+import math
 import os
 import warnings
 from types import MappingProxyType
 
 import cunumpy as xp
+from cunumpy import PyccelKernel
 from cunumpy.xp import array_backend
 from scipy.sparse import coo_matrix, diags as sp_diags
 
@@ -62,6 +65,24 @@ kernels = {
 }
 
 #========================================================================
+
+def _wrap_kernel_table(table):
+    """Wrap every Pyccel kernel in `table` with PyccelKernel, recursively,
+    so StencilMatrix/StencilVector operations also work with CuPy arrays
+    (Pyccel kernels only understand NumPy arrays, see cunumpy.kernel).
+    """
+    if table is None:
+        return None
+    if isinstance(table, dict):
+        return {k: _wrap_kernel_table(v) for k, v in table.items()}
+    if isinstance(table, tuple):
+        return tuple(_wrap_kernel_table(v) for v in table)
+    return PyccelKernel(table)
+
+
+kernels = _wrap_kernel_table(kernels)
+
+#===============================================================================
 def compute_diag_len(pads, shifts_domain, shifts_codomain, return_padding=False):
     """
     Compute the diagonal length and the padding of the stencil matrix for each direction,
@@ -89,13 +110,15 @@ def compute_diag_len(pads, shifts_domain, shifts_codomain, return_padding=False)
     ep : (int)
         Padding that constitutes the starting index of the non zero elements.
     """
-    n  = ((xp.ceil((pads+1)/shifts_codomain)-1)*shifts_domain).astype('int')
-    ep = -xp.minimum(0, n-pads)
+    # pads/shifts are plain Python ints (per-direction metadata), not device
+    # arrays, so this is computed with builtins rather than the array backend.
+    n  = int((math.ceil((pads+1)/shifts_codomain)-1)*shifts_domain)
+    ep = -min(0, n-pads)
     n  = n + ep + pads + 1
     if return_padding:
-        return n.astype('int'), ep.astype('int')
+        return int(n), int(ep)
     else:
-        return n.astype('int')
+        return int(n)
 
 #========================================================================
 class StencilVectorSpace(VectorSpace):
@@ -214,7 +237,7 @@ class StencilVectorSpace(VectorSpace):
         """ The dimension of a vector space V is the cardinality
             (i.e. the number of vectors) of a basis of V over its base field.
         """
-        return xp.prod(self._npts)
+        return math.prod(self._npts)
 
     # ...
     @property
@@ -280,7 +303,12 @@ class StencilVectorSpace(VectorSpace):
             self.cart.global_comm.Allreduce((x._dot_send_data, self.mpi_type),
                                             (x._dot_recv_data, self.mpi_type),
                                              op=MPI.SUM )
-            return x._dot_recv_data[0]
+            # _dot_recv_data is a persistent per-vector scratch buffer reused
+            # across calls; under CuPy, basic indexing (`arr[0]`) returns a
+            # *view* rather than an independent scalar (unlike NumPy), so a
+            # caller holding on to this result would see it silently change
+            # on the vector's next .inner() call. .item() forces a real copy.
+            return x._dot_recv_data[0].item()
         else:
             return inner_func(*inner_args)
 
@@ -1687,7 +1715,7 @@ class StencilMatrix(LinearOperator):
 
         M = coo_matrix(
                 (data,(rows,cols)),
-                shape = [xp.prod(nr),xp.prod(nc)],
+                shape = [math.prod(nr),math.prod(nc)],
                 dtype = self._domain.dtype
         )
 
@@ -1854,7 +1882,7 @@ class StencilMatrix(LinearOperator):
         # Create Scipy COO matrix
         M = coo_matrix(
                 (data,(rows,cols)),
-                shape = [xp.prod(nr), xp.prod(nc)],
+                shape = [math.prod(nr), math.prod(nc)],
                 dtype = self._domain.dtype
         )
 
@@ -2008,7 +2036,7 @@ class StencilMatrix(LinearOperator):
 
             # matvec kernel
             dot_func_name = 'matvec_' + str(self._ndim) + 'd_kernel'
-            self._func = getattr(stencil_dot_kernels, dot_func_name)
+            self._func = PyccelKernel(getattr(stencil_dot_kernels, dot_func_name))
 
             # parameter for rectangular matrices
             add = [int(end_in >= end_out) for end_in, end_out in zip(self.domain.ends, self.codomain.ends)]
@@ -2032,7 +2060,7 @@ class StencilMatrix(LinearOperator):
             # transpose kernel
             transp_func_name = 'transpose_' + str(self._ndim) + 'd_kernel'
 
-            self._transpose_func = getattr(stencil_transpose_kernels, transp_func_name)
+            self._transpose_func = PyccelKernel(getattr(stencil_transpose_kernels, transp_func_name))
 
             # parameter for rectangular matrices
             add = [int(end_out >= end_in) for end_in, end_out in zip(self.domain.ends, self.codomain.ends)]
@@ -2167,7 +2195,7 @@ class StencilMatrix(LinearOperator):
             nrows = [e - s + 1 for s, e in zip(self.codomain.starts, self.codomain.ends)]
             ndim  = self.domain.ndim
 
-            indices = [xp.zeros(xp.prod(nrows), dtype=int) for _ in range(2 * ndim)]
+            indices = [xp.zeros(math.prod(nrows), dtype=int) for _ in range(2 * ndim)]
 
             for l, xx in enumerate(xp.ndindex(*nrows)):
                 ii = [m * p + x for m, p, x in zip(dm, dp, xx)]
@@ -2927,7 +2955,7 @@ class StencilInterfaceMatrix(LinearOperator):
 
         M = coo_matrix(
                     (data,(rows,cols)),
-                    shape = [xp.prod(nr),xp.prod(nc)],
+                    shape = [math.prod(nr),math.prod(nc)],
                     dtype = self.domain.dtype)
 
         return M
