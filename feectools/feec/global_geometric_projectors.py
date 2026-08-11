@@ -183,7 +183,7 @@ class GlobalGeometricProjector(metaclass=ABCMeta):
                 if cell == 'I':
                     # interpolation case
                     if intp_x[j] is None:
-                        intp_x[j] = V.greville[s:e+1]
+                        intp_x[j] = xp.asarray(V.greville[s:e+1])  # V.greville is always NumPy
                     local_intp_x = intp_x[j]
 
                     # for the grids, make interpolation appear like quadrature
