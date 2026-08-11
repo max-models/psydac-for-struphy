@@ -4,12 +4,14 @@ This module provides iterative solvers and preconditioners.
 
 """
 import cunumpy as xp
-from math import sqrt
+from math import sqrt, inf
 
 from feectools.utilities.utils  import is_real
 from feectools.linalg.utilities import _sym_ortho
 from feectools.linalg.basic     import (Vector, LinearOperator,
         InverseLinearOperator, IdentityOperator, ScaledLinearOperator)
+from feectools.linalg.block import BlockVector, BlockVectorSpace
+
 
 __all__ = (
     'inverse',
@@ -20,7 +22,7 @@ __all__ = (
     'PBiConjugateGradientStabilized',
     'MinimumResidual',
     'LSMR',
-    'GMRES'
+    'GMRES',
 )
 
 #===============================================================================
@@ -64,6 +66,8 @@ def inverse(A, solver, **kwargs):
         'minres'   : MinimumResidual,
         'lsmr'     : LSMR,
         'gmres'    : GMRES,
+        'uzawa'    : UzawaSolver,
+        'schur'    : SchurComplementSolver 
     }
 
     # Check solver input
@@ -1912,3 +1916,219 @@ class GMRES(InverseLinearOperator):
     def dot(self, b, out=None):
         return self.solve(b, out=out)
 
+
+class UzawaSolver(InverseLinearOperator):
+    def __init__(self, A, *, A11, A22, B1, B2,
+                x0=None, tol=1e-6, maxiter=1000, verbose=False, recycle=False,
+                inner_tol=1e-7, inner_maxiter=1000):
+
+
+        self._options = {
+            "x0": x0, "tol": tol, "maxiter": maxiter,
+            "verbose": verbose, "recycle": recycle,
+        }
+        super().__init__(A, **self._options)
+
+        self._inner_tol = inner_tol if inner_tol is not None else tol
+        self._inner_maxiter = inner_maxiter
+
+        self._A11 = A11
+        self._A22 = A22
+        self._B1  = B1
+        self._B2  = B2
+
+        self._A11inv = self._inner_solve(A11, tol=self._inner_tol, maxiter=self._inner_maxiter)
+        self._A22inv = self._inner_solve(A22, tol=self._inner_tol, maxiter=self._inner_maxiter)
+
+        self._info = None
+
+    @staticmethod
+    def _inner_solve(A, tol=1e-10, maxiter=200):
+        """Iterative GMRES inverse — works for non-symmetric positive definite operators."""
+        from feectools.linalg.solvers import inverse
+        return inverse(A, "gmres", tol=tol, maxiter=maxiter, recycle=True)
+
+    def update_A11(self, A11):
+        """Recompute A11 inverse when dt changes."""
+        self._A11 = A11
+        self._A11inv = self._inner_solve(A11, tol=self._inner_tol, maxiter=self._inner_maxiter)
+
+    def solve(self, b, out=None):
+
+        A11    = self._A11
+        A22    = self._A22
+        B1     = self._B1
+        B2     = self._B2
+        A11inv = self._A11inv
+        A22inv = self._A22inv
+
+        tol     = self._options["tol"]
+        maxiter = self._options["maxiter"]
+        verbose = self._options["verbose"]
+        recycle = self._options["recycle"]
+
+        F    = b[0]
+        g    = b[1]
+        f_u  = F[0]
+        f_ue = F[1]
+
+        # initial guess
+        x0 = self._options["x0"]
+        if x0 is not None:
+            u  = x0[0][0].copy()
+            ue = x0[0][1].copy()
+            p  = x0[1].copy()
+        else:
+            u  = A11.domain.zeros()
+            ue = A22.domain.zeros()
+            p  = B1.codomain.zeros()
+
+
+        if verbose:
+            print("Uzawa solver:")
+            print("+---------+---------------------+")
+            print("+ Iter. # | L2-norm of residual |")
+            print("+---------+---------------------+")
+            template = "| {:7d} | {:19.2e} |"
+
+        for iteration in range(1, maxiter + 1):
+
+            # solve A11 * u = f_u - B1^T * p
+            rhs_u = f_u - B1.T.dot(p)
+            u = A11inv.dot(rhs_u)
+
+            # solve A22 * ue = f_ue - B2^T * p
+            rhs_ue = f_ue - B2.T.dot(p)
+            ue = A22inv.dot(rhs_ue)
+
+            # constraint residual: R = B1*u + B2*ue - g
+            R = B1.dot(u) + B2.dot(ue) - g
+            residual_norm = sqrt(R.inner(R).real)
+
+            if verbose:
+                print(template.format(iteration, residual_norm))
+
+            if residual_norm < tol:
+                break
+
+            # pressure update: steepest descent step size
+            S_R   = B1.dot(A11inv.dot(B1.T.dot(R))) + B2.dot(A22inv.dot(B2.T.dot(R)))
+            alpha = R.inner(R).real / R.inner(S_R).real
+            p    += alpha * R
+
+        if verbose:
+            print("+---------+---------------------+")
+
+        self._info = {
+            'niter'   : iteration,
+            'success' : residual_norm < tol,
+            'res_norm': residual_norm,
+        }
+
+        if recycle:
+            block_u = BlockVector(self.domain.spaces[0], blocks=[u, ue])
+            self._options["x0"] = BlockVector(self.domain, blocks=[block_u, p])
+
+        if out is not None:
+            out[0][0] = u
+            out[0][1] = ue
+            out[1]    = p
+            return out
+
+        block_u = BlockVector(BlockVectorSpace(A11.domain, A22.domain), blocks=[u, ue])
+        return BlockVector(self.domain, blocks=[block_u, p])
+
+    def dot(self, b, out=None):
+        return self.solve(b, out=out)
+
+
+class SchurComplementSolver(InverseLinearOperator):
+    def __init__(self, A, *, A11, A22, B1, B2,
+                 x0=None, tol=1e-6, maxiter=1000, verbose=False, recycle=False,
+                 inner_tol=1e-7, inner_maxiter=1000):
+
+        self._options = {
+            "x0": x0, "tol": tol, "maxiter": maxiter,
+            "verbose": verbose, "recycle": recycle,
+        }
+        super().__init__(A, **self._options)
+
+        self._inner_tol     = inner_tol if inner_tol is not None else tol
+        self._inner_maxiter = inner_maxiter
+
+        self._A11 = A11
+        self._A22 = A22
+        self._B1  = B1
+        self._B2  = B2
+
+        self._A11inv = self._make_inner_solver(A11, self._inner_tol, self._inner_maxiter)
+        self._A22inv = self._make_inner_solver(A22, self._inner_tol, self._inner_maxiter)
+
+        self._Sinv = self._build_schur_solver()
+
+        self._info = None
+
+    def _make_inner_solver(self, A, tol, maxiter):
+        from feectools.linalg.solvers import inverse
+        return inverse(A, "gmres", tol=tol, maxiter=maxiter, recycle=True)
+
+    def _build_schur_operator(self):
+        return (self._B1 @ self._A11inv @ self._B1.T
+              + self._B2 @ self._A22inv @ self._B2.T)
+
+    def _build_schur_solver(self):
+        from feectools.linalg.solvers import inverse
+        S = self._build_schur_operator()
+        return inverse(S, "gmres",
+                       tol=self._options["tol"],
+                       maxiter=self._options["maxiter"],
+                       verbose=self._options["verbose"],
+                       recycle=self._options["recycle"])
+
+    def update_A11(self, A11):
+        """Recompute A11 inverse and update Schur operator when dt changes."""
+        self._A11    = A11
+        self._A11inv = self._make_inner_solver(A11, self._inner_tol, self._inner_maxiter)
+        # update operator in-place so Sinv keeps its recycled state
+        self._Sinv.linop = self._build_schur_operator()
+
+    def solve(self, b, out=None):
+
+        A11inv = self._A11inv
+        A22inv = self._A22inv
+        B1     = self._B1
+        B2     = self._B2
+        Sinv   = self._Sinv
+
+        F    = b[0]
+        g    = b[1]
+        f_u  = F[0]
+        f_ue = F[1]
+
+        # Schur complement RHS: B1*u_f + B2*ue_f - g
+        rhs_p = B1.dot(A11inv.dot(f_u)) + B2.dot(A22inv.dot(f_ue)) - g
+
+        # solve S * p = rhs_p
+        p = Sinv.dot(rhs_p)
+
+        # recover velocities
+        u  = A11inv.dot(f_u  - B1.T.dot(p))
+        ue = A22inv.dot(f_ue - B2.T.dot(p))
+
+        self._info = Sinv.get_info()
+
+        if self._options["recycle"]:
+            block_u = BlockVector(self.domain.spaces[0], blocks=[u, ue])
+            self._options["x0"] = BlockVector(self.domain, blocks=[block_u, p])
+
+        if out is not None:
+            out[0][0] = u
+            out[0][1] = ue
+            out[1]    = p
+            return out
+
+        block_u = BlockVector(self.domain.spaces[0], blocks=[u, ue])
+        return BlockVector(self.domain, blocks=[block_u, p])
+
+    def dot(self, b, out=None):
+        return self.solve(b, out=out)
