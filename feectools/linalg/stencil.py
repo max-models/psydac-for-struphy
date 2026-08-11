@@ -1792,8 +1792,10 @@ class StencilMatrix(LinearOperator):
         
         
         if array_backend.backend == "cupy":
+            def _host(a):
+                return a.get() if hasattr(a, 'get') else a
             M = coo_matrix(
-                (data[:ind].get(), (rows[:ind].get(), cols[:ind].get())),
+                (_host(data[:ind]), (_host(rows[:ind]), _host(cols[:ind]))),
                 shape=[int(_np.prod(nr)), int(_np.prod(nc))],
                 dtype=self.dtype
             )

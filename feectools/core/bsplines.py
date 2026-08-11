@@ -106,7 +106,7 @@ def find_span(knots, degree, x):
         Knot span index.
     """
     x = float(x)
-    knots = xp.ascontiguousarray(knots, dtype=float)
+    knots = xp.ascontiguousarray(xp.asarray(knots), dtype=float)
     return find_span_p(knots, degree, x)
 
 #==============================================================================
@@ -138,8 +138,8 @@ def find_spans(knots, degree, x, out=None):
     spans : array of ints
         Knots span indexes.
     """
-    knots = xp.ascontiguousarray(knots, dtype=float)
-    x = xp.ascontiguousarray(x, dtype=float)
+    knots = xp.ascontiguousarray(xp.asarray(knots), dtype=float)
+    x = xp.ascontiguousarray(xp.asarray(x), dtype=float)
     if out is None:
         out = xp.zeros_like(x, dtype=int)
     else:
@@ -177,7 +177,7 @@ def basis_funs(knots, degree, x, span, out=None):
         1D array containing the values of ``degree + 1`` non-zero
         Bsplines at location ``x``.
     """
-    knots = xp.ascontiguousarray(knots, dtype=float)
+    knots = xp.ascontiguousarray(xp.asarray(knots), dtype=float)
     # Get native float
     x = float(x)
     if out is None:
@@ -215,8 +215,8 @@ def basis_funs_array(knots, degree, span, x, out=None):
         2D array of shape ``(len(x), degree + 1)`` containing the values of ``degree + 1`` non-zero
         Bsplines at each location in ``x``.
     """
-    knots = xp.ascontiguousarray(knots, dtype=float)
-    x = xp.ascontiguousarray(x, dtype=float)
+    knots = xp.ascontiguousarray(xp.asarray(knots), dtype=float)
+    x = xp.ascontiguousarray(xp.asarray(x), dtype=float)
     if out is None:
         out = xp.zeros(x.shape + (degree + 1,), dtype=float)
     else:
@@ -262,7 +262,7 @@ def basis_funs_1st_der(knots, degree, x, span, out=None):
     ----------
     .. [2] SELALIB, Semi-Lagrangian Library. http://selalib.gforge.inria.fr
     """
-    knots = xp.ascontiguousarray(knots, dtype=float)
+    knots = xp.ascontiguousarray(xp.asarray(knots), dtype=float)
     # Get native float to work on windows
     x = float(x)
     if out is None:
@@ -313,7 +313,7 @@ def basis_funs_all_ders(knots, degree, x, span, n, normalization='B', out=None):
         ders[i,j] = (d/dx)^i B_k(x) with k=(span-degree+j),
         for 0 <= i <= n and 0 <= j <= degree+1.
     """
-    knots = xp.ascontiguousarray(knots, dtype=float)
+    knots = xp.ascontiguousarray(xp.asarray(knots), dtype=float)
     # Get native float to work on windows
     x = float(x)
     if out is None:
@@ -368,8 +368,8 @@ def collocation_matrix(knots, degree, periodic, normalization, xgrid, out=None, 
     if xgrid.size == 1:
         return xp.ones((1, 1), dtype=float)
 
-    knots = xp.ascontiguousarray(knots, dtype=float)
-    xgrid = xp.ascontiguousarray(xgrid, dtype=float)
+    knots = xp.ascontiguousarray(xp.asarray(knots), dtype=float)
+    xgrid = xp.ascontiguousarray(xp.asarray(xgrid), dtype=float)
     if out is None:
         nb = len(knots) - degree - 1
         if periodic:
@@ -452,8 +452,8 @@ def histopolation_matrix(knots, degree, periodic, normalization, xgrid, multipli
     if not xp.all(xp.diff(xgrid) > 0):
         raise ValueError("Grid points must be ordered, with no repetitions: {}".format(xgrid))
 
-    knots = xp.ascontiguousarray(knots, dtype=float)
-    xgrid = xp.ascontiguousarray(xgrid, dtype=float)
+    knots = xp.ascontiguousarray(xp.asarray(knots), dtype=float)
+    xgrid = xp.ascontiguousarray(xp.asarray(xgrid), dtype=float)
     elevated_knots = elevate_knots(knots, degree, periodic, multiplicity=multiplicity)
 
     normalization = normalization == "M"
@@ -499,7 +499,7 @@ def breakpoints(knots, degree, tol=1e-15, out=None):
     breaks : numpy.ndarray (1D)
         Abscissas of all breakpoints.
     """
-    knots = xp.ascontiguousarray(knots, dtype=float)
+    knots = xp.ascontiguousarray(xp.asarray(knots), dtype=float)
     if out is None:
         out = xp.zeros(len(knots), dtype=float)
     else:
@@ -594,7 +594,7 @@ def elements_spans(knots, degree, out=None):
        spans  = xp.searchsorted( knots, breaks[:-1], side='right' ) - 1
 
     """
-    knots = xp.ascontiguousarray(knots, dtype=float)
+    knots = xp.ascontiguousarray(xp.asarray(knots), dtype=float)
     if out is None:
         out = np.zeros(len(knots), dtype=xp.int64)
     else:
@@ -870,8 +870,8 @@ def basis_ders_on_quad_grid(knots, degree, quad_grid, nders, normalization, offs
     """
     offset = int(offset)
     ne, nq = quad_grid.shape
-    knots = xp.ascontiguousarray(knots, dtype=float)
-    quad_grid = xp.ascontiguousarray(quad_grid, dtype=float)
+    knots = xp.ascontiguousarray(xp.asarray(knots), dtype=float)
+    quad_grid = xp.ascontiguousarray(xp.asarray(quad_grid), dtype=float)
     if out is None:
         out = xp.zeros((ne, degree + 1, nders + 1, nq), dtype=float)
     else:
@@ -914,7 +914,7 @@ def basis_integrals(knots, degree, out=None):
     to (len(knots)-degree-1). In the periodic case the last (degree) values in
     the array are redundant, as they are a copy of the first (degree) values.
     """
-    knots = xp.ascontiguousarray(knots, dtype=float)
+    knots = xp.ascontiguousarray(xp.asarray(knots), dtype=float)
     if out is None:
         out = xp.zeros(len(knots) - degree - 1, dtype=float)
     else:
@@ -956,8 +956,8 @@ def cell_index(breaks, i_grid, tol=1e-15, out=None):
         ``cell_index[i]`` is the index of the cell in which
         ``i_grid[i]`` belong.
     """
-    breaks = xp.ascontiguousarray(breaks, dtype=float)
-    i_grid = xp.ascontiguousarray(i_grid, dtype=float)
+    breaks = xp.ascontiguousarray(xp.asarray(breaks), dtype=float)
+    i_grid = xp.ascontiguousarray(xp.asarray(i_grid), dtype=float)
     if out is None:
         out = np.zeros_like(i_grid, dtype=xp.int64)
     else:
@@ -1012,8 +1012,8 @@ def basis_ders_on_irregular_grid(knots, degree, i_grid, cell_index, nders, norma
         . il: local basis function   (0 <= il <= degree)
         . id: derivative             (0 <= id <= nders )
     """
-    knots = xp.ascontiguousarray(knots, dtype=float)
-    i_grid = xp.ascontiguousarray(i_grid, dtype=float)
+    knots = xp.ascontiguousarray(xp.asarray(knots), dtype=float)
+    i_grid = xp.ascontiguousarray(xp.asarray(i_grid), dtype=float)
     if out is None:
         nx = i_grid.shape[0]
         out = xp.zeros((nx, degree + 1, nders + 1), dtype=float)

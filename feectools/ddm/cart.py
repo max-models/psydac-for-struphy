@@ -1,6 +1,7 @@
 # coding: utf-8
 
 import os
+import numpy as np
 import numpy as xp  # this module is host-only MPI/index bookkeeping, never device data
 from itertools import product
 

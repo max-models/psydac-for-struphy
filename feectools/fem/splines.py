@@ -198,7 +198,7 @@ class SplineSpace( FemSpace ):
         else:
 
             # Convert to LAPACK banded format (see DGBTRF function)
-            if array_backend.backend == "cupy":
+            if hasattr(imat, 'get'):
                 imat = imat.get()
             else:
                 imat = _np.asanyarray(imat)

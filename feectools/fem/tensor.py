@@ -517,7 +517,7 @@ class TensorFemSpace(FemSpace):
         # -> grid is tensor-product, but npts_per_cell is not the same in each cell
         elif grid[0].ndim == 1 and npts_per_cell is None:
             out_fields = self.eval_fields_irregular_tensor_grid(grid, *fields, weights=weights, overlap=overlap)
-            return [xp.ascontiguousarray(out_fields[..., i]) for i in range(len(fields))]
+            return [xp.ascontiguousarray(xp.asarray(out_fields[..., i])) for i in range(len(fields))]
 
         # Case 3. 1D arrays of coordinates and npts_per_cell is a tuple or an integer
         # -> grid is tensor-product, and each cell has the same number of evaluation points
@@ -529,7 +529,7 @@ class TensorFemSpace(FemSpace):
                 grid[i] = xp.reshape(grid[i], (ncells_i, npts_per_cell[i]))
             out_fields = self.eval_fields_regular_tensor_grid(grid, *fields, weights=weights, overlap=overlap)
             # return a list
-            return [xp.ascontiguousarray(out_fields[..., i]) for i in range(len(fields))]
+            return [xp.ascontiguousarray(xp.asarray(out_fields[..., i])) for i in range(len(fields))]
 
         # Case 4. (self.ldim)D arrays of coordinates and no npts_per_cell
         # -> unstructured grid
