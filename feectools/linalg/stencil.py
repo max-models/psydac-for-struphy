@@ -22,6 +22,8 @@ from feectools.ddm.cart      import find_mpi_type, CartDecomposition, InterfaceC
 from feectools.ddm.utilities import get_data_exchanger
 from feectools.api.settings  import PSYDAC_BACKENDS
 
+from feectools.linalg.kernels.device_matvec       import device_matvec
+from feectools.linalg.kernels.device_matvec       import supports as device_matvec_supports
 from feectools.linalg.kernels.axpy_kernels        import axpy_1d, axpy_2d, axpy_3d
 from feectools.linalg.kernels.inner_kernels       import inner_1d, inner_2d, inner_3d
 from feectools.linalg.kernels.matvec_kernels      import matvec_1d, matvec_2d, matvec_3d
@@ -450,22 +452,24 @@ class StencilVectorSpace(ReductionWorkspace, VectorSpace):
             else:
                 a = float(a)
 
+        if _is_device_array(y._data):
+            # The compiled kernel is host code; on the device this is just a
+            # scaled add over the whole array (ghost regions included), which
+            # is what the kernel does too.
+            y._data += a * x._data
+            for axis, ext in self.interfaces:
+                y._interface_data[axis, ext] += a * x._interface_data[axis, ext]
+            x._sync = x._sync and y._sync
+            return
+
         x_data_np = _to_numpy_array(x._data)
         y_data_np = _to_numpy_array(y._data)
         self._axpy_func(a, x_data_np, y_data_np)
-        # Copy result back if CuPy
-        if hasattr(y._data, 'get'):
-            import cupy as cp
-            y._data[:] = cp.asarray(y_data_np)
 
         for axis, ext in self.interfaces:
             x_int_np = _to_numpy_array(x._interface_data[axis, ext])
             y_int_np = _to_numpy_array(y._interface_data[axis, ext])
             self._axpy_func(a, x_int_np, y_int_np)
-            # Copy result back if CuPy
-            if hasattr(y._interface_data[axis, ext], 'get'):
-                import cupy as cp
-                y._interface_data[axis, ext][:] = cp.asarray(y_int_np)
 
         x._sync = x._sync and y._sync
 
@@ -1237,6 +1241,23 @@ class StencilMatrix(LinearOperator):
         if not v.ghost_regions_in_sync:
             v.update_ghost_regions()
 
+        if (self._device_matvec_args() is not None
+                and _is_device_array(self._data)
+                and _is_device_array(v._data)
+                and _is_device_array(out._data)):
+            # Data is on the device: run the product there. Going through the
+            # compiled (host) kernel would copy the matrix and the vector off
+            # the device and reduce serially on the CPU.
+            # zeros, not empty: the kernel only writes the interior
+            # (non-padding) region, and the host path leaves the padding zeroed.
+            out._data[...] = 0
+            device_matvec(self._data, v._data, out._data,
+                          **self._device_matvec_args())
+
+            # IMPORTANT: flag that ghost regions are not up-to-date
+            out.ghost_regions_in_sync = False
+            return out
+
         # Convert arrays for compiled kernel - create NumPy output
         import numpy as _np
         self_data_np = _to_numpy_array(self._data)
@@ -1252,7 +1273,7 @@ class StencilMatrix(LinearOperator):
             args_np[key] = _to_numpy_array(val)
 
         self._func(self_data_np, v_data_np, out_data_np, **args_np)
-        
+
         # Copy result back to CuPy array if needed
         if hasattr(out._data, 'get'):
             import cupy as cp
@@ -1263,6 +1284,36 @@ class StencilMatrix(LinearOperator):
         # IMPORTANT: flag that ghost regions are not up-to-date
         out.ghost_regions_in_sync = False
         return out
+
+    # ...
+    def _device_matvec_args(self):
+        """
+        The arguments for :func:`device_matvec`, or None if this matrix cannot
+        use it.
+
+        The device kernel mirrors the *precompiled* stencil matvec, which is
+        the one selected by `set_backend(..., precompiled=True)` and is
+        recognised by the parameters it takes. Any other backend (in
+        particular the pure-Python `_dot`, which is parametrised differently)
+        falls back to the host path.
+        """
+        cached = getattr(self, '_device_matvec_args_cache', False)
+        if cached is not False:
+            return cached
+
+        keys = ('s_in', 'p_in', 'add', 's_out', 'e_out', 'p_out')
+        if (not device_matvec_supports(self._ndim, self.dtype)
+                or set(self._args) != set(keys)):
+            args = None
+        else:
+            # For ndim == 1 these are plain ints, otherwise arrays; the device
+            # helper wants a sequence per direction either way.
+            args = {k: (_to_numpy_array(self._args[k]).tolist()
+                        if self._ndim > 1 else [int(self._args[k])])
+                    for k in keys}
+
+        self._device_matvec_args_cache = args
+        return args
 
     # ...
     def vdot( self, v, out=None):
