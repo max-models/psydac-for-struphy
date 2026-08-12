@@ -16,6 +16,7 @@ from scipy.sparse import coo_matrix, diags as sp_diags
 
 from feectools.ddm.mpi import mpi as MPI
 from feectools.linalg.basic  import VectorSpace, Vector, LinearOperator
+from feectools.linalg.basic  import ReductionWorkspace
 from feectools.linalg.memory import stencil_matrix_memory
 from feectools.ddm.cart      import find_mpi_type, CartDecomposition, InterfaceCartDecomposition
 from feectools.ddm.utilities import get_data_exchanger
@@ -52,6 +53,10 @@ def _to_numpy_array(val):
         # CuPy array - convert to NumPy
         return val.get()
     return val
+
+def _is_device_array(val):
+    """Whether `val` lives on a device (CuPy) rather than on the host."""
+    return hasattr(val, 'get')
 
 #========================================================================# Dictionary used to select correct kernel functions based on dimensionality
 kernels = {
@@ -121,7 +126,7 @@ def compute_diag_len(pads, shifts_domain, shifts_codomain, return_padding=False)
         return int(n)
 
 #========================================================================
-class StencilVectorSpace(VectorSpace):
+class StencilVectorSpace(ReductionWorkspace, VectorSpace):
     """
     Vector space for n-dimensional stencil format. Two different initializations
     are possible:
@@ -212,6 +217,18 @@ class StencilVectorSpace(VectorSpace):
         import numpy as np
         self._inner_consts = tuple(np.int64(p) * np.int64(s) for p, s in zip(self._pads, self._shifts))
 
+        # Index expression selecting the owned (non-ghost) part of the data
+        # array, matching the loop bounds of the kernels above. Written as
+        # `slice(ng, n - ng)` rather than `slice(ng, -ng)` because the latter
+        # selects nothing when a direction has no ghost cells at all.
+        self._inner_index = tuple(slice(int(ng), int(n) - int(ng))
+                                  for ng, n in zip(self._inner_consts, self._shape))
+
+        # Number of owned entries: zero means this rank holds no data, in which
+        # case the compiled kernels must not be called at all.
+        self._inner_size = math.prod(max(0, s.stop - s.start)
+                                     for s in self._inner_index)
+
 
         # TODO [YG, 06.09.2023]: print warning if pure Python functions are used
 
@@ -289,28 +306,118 @@ class StencilVectorSpace(VectorSpace):
 
         """
 
+        if self._reduction_is_trivial(x):
+            return self._inner_local(x, y)
+
+        return self.inner_many((x, y))[0]
+
+    # ...
+    def inner_many(self, *pairs):
+        """
+        Evaluate several inner products of this space in one go, see
+        :meth:`feectools.linalg.basic.VectorSpace.inner_many`.
+
+        All local partial sums are computed first, then reduced across the
+        communicator with a single Allreduce, and finally brought to the host
+        with a single transfer. Compared to calling `inner` once per pair this
+        saves (n - 1) collectives and, on a device backend, (n - 1)
+        device-to-host synchronizations.
+
+        Parameters
+        ----------
+        *pairs : tuple[StencilVector, StencilVector]
+            The (x, y) pairs to evaluate; x is the conjugated one.
+
+        Returns
+        -------
+        tuple[float | complex, ...]
+            One scalar per pair, in the order the pairs were given.
+        """
+        if len(pairs) == 0:
+            return ()
+
+        if self._reduction_is_trivial(pairs[0][0]):
+            return tuple(self._inner_local(x, y) for x, y in pairs)
+
+        send = self._reduction_send(len(pairs))
+        self._inner_local_into(pairs, send)
+        comms = self._reduction_comms()
+        return self._reduce_to_host(send, comms[0] if comms else None,
+                                    self.mpi_type)
+
+    # ...
+    def _reduction_is_trivial(self, x):
+        """
+        Whether a reduction over this space has nothing to do beyond the local
+        sums: the space is serial (no collective) and its data is on the host
+        (no transfer). Then the local values are already the answer and the
+        reduction scratch can be skipped entirely, which is worth doing because
+        on a small space the bookkeeping is visible next to the kernel itself.
+        """
+        return (not self.parallel
+                and self._inner_size != 0
+                and not _is_device_array(x._data))
+
+    # ...
+    def _inner_local(self, x, y):
+        """
+        The process-local (unreduced) inner product of `x` and `y`, left
+        wherever it was computed: a host scalar on the NumPy backend, a device
+        scalar on the CuPy one.
+        """
         assert isinstance(x, StencilVector)
         assert isinstance(y, StencilVector)
         assert x.space is self
         assert y.space is self
 
-        inner_func = self._inner_func
-        inner_args = (x._data, y._data, *self._inner_consts)
+        if self._inner_size == 0:
+            # This rank owns no coefficients; the kernels cannot be called on
+            # an empty array, and the local contribution is zero.
+            return 0
 
-        if self.parallel:
-            # Sometimes in the parallel case, we can get an empty vector that breaks our kernel
-            x._dot_send_data[0] = 0 if x._data.shape[0] == 0 else inner_func(*inner_args)
-            self.cart.global_comm.Allreduce((x._dot_send_data, self.mpi_type),
-                                            (x._dot_recv_data, self.mpi_type),
-                                             op=MPI.SUM )
-            # _dot_recv_data is a persistent per-vector scratch buffer reused
-            # across calls; under CuPy, basic indexing (`arr[0]`) returns a
-            # *view* rather than an independent scalar (unlike NumPy), so a
-            # caller holding on to this result would see it silently change
-            # on the vector's next .inner() call. .item() forces a real copy.
-            return x._dot_recv_data[0].item()
-        else:
-            return inner_func(*inner_args)
+        if _is_device_array(x._data):
+            # The compiled kernels are host code, so feeding them device arrays
+            # would copy both operands off the device and run a serial loop on
+            # the CPU. Reduce on the device instead.
+            index = self._inner_index
+            return xp.sum(xp.conj(x._data[index]) * y._data[index],
+                          dtype=self._dtype)
+
+        return self._inner_func(x._data, y._data, *self._inner_consts)
+
+    # ...
+    def _inner_local_into(self, pairs, out, accumulate=False):
+        """
+        Compute the process-local (unreduced) inner product of each pair and
+        write it into `out`, one entry per pair. With `accumulate=True` the
+        values are added to what `out` already holds, which is how a
+        BlockVectorSpace sums the contributions of its blocks into a single
+        buffer before reducing once.
+
+        Parameters
+        ----------
+        pairs : sequence[tuple[StencilVector, StencilVector]]
+            The (x, y) pairs to evaluate; x is the conjugated one.
+
+        out : array
+            Buffer of at least len(pairs) entries, of the dtype of this space.
+
+        accumulate : bool
+            Add to `out` instead of overwriting it.
+        """
+        for i, (x, y) in enumerate(pairs):
+            if accumulate:
+                out[i] += self._inner_local(x, y)
+            else:
+                out[i] = self._inner_local(x, y)
+
+    # ...
+    def _reduction_comms(self):
+        """
+        The distinct communicators a fused reduction over this space has to go
+        through: empty in serial, one entry when distributed.
+        """
+        return (self.cart.global_comm,) if self.parallel else ()
 
     # ...
     def axpy(self, a, x, y):
@@ -505,8 +612,11 @@ class StencilVector(Vector):
         self._ndim           = len(V.npts)
         # self._data           = xp.zeros(V.shape, dtype=V.dtype)
         self._data = xp.zeros(tuple(int(s) for s in V.shape), dtype=V.dtype)
-        self._dot_send_data  = xp.zeros((1,), dtype=V.dtype)
-        self._dot_recv_data  = xp.zeros((1,), dtype=V.dtype)
+        # NOTE: the scratch buffers backing the reduction in `inner`/`inner_many`
+        # used to live here, one pair per vector. They now belong to the space
+        # (see ReductionWorkspace), which both avoids duplicating them across
+        # the temporaries a Krylov solver holds and lets several scalars share
+        # a single collective.
         self._interface_data = {}
         self._requests       = None
 

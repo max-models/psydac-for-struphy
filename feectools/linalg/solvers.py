@@ -355,9 +355,11 @@ class PConjugateGradient(InverseLinearOperator):
         A.dot(x, out=v)
         b.copy(out=r)
         r       -= v
-        nrmr_sqr = r.inner(r).real
         pc.dot(r, out=s)
-        am       = s.inner(r)
+        # (r, r) and (s, r) are reduced together: one collective and, on a GPU
+        # backend, one device-to-host synchronization instead of two.
+        nrmr_sqr, am = r.space.inner_many((r, r), (s, r))
+        nrmr_sqr = nrmr_sqr.real
         s.copy(out=p)
 
         tol_sqr  = tol**2
@@ -383,10 +385,13 @@ class PConjugateGradient(InverseLinearOperator):
             x.mul_iadd(l, p) # this is x += l*p
             r.mul_iadd(-l, v) # this is r -= l*v
 
-            nrmr_sqr = r.inner(r).real
             pc.dot(r, out=s)
 
-            am1 = s.inner(r)
+            # As above, the residual norm rides along in the reduction that the
+            # recurrence needs anyway, so the convergence criterion stays the
+            # Euclidean one and costs no extra collective.
+            nrmr_sqr, am1 = r.space.inner_many((r, r), (s, r))
+            nrmr_sqr = nrmr_sqr.real
 
             # we are computing p = (am1 / am) * p + s by using axpy on s and exchanging the arrays
             s.mul_iadd((am1/am), p)
