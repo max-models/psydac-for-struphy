@@ -5,6 +5,7 @@ import numpy as np
 from feectools.ddm.mpi import mpi as MPI
 
 from .cart import CartDecomposition, find_mpi_type
+from .device import synchronize_for_mpi
 from .basic import CartDataExchanger
 
 
@@ -82,6 +83,10 @@ class BlockingCartDataExchanger(CartDataExchanger):
 
         assert isinstance( array, xp.ndarray )
 
+        # MPI reads/writes `array` directly; on a device backend the
+        # kernels that produced it must have finished first.
+        synchronize_for_mpi( array )
+
         # Shortcuts
         cart = self._cart
         comm = self._comm
@@ -122,6 +127,8 @@ class BlockingCartDataExchanger(CartDataExchanger):
     def start_exchange_assembly_data( self, array ):
 
         assert isinstance( array, xp.ndarray )
+
+        synchronize_for_mpi( array )
 
         # Shortcuts
         cart  = self._cart

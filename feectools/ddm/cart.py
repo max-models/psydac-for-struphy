@@ -7,14 +7,12 @@ from itertools import product
 
 from cunumpy.xp import array_backend, to_numpy
 
-# Initialize CUDA context before MPI if using CuPy backend
-if array_backend.backend == "cupy":
-    try:
-        import cupy as cp
-        cp.cuda.Device(0).use()
-        cp.cuda.Stream.null.synchronize()
-    except Exception:
-        pass
+# Initialize the CUDA context before MPI if using CuPy backend, binding this
+# rank to its own GPU. Must stay above the feectools.ddm.mpi import, which
+# initialises MPI as a side effect.
+from feectools.ddm.device import bind_local_device
+
+bind_local_device()
 
 from feectools.ddm.mpi import mpi as MPI
 from feectools.ddm.mpi import MockMPI

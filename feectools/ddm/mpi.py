@@ -80,12 +80,36 @@ class MockMPI:
     #     return 1
 
 
+import os
+
+def _enabled(name, default=False):
+    value = os.environ.get(name)
+    if value is None:
+        return default
+    return value.strip().lower() not in ('', '0', 'false', 'no')
+
+
 try:
-    # Disable MPI when using CuPy due to known segfault issues with OpenMPI + CUDA
-    import os
-    if os.environ.get('ARRAY_BACKEND') == 'cupy':
-        raise ImportError("MPI disabled when using CuPy backend")
-    
+    # MPI is off by default on the CuPy backend, and on by default otherwise.
+    #
+    # It is no longer *incorrect* to combine the two -- the reductions in
+    # feectools.linalg stage their (tiny) buffers through the host, the ghost
+    # exchangers synchronize the device before handing it a buffer, and each
+    # rank binds to its own GPU. It is, however, still slow: a ghost exchange
+    # of device memory through MPI derived datatypes costs milliseconds, so a
+    # single-GPU run pays several times over for communication it does not
+    # need. Until that is addressed, opt in explicitly:
+    #
+    #     FEECTOOLS_ENABLE_MPI=1     use MPI on the CuPy backend
+    #     FEECTOOLS_DISABLE_MPI=1    force the serial path on any backend
+    if _enabled('FEECTOOLS_DISABLE_MPI'):
+        raise ImportError('MPI disabled by FEECTOOLS_DISABLE_MPI')
+
+    if os.environ.get('ARRAY_BACKEND', '').lower() == 'cupy' \
+            and not _enabled('FEECTOOLS_ENABLE_MPI'):
+        raise ImportError('MPI off by default on the CuPy backend; '
+                          'set FEECTOOLS_ENABLE_MPI=1 to use it')
+
     from mpi4py import MPI
 
     _comm = MPI.COMM_WORLD
@@ -93,7 +117,7 @@ try:
     # size = _comm.Get_size()
     mpi_enabled = True
 except ImportError:
-    # mpi4py not installed
+    # mpi4py not installed, or disabled on purpose
     mpi_enabled = False
 except Exception:
     # mpi4py installed but not running under mpirun

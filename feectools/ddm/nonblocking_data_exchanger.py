@@ -6,6 +6,7 @@ from itertools import product
 
 from feectools.ddm.mpi import mpi as MPI
 from .cart import CartDecomposition, find_mpi_type
+from .device import synchronize_for_mpi
 from .basic import CartDataExchanger
 
 __all__ = ('NonBlockingCartDataExchanger',)
@@ -98,6 +99,9 @@ class NonBlockingCartDataExchanger(CartDataExchanger):
         return tuple(requests)
 
     def start_update_ghost_regions(self, array, requests ):
+        # The persistent requests read/write `array` directly; on a device
+        # backend the kernels that produced it must have finished first.
+        synchronize_for_mpi( array )
         MPI.Prequest.Startall( requests )
 
     def end_update_ghost_regions(self, array, requests):
@@ -107,6 +111,8 @@ class NonBlockingCartDataExchanger(CartDataExchanger):
     def start_exchange_assembly_data( self, array ):
 
         assert isinstance( array, xp.ndarray )
+
+        synchronize_for_mpi( array )
 
         # Shortcuts
         cart  = self._cart
