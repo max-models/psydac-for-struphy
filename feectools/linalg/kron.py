@@ -1,6 +1,7 @@
 #coding = utf-8
 from functools import reduce
 
+import numpy as np
 import cunumpy as xp
 from scipy.sparse import kron
 from scipy.sparse import coo_matrix
@@ -440,15 +441,19 @@ class KroneckerLinearSolver(LinearOperator):
         Computes the distribution of elements and sets up the solvers
         (which potentially utilize MPI).
         """
-        # slice sizes
-        starts = xp.array(self._domain.starts)
-        ends = xp.array(self._domain.ends) + 1
+        # slice sizes -- domain-decomposition bookkeeping (sizes/starts/ends),
+        # always host-resident regardless of the active array backend, matching
+        # self._domain.starts/ends (which are already plain host ints, see
+        # CartDecomposition in feectools.ddm.cart) and the MPI sizes/displacements
+        # computed from them below in KroneckerSolverParallelPass.
+        starts = np.array(self._domain.starts)
+        ends = np.array(self._domain.ends) + 1
         self._slice = tuple([slice(s, e) for s,e in zip(starts, ends)])
 
         # local and global sizes
         nglobals = self._domain.npts
         nlocals = ends - starts
-        self._localsize = xp.prod(nlocals)
+        self._localsize = np.prod(nlocals)
         mglobals = self._localsize // nlocals
         self._nlocals = nlocals
 
@@ -491,7 +496,9 @@ class KroneckerLinearSolver(LinearOperator):
 
         # we use a single permutation for all steps
         # it is: (n, 1, 2, ..., n-1)
-        self._perm = xp.arange(self._ndim)
+        # host bookkeeping (ndim-sized), like self._shapes/self._nlocals it
+        # indexes -- see the note on _setup_solvers above.
+        self._perm = np.arange(self._ndim)
         self._perm[1:] = self._perm[:-1]
         self._perm[0] = self._ndim - 1
 
@@ -793,20 +800,20 @@ class KroneckerLinearSolver(LinearOperator):
             cartstart = cart.global_starts[i]
             cartsize = cartend - cartstart
 
-            # source MPI sizes and disps
-            # distribute the data like
-            # (N+1, N+1, ..., N+1, N, N, ...)
-            # where N = floor(mglobaldata / comm.size)
+            # source MPI sizes and disps -- these are passed straight to
+            # mpi4py's Alltoallv as counts/displacements, which (like
+            # cart.global_starts/global_ends above) must be host int arrays
+            # regardless of backend; keep this whole computation on numpy.
             mlocal_pre = mglobal // comm.size
             mlocal_add = mglobal % comm.size
-            sourcesizes = xp.full((comm.size,), mlocal_pre, dtype=int)
+            sourcesizes = np.full((comm.size,), mlocal_pre, dtype=int)
             sourcesizes[:mlocal_add] += 1
             mlocal = sourcesizes[comm.rank]
             sourcesizes *= nlocal
 
             # disps, created from the sizes
-            sourcedisps = xp.zeros((comm.size+1,), dtype=int)
-            xp.cumsum(sourcesizes, out=sourcedisps[1:])
+            sourcedisps = np.zeros((comm.size+1,), dtype=int)
+            np.cumsum(sourcesizes, out=sourcedisps[1:])
             sourcedisps = sourcedisps[:-1]
 
             # target MPI sizes and disps
