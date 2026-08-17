@@ -540,8 +540,7 @@ def greville(knots, degree, periodic, out=None, multiplicity=1):
     # Greville points are index arrays, keep on NumPy
     if isinstance(knots, (list, tuple)):
         knots = np.asarray(knots, dtype=float)
-    if hasattr(knots, 'get'):
-        knots = knots.get()  # Convert CuPy to NumPy
+    knots = xp.to_numpy(knots)
     knots = np.ascontiguousarray(knots, dtype=float)
     if out is None:
         n = len(knots) - 2 * degree - 2 + multiplicity if periodic else len(knots) - degree - 1
@@ -646,7 +645,7 @@ def make_knots(breaks, degree, periodic, multiplicity=1, out=None):
     # Consistency checks
     assert len(breaks) > 1
     # Convert to numpy for comparison since assertion needs Python bool
-    breaks_np = breaks.get() if hasattr(breaks, 'get') else breaks
+    breaks_np = xp.to_numpy(breaks)
     if isinstance(breaks_np, (list, tuple)):
         breaks_np = np.asarray(breaks_np)
     assert all( np.diff(breaks_np) > 0 )
@@ -660,8 +659,7 @@ def make_knots(breaks, degree, periodic, multiplicity=1, out=None):
 
     # Keep breaks on NumPy for initialization - knots are index arrays needed for CPU operations
     breaks = np.asarray(breaks, dtype=float) if isinstance(breaks, (list, tuple)) else breaks
-    if hasattr(breaks, 'get'):
-        breaks = breaks.get()  # Convert CuPy to NumPy
+    breaks = xp.to_numpy(breaks)
     breaks = np.ascontiguousarray(breaks, dtype=float)
     if out is None:
         # Knots are index arrays, keep them on NumPy
@@ -715,8 +713,7 @@ def elevate_knots(knots, degree, periodic, multiplicity=1, tol=1e-15, out=None):
     multiplicity = int(multiplicity)
     if isinstance(knots, (list, tuple)):
         knots = np.asarray(knots, dtype=float)
-    if hasattr(knots, 'get'):
-        knots = knots.get()  # Convert CuPy to NumPy
+    knots = xp.to_numpy(knots)
     knots = np.ascontiguousarray(knots, dtype=float)
     if out is None:
         if periodic:
@@ -793,14 +790,13 @@ def quadrature_grid(breaks, quad_rule_x, quad_rule_w):
     assert max(quad_rule_x) <= +1
 
     # Convert breaks to numpy if CuPy (breaks/grids should stay on CPU)
-    if hasattr(breaks, 'get'):
-        breaks = breaks.get()
+    breaks = xp.to_numpy(breaks)
     breaks = np.ascontiguousarray(breaks, dtype=float)
 
     if array_backend.backend == "cupy":
         # Convert CuPy arrays to NumPy
-        quad_rule_x = quad_rule_x.get() if hasattr(quad_rule_x, 'get') else quad_rule_x
-        quad_rule_w = quad_rule_w.get() if hasattr(quad_rule_w, 'get') else quad_rule_w
+        quad_rule_x = xp.to_numpy(quad_rule_x)
+        quad_rule_w = xp.to_numpy(quad_rule_w)
     
     quad_rule_x = np.ascontiguousarray(quad_rule_x, dtype=float)
     quad_rule_w = np.ascontiguousarray(quad_rule_w, dtype=float)

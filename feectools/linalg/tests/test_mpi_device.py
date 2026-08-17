@@ -98,7 +98,7 @@ def test_ghost_regions_have_the_right_values():
     v = scatter(V, glob)
 
     data = v._data
-    data = data.get() if hasattr(data, 'get') else data
+    data = xp.to_numpy(data)
     s0, s1 = int(V.starts[0]), int(V.starts[1])
     p0, p1 = int(V.pads[0]), int(V.pads[1])
 
@@ -133,7 +133,7 @@ def test_matvec_matches_global_reference():
 
     # And entry by entry on the rows this rank owns
     data = w._data
-    data = data.get() if hasattr(data, 'get') else data
+    data = xp.to_numpy(data)
     p0, p1 = int(V.pads[0]), int(V.pads[1])
     for i1 in range(int(V.starts[0]), int(V.ends[0]) + 1):
         for i2 in range(int(V.starts[1]), int(V.ends[1]) + 1):
@@ -166,7 +166,7 @@ def test_matvec_after_device_kernels_without_explicit_sync():
     # enough that kernels are still queued when the exchange starts -- which is
     # what makes the race reproducible rather than occasional. There is no race
     # on the host, so one pass is enough there.
-    passes = 200 if hasattr(r._data, 'get') else 1
+    passes = 200 if xp.is_gpu(r._data) else 1
     for _ in range(passes):
         r._data *= 2.0
         r._data *= 0.5

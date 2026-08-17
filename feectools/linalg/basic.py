@@ -223,7 +223,7 @@ class ReductionWorkspace:
         """
         n = send.size
 
-        if hasattr(send, 'get'):  # device buffer: one D2H copy for the batch
+        if xp.is_gpu(send):  # device buffer: one D2H copy for the batch
             host_send, host_recv = self._host_reduction_buffers(n)
             send.get(out=host_send)
             if comm is None:

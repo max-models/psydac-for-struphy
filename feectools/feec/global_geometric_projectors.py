@@ -43,12 +43,7 @@ __all__ = ('GlobalGeometricProjector', 'GlobalGeometricProjectorH1', 'GlobalGeom
 
 def _to_numpy_for_kernel(*args):
     """Convert CuPy arrays to NumPy for compiled kernel calls."""
-    result = []
-    for arg in args:
-        if hasattr(arg, 'get'):  # CuPy array
-            result.append(arg.get())
-        else:
-            result.append(arg)
+    result = [arg.get() if xp.is_gpu(arg) else arg for arg in args]
     return result if len(result) > 1 else result[0]
 
 
@@ -830,7 +825,7 @@ def evaluate_dofs_1d_0form(
     
     F_temp_np, f_pts_np = _to_numpy_for_kernel(F_temp, f_pts)
     dof_kernels.evaluate_dofs_1d_0form(F_temp_np, f_pts_np)
-    if hasattr(F_temp, 'get'):
+    if xp.is_gpu(F_temp):
         F_temp[:] = xp.asarray(F_temp_np)
     
     F[:] = F_temp
@@ -852,7 +847,7 @@ def evaluate_dofs_1d_1form(
     
     quad_w1_np, F_temp_np, f_pts_np = _to_numpy_for_kernel(quad_w1, F_temp, f_pts)
     dof_kernels.evaluate_dofs_1d_1form(quad_w1_np, F_temp_np, f_pts_np)
-    if hasattr(F_temp, 'get'):
+    if xp.is_gpu(F_temp):
         F_temp[:] = xp.asarray(F_temp_np)
     
     F[:] = F_temp
@@ -878,7 +873,7 @@ def evaluate_dofs_2d_0form(
     
     F_temp_np, f_pts_np = _to_numpy_for_kernel(F_temp, f_pts)
     dof_kernels.evaluate_dofs_2d_0form(F_temp_np, f_pts_np)
-    if hasattr(F_temp, 'get'):
+    if xp.is_gpu(F_temp):
         F_temp[:] = xp.asarray(F_temp_np)
     
     F[:, :] = F_temp
@@ -908,9 +903,9 @@ def evaluate_dofs_2d_1form_hcurl(
     
     quad_w1_np, quad_w2_np, F1_temp_np, F2_temp_np, f1_pts_np, f2_pts_np = _to_numpy_for_kernel(quad_w1, quad_w2, F1_temp, F2_temp, f1_pts, f2_pts)
     dof_kernels.evaluate_dofs_2d_1form_hcurl(quad_w1_np, quad_w2_np, F1_temp_np, F2_temp_np, f1_pts_np, f2_pts_np)
-    if hasattr(F1_temp, 'get'):
+    if xp.is_gpu(F1_temp):
         F1_temp[:] = xp.asarray(F1_temp_np)
-    if hasattr(F2_temp, 'get'):
+    if xp.is_gpu(F2_temp):
         F2_temp[:] = xp.asarray(F2_temp_np)
     
     F1[:, :] = F1_temp
@@ -941,9 +936,9 @@ def evaluate_dofs_2d_1form_hdiv(
     
     quad_w1_np, quad_w2_np, F1_temp_np, F2_temp_np, f1_pts_np, f2_pts_np = _to_numpy_for_kernel(quad_w1, quad_w2, F1_temp, F2_temp, f1_pts, f2_pts)
     dof_kernels.evaluate_dofs_2d_1form_hdiv(quad_w1_np, quad_w2_np, F1_temp_np, F2_temp_np, f1_pts_np, f2_pts_np)
-    if hasattr(F1_temp, 'get'):
+    if xp.is_gpu(F1_temp):
         F1_temp[:] = xp.asarray(F1_temp_np)
-    if hasattr(F2_temp, 'get'):
+    if xp.is_gpu(F2_temp):
         F2_temp[:] = xp.asarray(F2_temp_np)
     
     F1[:, :] = F1_temp
@@ -966,7 +961,7 @@ def evaluate_dofs_2d_2form(
     
     quad_w1_np, quad_w2_np, F_temp_np, f_pts_np = _to_numpy_for_kernel(quad_w1, quad_w2, F_temp, f_pts)
     dof_kernels.evaluate_dofs_2d_2form(quad_w1_np, quad_w2_np, F_temp_np, f_pts_np)
-    if hasattr(F_temp, 'get'):
+    if xp.is_gpu(F_temp):
         F_temp[:] = xp.asarray(F_temp_np)
     
     F[:, :] = F_temp
@@ -992,9 +987,9 @@ def evaluate_dofs_2d_vec(
     
     F1_temp_np, F2_temp_np, f1_pts_np, f2_pts_np = _to_numpy_for_kernel(F1_temp, F2_temp, f1_pts, f2_pts)
     dof_kernels.evaluate_dofs_2d_vec(F1_temp_np, F2_temp_np, f1_pts_np, f2_pts_np)
-    if hasattr(F1_temp, 'get'):
+    if xp.is_gpu(F1_temp):
         F1_temp[:] = xp.asarray(F1_temp_np)
-    if hasattr(F2_temp, 'get'):
+    if xp.is_gpu(F2_temp):
         F2_temp[:] = xp.asarray(F2_temp_np)
     
     F1[:, :] = F1_temp
@@ -1022,7 +1017,7 @@ def evaluate_dofs_3d_0form(
     
     F_temp_np, f_pts_np = _to_numpy_for_kernel(F_temp, f_pts)
     dof_kernels.evaluate_dofs_3d_0form(F_temp_np, f_pts_np)
-    if hasattr(F_temp, 'get'):
+    if xp.is_gpu(F_temp):
         F_temp[:] = xp.asarray(F_temp_np)
     
     F[:, :, :] = F_temp
@@ -1057,11 +1052,11 @@ def evaluate_dofs_3d_1form(
     
     quad_w1_np, quad_w2_np, quad_w3_np, F1_temp_np, F2_temp_np, F3_temp_np, f1_pts_np, f2_pts_np, f3_pts_np = _to_numpy_for_kernel(quad_w1, quad_w2, quad_w3, F1_temp, F2_temp, F3_temp, f1_pts, f2_pts, f3_pts)
     dof_kernels.evaluate_dofs_3d_1form(quad_w1_np, quad_w2_np, quad_w3_np, F1_temp_np, F2_temp_np, F3_temp_np, f1_pts_np, f2_pts_np, f3_pts_np)
-    if hasattr(F1_temp, 'get'):
+    if xp.is_gpu(F1_temp):
         F1_temp[:] = xp.asarray(F1_temp_np)
-    if hasattr(F2_temp, 'get'):
+    if xp.is_gpu(F2_temp):
         F2_temp[:] = xp.asarray(F2_temp_np)
-    if hasattr(F3_temp, 'get'):
+    if xp.is_gpu(F3_temp):
         F3_temp[:] = xp.asarray(F3_temp_np)
     
     F1[:, :, :] = F1_temp
@@ -1098,11 +1093,11 @@ def evaluate_dofs_3d_2form(
     
     quad_w1_np, quad_w2_np, quad_w3_np, F1_temp_np, F2_temp_np, F3_temp_np, f1_pts_np, f2_pts_np, f3_pts_np = _to_numpy_for_kernel(quad_w1, quad_w2, quad_w3, F1_temp, F2_temp, F3_temp, f1_pts, f2_pts, f3_pts)
     dof_kernels.evaluate_dofs_3d_2form(quad_w1_np, quad_w2_np, quad_w3_np, F1_temp_np, F2_temp_np, F3_temp_np, f1_pts_np, f2_pts_np, f3_pts_np)
-    if hasattr(F1_temp, 'get'):
+    if xp.is_gpu(F1_temp):
         F1_temp[:] = xp.asarray(F1_temp_np)
-    if hasattr(F2_temp, 'get'):
+    if xp.is_gpu(F2_temp):
         F2_temp[:] = xp.asarray(F2_temp_np)
-    if hasattr(F3_temp, 'get'):
+    if xp.is_gpu(F3_temp):
         F3_temp[:] = xp.asarray(F3_temp_np)
     
     F1[:, :, :] = F1_temp
@@ -1126,7 +1121,7 @@ def evaluate_dofs_3d_3form(
     
     quad_w1_np, quad_w2_np, quad_w3_np, F_temp_np, f_pts_np = _to_numpy_for_kernel(quad_w1, quad_w2, quad_w3, F_temp, f_pts)
     dof_kernels.evaluate_dofs_3d_3form(quad_w1_np, quad_w2_np, quad_w3_np, F_temp_np, f_pts_np)
-    if hasattr(F_temp, 'get'):
+    if xp.is_gpu(F_temp):
         F_temp[:] = xp.asarray(F_temp_np)
     
     F[:, :, :] = F_temp
@@ -1155,11 +1150,11 @@ def evaluate_dofs_3d_vec(
     
     F1_temp_np, F2_temp_np, F3_temp_np, f1_pts_np, f2_pts_np, f3_pts_np = _to_numpy_for_kernel(F1_temp, F2_temp, F3_temp, f1_pts, f2_pts, f3_pts)
     dof_kernels.evaluate_dofs_3d_vec(F1_temp_np, F2_temp_np, F3_temp_np, f1_pts_np, f2_pts_np, f3_pts_np)
-    if hasattr(F1_temp, 'get'):
+    if xp.is_gpu(F1_temp):
         F1_temp[:] = xp.asarray(F1_temp_np)
-    if hasattr(F2_temp, 'get'):
+    if xp.is_gpu(F2_temp):
         F2_temp[:] = xp.asarray(F2_temp_np)
-    if hasattr(F3_temp, 'get'):
+    if xp.is_gpu(F3_temp):
         F3_temp[:] = xp.asarray(F3_temp_np)
     
     F1[:, :, :] = F1_temp

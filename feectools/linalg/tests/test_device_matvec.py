@@ -49,7 +49,7 @@ def dot_args(A, ndim):
         val = A._args[key]
         if ndim == 1:
             return [int(val)]
-        return [int(k) for k in (val.get() if hasattr(val, 'get') else val)]
+        return [int(k) for k in xp.to_numpy(val)]
 
     return {k: seq(k) for k in
             ('s_in', 'p_in', 'add', 's_out', 'e_out', 'p_out')}

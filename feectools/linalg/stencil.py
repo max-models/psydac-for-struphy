@@ -44,21 +44,15 @@ __all__ = (
 def _to_numpy_int64(val):
     """Convert CuPy or NumPy scalar/array to numpy int64."""
     import numpy as _np
-    if hasattr(val, 'get'):
-        # CuPy array - convert to NumPy first
-        val = val.get()
-    return _np.int64(val)
+    return _np.int64(val.get() if xp.is_gpu(val) else val)
 
 def _to_numpy_array(val):
     """Convert CuPy array to NumPy array, preserving dtype. Return as-is if already NumPy."""
-    if hasattr(val, 'get'):
-        # CuPy array - convert to NumPy
-        return val.get()
-    return val
+    return val.get() if xp.is_gpu(val) else val
 
 def _is_device_array(val):
     """Whether `val` lives on a device (CuPy) rather than on the host."""
-    return hasattr(val, 'get')
+    return xp.is_gpu(val)
 
 #========================================================================# Dictionary used to select correct kernel functions based on dimensionality
 kernels = {
@@ -1275,7 +1269,7 @@ class StencilMatrix(LinearOperator):
         self._func(self_data_np, v_data_np, out_data_np, **args_np)
 
         # Copy result back to CuPy array if needed
-        if hasattr(out._data, 'get'):
+        if xp.is_gpu(out._data):
             import cupy as cp
             out._data[:] = cp.asarray(out_data_np)
         else:
@@ -1364,7 +1358,7 @@ class StencilMatrix(LinearOperator):
         self._func(self_data_np, v_data_conj_np, out_data_np, **args_np)
         
         # Copy result back to CuPy array if needed
-        if hasattr(out._data, 'get'):
+        if xp.is_gpu(out._data):
             import cupy as cp
             out_data_conj = cp.conjugate(cp.asarray(out_data_np))
             out._data[:] = out_data_conj
@@ -1954,7 +1948,7 @@ class StencilMatrix(LinearOperator):
         
         if array_backend.backend == "cupy":
             def _host(a):
-                return a.get() if hasattr(a, 'get') else a
+                return xp.to_numpy(a)
             M = coo_matrix(
                 (_host(data[:ind]), (_host(rows[:ind]), _host(cols[:ind]))),
                 shape=[int(_np.prod(nr)), int(_np.prod(nc))],

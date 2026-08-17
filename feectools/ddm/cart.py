@@ -1,6 +1,8 @@
 # coding: utf-8
 
 import os
+import cunumpy  # only for its backend-agnostic to_numpy(), see below -- not aliased to
+                 # xp here, since that alias is reserved for plain NumPy in this module.
 import numpy as np
 import numpy as xp  # this module is host-only MPI/index bookkeeping, never device data
 from itertools import product
@@ -499,8 +501,8 @@ class CartDecomposition():
         self._domain_decomposition = domain_decomposition
         self._npts          = tuple( npts    )
         # Convert to NumPy arrays for MPI compatibility (MPI can't handle CuPy arrays)
-        self._global_starts = tuple( [ np.asarray(gs.get() if hasattr(gs, 'get') else gs) for gs in global_starts]  )
-        self._global_ends   = tuple( [ np.asarray(ge.get() if hasattr(ge, 'get') else ge) for ge in global_ends]    )
+        self._global_starts = tuple( [ cunumpy.to_numpy(gs) for gs in global_starts]  )
+        self._global_ends   = tuple( [ cunumpy.to_numpy(ge) for ge in global_ends]    )
         self._pads          = tuple( pads    )
         self._shifts        = tuple( shifts  )
         self._periods       = domain_decomposition.periods
@@ -527,7 +529,11 @@ class CartDecomposition():
         # Know my coordinates in the topology
         self._coords = domain_decomposition.coords
         # Convert coords to NumPy for indexing (MPI coords should be on CPU)
-        coords_np = [c.get() if hasattr(c, 'get') else c for c in self._coords]
+        # cunumpy.to_numpy, not used here: self._coords may hold plain Python ints
+        # (mpi4py's Get_coords returns a plain list), and to_numpy would wrap those
+        # into 0-d NumPy arrays via np.asarray -- the wrong type to index a tuple of
+        # global_starts/ends with below. is_gpu leaves non-CuPy values untouched.
+        coords_np = [c.get() if cunumpy.is_gpu(c) else c for c in self._coords]
 
         # Start/end values of global indices (without ghost regions)
         self._starts = tuple( self._global_starts[axis][c] for axis,c in zip(range(self._ndims), coords_np) )

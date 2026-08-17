@@ -10,6 +10,7 @@ the environment variables the launcher sets, which are available before
 
 import os
 
+import cunumpy as xp
 from cunumpy.xp import array_backend
 
 __all__ = ('local_rank', 'bind_local_device', 'synchronize_for_mpi')
@@ -46,7 +47,7 @@ def synchronize_for_mpi(*arrays):
         at least one of them lives on a device, so host-only exchanges (and the
         whole NumPy backend) pay nothing.
     """
-    if not any(hasattr(a, 'get') for a in arrays if a is not None):
+    if not any(xp.is_gpu(a) for a in arrays if a is not None):
         return
 
     import cupy as cp
