@@ -1932,20 +1932,7 @@ class StencilMatrix(LinearOperator):
             data[:ind] = cp.asarray(data_np[:ind])
             rows[:ind] = cp.asarray(rows_np[:ind])
             cols[:ind] = cp.asarray(cols_np[:ind])
-        nrl = [_np.int64(e-s+1) for s,e in zip(self.codomain.starts, self.codomain.ends)]
-        ncl = [_np.int64(i) for i in self._data.shape[nd:]]
-        ss = [_np.int64(i) for i in ss]
-        nr = [_np.int64(i) for i in nr]
-        nc = [_np.int64(i) for i in nc]
-        dm = [_np.int64(i) for i in dm]
-        cm = [_np.int64(i) for i in cm]
-        cpads = [_np.int64(i) for i in cpads]
-        pp = [_np.int64(i) for i in pp]
 
-        stencil2coo = kernels['stencil2coo'][order][nd]
-        ind = stencil2coo(self._data, data, rows, cols, *nrl, *ncl, *ss, *nr, *nc, *dm, *cm, *cpads, *pp)
-        
-        
         if array_backend.backend == "cupy":
             def _host(a):
                 return xp.to_numpy(a)
