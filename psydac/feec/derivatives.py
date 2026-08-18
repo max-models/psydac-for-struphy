@@ -300,8 +300,13 @@ class DirectionalDerivativeOperator(LinearOperator):
 
         with_pads = kwargs.pop('with_pads', False)
 
-        # avoid this case (no pads, but parallel)
-        assert not (self.domain.parallel and not with_pads)
+        # avoid this case (no pads, but genuinely decomposed across more than one rank):
+        # `.parallel` only means "an MPI communicator is attached", true even at 1 rank
+        # (e.g. under `srun -n 1`), where the no-pads local range already *is* the full
+        # global range and this restriction does not apply -- so check the rank count
+        # (`cart.nprocs`) directly rather than `.parallel`.
+        if self.domain.parallel:
+            assert with_pads or all(n == 1 for n in self._spaceV.cart.nprocs)
 
         # begin with a 1×1 matrix
         matrix = spa.identity(1, format='coo')
