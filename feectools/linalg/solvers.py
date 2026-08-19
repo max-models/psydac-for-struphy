@@ -515,9 +515,19 @@ class DirectSolver(InverseLinearOperator):
             from feectools.linalg.direct_solvers import SparseSolver
 
             if self._parallel:
-                from feectools.linalg.utilities import tosparse_via_matvec
+                from feectools.linalg.utilities import FastAssemblyUnavailable, parallel_tosparse, tosparse_via_matvec
 
-                mat = tosparse_via_matvec(self._A, format="csr")
+                # `parallel_tosparse` assembles in O(1) collective rounds (one per leaf
+                # operator) instead of `tosparse_via_matvec`'s O(A.domain.dimension)
+                # rounds (one per global DOF) -- a difference of several orders of
+                # magnitude for a field-solve-sized system (see its docstring for how).
+                # It only recognizes a subset of operator shapes, self-verified against
+                # `A`'s own `.dot()`; fall back to the always-correct (if much slower)
+                # sweep when it can't.
+                try:
+                    mat = parallel_tosparse(self._A, self._comm, format="csr")
+                except FastAssemblyUnavailable:
+                    mat = tosparse_via_matvec(self._A, format="csr")
             else:
                 mat = self._A.tosparse().tocsr()
 
