@@ -1,8 +1,14 @@
 # coding: utf-8
 
-import cunumpy as xp
+import itertools
 from math import sqrt
 
+import cunumpy as xp
+import numpy as np
+from scipy import sparse
+
+from feectools.ddm.mpi        import MockComm
+from feectools.ddm.mpi        import mpi as MPI
 from feectools.linalg.basic   import Vector
 from feectools.linalg.stencil import StencilVector, StencilVectorSpace
 from feectools.linalg.block   import BlockVector, BlockVectorSpace
@@ -11,6 +17,7 @@ from feectools.linalg.topetsc import petsc_local_to_psydac, get_npts_per_block
 __all__ = (
     'array_to_psydac',
     'petsc_to_psydac',
+    'tosparse_via_matvec',
     '_sym_ortho',
 )
 
@@ -73,6 +80,185 @@ def _array_to_psydac_recursive(x, u):
     else:
         raise NotImplementedError(f'Can only handle StencilVector or BlockVector spaces, got {type(V)} instead')
     
+#==============================================================================
+def tosparse_via_matvec(op, format="csc"):
+    """
+    Assemble the full global sparse matrix of a `LinearOperator` by applying it to every
+    global unit vector via `.dot()`, rather than via `.tosparse()`.
+
+    Every operator's `.dot()` is already exercised (and therefore correct, including
+    cross-rank ghost/boundary coupling) every time it is actually used, unlike
+    `.tosparse()`, which several composed/derivative operators only implement correctly
+    in serial (see e.g. `feectools.feec.derivatives.DirectionalDerivativeOperator.tosparse`).
+    This is a port of `struphy.feec.linear_operators.LinOpWithTransp.toarray_struphy`'s
+    `is_sparse=True` branch into feectools (which `DirectSolver` -- the caller this exists
+    for -- must not import struphy from): same Allgather-starts/ends plus
+    unit-vector-`dot()` plus gather/broadcast-triplets algorithm, so every rank ends up
+    with an identical copy of the full global matrix (a "replicated" assembly, not a
+    distributed one -- deliberate, see `feectools.linalg.solvers.DirectSolver`).
+
+    Cost: O(N) collective `.dot()` calls, N = `op.domain.dimension` -- does not shrink
+    with rank count (every call needs every rank's participation), so this is only
+    appropriate as a one-time, cached setup cost, not something to call every step.
+
+    Parameters
+    ----------
+    op : feectools.linalg.basic.LinearOperator
+        Operator to assemble. `op.domain`/`op.codomain` must each be a
+        `StencilVectorSpace` or `BlockVectorSpace`.
+
+    format : str
+        scipy.sparse matrix format of the result ("csr", "csc", "coo", ...).
+
+    Returns
+    -------
+    out : scipy.sparse matrix
+        The full `(op.codomain.dimension, op.domain.dimension)` matrix, identical on
+        every rank.
+    """
+    v    = op.domain.zeros()
+    tmp2 = op.codomain.zeros()
+
+    if isinstance(op.domain, BlockVectorSpace):
+        comm = op.domain.spaces[0].cart.comm
+    elif isinstance(op.domain, StencilVectorSpace):
+        comm = op.domain.cart.comm
+    else:
+        raise NotImplementedError(
+            f'tosparse_via_matvec only supports StencilVectorSpace/BlockVectorSpace domains, got {type(op.domain)}',
+        )
+
+    if comm is None or isinstance(comm, MockComm):
+        rank = 0
+        size = 1
+    else:
+        rank = comm.Get_rank()
+        size = comm.Get_size()
+
+    numrows = op.codomain.dimension
+    numcols = op.domain.dimension
+    data, row, col = [], [], []
+
+    if isinstance(op.domain, BlockVectorSpace):
+        starts = [vi.starts for vi in v]
+        ends   = [vi.ends for vi in v]
+        npts   = [sp.npts for sp in op.domain.spaces]
+        nsp    = len(op.domain.spaces)
+        ndim   = [sp.ndim for sp in op.domain.spaces]
+
+        # Plain NumPy throughout: this is tiny host-side index bookkeeping (rank
+        # starts/ends, a running column count), never device compute -- `xp.array`
+        # under the CuPy backend would produce 0-d CuPy scalars that `range()` (and
+        # plain Python int arithmetic below) cannot consume, the same class of
+        # NumPy-vs-CuPy scalar-typing trap documented for `AdhocTorus`/`xp.sqrt`.
+        startsarr = np.array([starts[i][j] for i in range(nsp) for j in range(ndim[i])], dtype=int)
+        allstarts = np.empty(size * len(startsarr), dtype=int)
+        if comm is None or isinstance(comm, MockComm):
+            allstarts = startsarr
+        else:
+            comm.Allgather(startsarr, allstarts)
+        allstarts = allstarts.reshape((size, len(startsarr)))
+
+        endsarr = np.array([ends[i][j] for i in range(nsp) for j in range(ndim[i])], dtype=int)
+        allends = np.empty(size * len(endsarr), dtype=int)
+        if comm is None or isinstance(comm, MockComm):
+            allends = endsarr
+        else:
+            comm.Allgather(endsarr, allends)
+        allends = allends.reshape((size, len(endsarr)))
+
+        for currentrank in range(size):
+            spoint  = 0
+            npredim = 0
+            for h in range(nsp):
+                iterables = [
+                    range(int(allstarts[currentrank][i + npredim]), int(allends[currentrank][i + npredim]) + 1)
+                    for i in range(ndim[h])
+                ]
+                for i in itertools.product(*iterables):
+                    if rank == currentrank:
+                        v[h][i] = 1.0
+                    v[h].update_ghost_regions()
+                    tmp2 *= 0.0
+                    op.dot(v, out=tmp2)
+                    c = spoint + int(np.ravel_multi_index(i, npts[h]))
+                    aux = xp.to_numpy(tmp2.toarray())
+                    for r in np.nonzero(aux)[0]:
+                        data.append(aux[r])
+                        col.append(c)
+                        row.append(int(r))
+                    if rank == currentrank:
+                        v[h][i] = 0.0
+                    v[h].update_ghost_regions()
+                cumulative = 1
+                for i in range(ndim[h]):
+                    cumulative *= npts[h][i]
+                spoint  += cumulative
+                npredim += ndim[h]
+
+    else:
+        starts = v.starts
+        ends   = v.ends
+        npts   = op.domain.npts
+        ndim   = op.domain.ndim
+
+        # Plain NumPy, same reasoning as the BlockVectorSpace branch above.
+        startsarr = np.array([starts[j] for j in range(ndim)], dtype=int)
+        allstarts = np.empty(size * len(startsarr), dtype=int)
+        if comm is None or isinstance(comm, MockComm):
+            allstarts = startsarr
+        else:
+            comm.Allgather(startsarr, allstarts)
+        allstarts = allstarts.reshape((size, len(startsarr)))
+
+        endsarr = np.array([ends[j] for j in range(ndim)], dtype=int)
+        allends = np.empty(size * len(endsarr), dtype=int)
+        if comm is None or isinstance(comm, MockComm):
+            allends = endsarr
+        else:
+            comm.Allgather(endsarr, allends)
+        allends = allends.reshape((size, len(endsarr)))
+
+        for currentrank in range(size):
+            iterables = [
+                range(int(allstarts[currentrank][i]), int(allends[currentrank][i]) + 1) for i in range(ndim)
+            ]
+            for i in itertools.product(*iterables):
+                if rank == currentrank:
+                    v[i] = 1.0
+                v.update_ghost_regions()
+                op.dot(v, out=tmp2)
+                c = int(np.ravel_multi_index(i, npts))
+                aux = xp.to_numpy(tmp2.toarray())
+                for r in np.nonzero(aux)[0]:
+                    data.append(aux[r])
+                    col.append(c)
+                    row.append(int(r))
+                if rank == currentrank:
+                    v[i] = 0.0
+                v.update_ghost_regions()
+
+    if comm is None or isinstance(comm, MockComm):
+        all_rows, all_cols, all_data = row, col, data
+    else:
+        gathered_rows = comm.gather(row, root=0)
+        gathered_cols = comm.gather(col, root=0)
+        gathered_data = comm.gather(data, root=0)
+        if rank == 0:
+            all_rows = [item for sublist in gathered_rows for item in sublist]
+            all_cols = [item for sublist in gathered_cols for item in sublist]
+            all_data = [item for sublist in gathered_data for item in sublist]
+            comm.bcast(all_rows, root=0)
+            comm.bcast(all_cols, root=0)
+            comm.bcast(all_data, root=0)
+        else:
+            all_rows = comm.bcast(None, root=0)
+            all_cols = comm.bcast(None, root=0)
+            all_data = comm.bcast(None, root=0)
+
+    mat = sparse.coo_matrix((all_data, (all_rows, all_cols)), shape=(numrows, numcols), dtype=op.dtype)
+    return mat.asformat(format)
+
 #==============================================================================
 def petsc_to_psydac(x, Xh, out=None):
     """
