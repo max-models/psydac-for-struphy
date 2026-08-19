@@ -141,6 +141,33 @@ def tosparse_via_matvec(op, format="csc"):
     numcols = op.domain.dimension
     data, row, col = [], [], []
 
+    def local_nonzero_rows(stencil_vec, row_offset):
+        """(global_row_indices, values) for `stencil_vec`'s local interior data."""
+        space = stencil_vec.space
+        idx_local = tuple(
+            slice(m * p, -m * p) if p != 0 else slice(0, None)
+            for p, m in zip(stencil_vec.pads, space.shifts)
+        )
+        local_data = xp.to_numpy(stencil_vec._data[idx_local])
+        nz = np.nonzero(local_data)
+        starts = space.starts
+        global_multi = tuple(nz[d] + int(starts[d]) for d in range(len(nz)))
+        rows = row_offset + np.ravel_multi_index(global_multi, space.npts)
+        return rows, local_data[nz]
+
+    def codomain_local_nonzero_rows(vec):
+        """`local_nonzero_rows`, dispatched over `op.codomain`'s type."""
+        if isinstance(op.codomain, BlockVectorSpace):
+            all_rows, all_vals = [], []
+            row_offset = 0
+            for b, sp in enumerate(op.codomain.spaces):
+                r, val = local_nonzero_rows(vec[b], row_offset)
+                all_rows.append(r)
+                all_vals.append(val)
+                row_offset += sp.dimension
+            return np.concatenate(all_rows), np.concatenate(all_vals)
+        return local_nonzero_rows(vec, 0)
+
     if isinstance(op.domain, BlockVectorSpace):
         starts = [vi.starts for vi in v]
         ends   = [vi.ends for vi in v]
@@ -184,14 +211,12 @@ def tosparse_via_matvec(op, format="csc"):
                     tmp2 *= 0.0
                     op.dot(v, out=tmp2)
                     c = spoint + int(np.ravel_multi_index(i, npts[h]))
-                    aux = xp.to_numpy(tmp2.toarray())
-                    for r in np.nonzero(aux)[0]:
-                        data.append(aux[r])
-                        col.append(c)
-                        row.append(int(r))
+                    rs, vals = codomain_local_nonzero_rows(tmp2)
+                    row.append(rs)
+                    col.append(np.full(rs.shape, c))
+                    data.append(vals)
                     if rank == currentrank:
                         v[h][i] = 0.0
-                    v[h].update_ghost_regions()
                 cumulative = 1
                 for i in range(ndim[h]):
                     cumulative *= npts[h][i]
@@ -231,14 +256,12 @@ def tosparse_via_matvec(op, format="csc"):
                 v.update_ghost_regions()
                 op.dot(v, out=tmp2)
                 c = int(np.ravel_multi_index(i, npts))
-                aux = xp.to_numpy(tmp2.toarray())
-                for r in np.nonzero(aux)[0]:
-                    data.append(aux[r])
-                    col.append(c)
-                    row.append(int(r))
+                rs, vals = codomain_local_nonzero_rows(tmp2)
+                row.append(rs)
+                col.append(np.full(rs.shape, c))
+                data.append(vals)
                 if rank == currentrank:
                     v[i] = 0.0
-                v.update_ghost_regions()
 
     if comm is None or isinstance(comm, MockComm):
         all_rows, all_cols, all_data = row, col, data
@@ -257,6 +280,13 @@ def tosparse_via_matvec(op, format="csc"):
             all_rows = comm.bcast(None, root=0)
             all_cols = comm.bcast(None, root=0)
             all_data = comm.bcast(None, root=0)
+
+    if all_rows:
+        all_rows = np.concatenate(all_rows)
+        all_cols = np.concatenate(all_cols)
+        all_data = np.concatenate(all_data)
+    else:
+        all_rows = all_cols = all_data = np.empty(0, dtype=int)
 
     mat = sparse.coo_matrix((all_data, (all_rows, all_cols)), shape=(numrows, numcols), dtype=op.dtype)
     return mat.asformat(format)
