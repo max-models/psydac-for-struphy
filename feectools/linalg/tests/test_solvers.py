@@ -263,7 +263,6 @@ def test_direct_solver_parallel(n1, n2, p1, verbose=False):
         print(f"n1={n1} n2={n2} p1={p1} p2={p2} nprocs={comm.Get_size()} err_norm={err_norm:.2e}")
     assert err_norm < 1e-9
 
-
 # ===============================================================================
 # SCRIPT FUNCTIONALITY
 #===============================================================================

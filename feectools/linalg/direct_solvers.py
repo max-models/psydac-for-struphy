@@ -69,7 +69,6 @@ class BandedSolver(LinearSolver):
         else:
             msg = f'Cannot create a BandedSolver for bmat.dtype = {bmat.dtype}'
             raise NotImplementedError(msg)
-        # print(f"{bmat = } {type(bmat) = }")
         bmat = xp.to_numpy(bmat)
         self._bmat, self._ipiv, self._finfo = self._factor_function(bmat, l, u)
 
