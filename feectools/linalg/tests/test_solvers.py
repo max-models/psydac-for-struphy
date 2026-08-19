@@ -1,10 +1,11 @@
 
 import cunumpy as xp
 import pytest
-from feectools.linalg.solvers import inverse
+from feectools.linalg.solvers import inverse, DirectSolver
 from feectools.linalg.stencil import StencilVectorSpace, StencilMatrix, StencilVector
 from feectools.linalg.basic import LinearSolver
 from feectools.ddm.cart import DomainDecomposition, CartDecomposition
+from feectools.ddm.mpi import mpi as MPI
 
 
 def define_data_hermitian(n, p, dtype=float):
@@ -203,6 +204,64 @@ def test_solver_tridiagonal(n, p, dtype, solver, verbose=False):
         assert errt_norm < tol
         assert errh_norm < tol
         assert solver == 'pcg' or errc_norm < tol
+
+#===============================================================================
+def _compute_global_starts_ends(domain_decomposition, npts):
+    # Same as feectools.linalg.tests.test_block.compute_global_starts_ends.
+    global_starts = [None] * len(npts)
+    global_ends = [None] * len(npts)
+    for axis in range(len(npts)):
+        ee = domain_decomposition.global_element_ends[axis]
+        global_ends[axis] = ee.copy()
+        global_ends[axis][-1] = npts[axis] - 1
+        global_starts[axis] = xp.array([0] + (global_ends[axis][:-1] + 1).tolist())
+    return global_starts, global_ends
+
+
+@pytest.mark.parametrize('n1', [8, 16])
+@pytest.mark.parametrize('n2', [8, 12])
+@pytest.mark.parametrize('p1', [1, 2])
+@pytest.mark.parallel
+def test_direct_solver_parallel(n1, n2, p1, verbose=False):
+    """`DirectSolver` at nprocs > 1 must recover the exact solution, same as serial."""
+    p2 = 1
+
+    comm = MPI.COMM_WORLD
+    D = DomainDecomposition([n1, n2], periods=[False, False], comm=comm)
+    npts = [n1, n2]
+    global_starts, global_ends = _compute_global_starts_ends(D, npts)
+    cart = CartDecomposition(D, npts, global_starts, global_ends, pads=[p1, p2], shifts=[1, 1])
+
+    V = StencilVectorSpace(cart, dtype=float)
+    A = StencilMatrix(V, V)
+
+    # Diagonally dominant (hence nonsingular) stencil: -1 on every off-diagonal, enough
+    # on the main diagonal to dominate the row sum -- same style as define_data_hermitian
+    # above, extended to 2D.
+    n_offdiag = (2 * p1 + 1) * (2 * p2 + 1) - 1
+    for k1 in range(-p1, p1 + 1):
+        for k2 in range(-p2, p2 + 1):
+            A[:, :, k1, k2] = 0.0 if (k1 == 0 and k2 == 0) else -1.0
+    A[:, :, 0, 0] = n_offdiag + 1.0
+    A.remove_spurious_entries()
+
+    s1, s2 = V.starts
+    e1, e2 = V.ends
+    xe = StencilVector(V)
+    for i1 in range(s1, e1 + 1):
+        for i2 in range(s2, e2 + 1):
+            xe[i1, i2] = xp.random.random()
+    xe.update_ghost_regions()
+
+    be = A @ xe
+
+    solv = DirectSolver(A)
+    x = solv.solve(be)
+
+    err_norm = xp.linalg.norm((x - xe).toarray())
+    if verbose:
+        print(f"n1={n1} n2={n2} p1={p1} p2={p2} nprocs={comm.Get_size()} err_norm={err_norm:.2e}")
+    assert err_norm < 1e-9
 
 # ===============================================================================
 # SCRIPT FUNCTIONALITY
