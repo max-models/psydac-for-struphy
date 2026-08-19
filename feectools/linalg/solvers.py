@@ -589,7 +589,9 @@ class DirectSolver(InverseLinearOperator):
         if self._parallel:
             from feectools.linalg.utilities import array_to_psydac
 
-            x_vec = array_to_psydac(x_flat, self.codomain)
+            # x_flat should be a numpy array since SparseSolver's factorization
+            # is on host
+            x_vec = array_to_psydac(xp.asarray(x_flat), self.codomain)
             if out is None:
                 out = x_vec
             else:
