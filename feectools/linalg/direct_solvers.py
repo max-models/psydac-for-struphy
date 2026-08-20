@@ -234,8 +234,7 @@ class SparseSolver (LinearSolver):
             # device array (not the global `array_backend.backend` flag): the LU
             # factorization always lives on the host regardless of backend, and a caller
             # may deliberately pass an already-host `rhs`/`out` pair even while the
-            # active backend is CuPy (see feectools.linalg.solvers.DirectSolver), in
-            # which case `.get()`-ing a plain NumPy array would fail outright.
+            # active backend is CuPy.
             if xp.is_gpu(rhs):
                 rhs_cpu = xp.to_numpy(rhs)
                 result_cpu = self._splu.solve(rhs_cpu.T, trans='T' if transposed else 'N').T
