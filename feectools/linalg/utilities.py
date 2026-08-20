@@ -217,6 +217,7 @@ def tosparse_via_matvec(op, format="csc"):
                     data.append(vals)
                     if rank == currentrank:
                         v[h][i] = 0.0
+                    v[h].update_ghost_regions()
                 cumulative = 1
                 for i in range(ndim[h]):
                     cumulative *= npts[h][i]
@@ -602,35 +603,30 @@ def parallel_tosparse(op, comm, format="csr"):
                         grid[i][j] = sparse.csr_matrix((block_codomain(i).dimension, block_domain(j).dimension))
             candidate = sparse.bmat(grid, format="csr")
 
-            # A block matrix can only be trusted if the already-validated child
-            # blocks also agree with the parent BlockLinearOperator's own indexing
-            # convention. Repeated component spaces (e.g. BlockVectorSpace(V, V)) are
-            # especially easy to stitch incorrectly while every scalar block still
-            # validates in isolation.
-            if not all(checks[checks_before:]):
-                return candidate
-
-            entries_domain = _local_flat_entries(node.domain)
-            entries_codomain = _local_flat_entries(node.codomain)
-            probe_seed[0] += 97
-            block_ok = _validate_against_dot(
-                node, candidate, comm, entries_domain, entries_codomain, probe_seed[0],
-            )
+            children_ok = all(checks[checks_before:])
             if comm is not None and not isinstance(comm, MockComm):
-                block_ok = comm.allreduce(block_ok, op=MPI.LAND)
+                children_ok = comm.allreduce(children_ok, op=MPI.LAND)
+            block_ok = False
+            if children_ok:
+                entries_domain = _local_flat_entries(node.domain)
+                entries_codomain = _local_flat_entries(node.codomain)
+                probe_seed[0] += 97
+                block_ok = _validate_against_dot(
+                    node, candidate, comm, entries_domain, entries_codomain, probe_seed[0],
+                )
+                if comm is not None and not isinstance(comm, MockComm):
+                    block_ok = comm.allreduce(block_ok, op=MPI.LAND)
             if block_ok:
                 checks.append(True)
                 return candidate
 
-            # Preserve correctness for valid child blocks even when the assembled
-            # block offsets do not match the parent operator. This is slower, but
-            # still deterministic across ranks and keeps callers from receiving a
-            # silently wrong sparse matrix.
             try:
                 fallback = tosparse_via_matvec(node, format="csr")
             except Exception:
                 checks.append(False)
                 return candidate
+
+            del checks[checks_before:]
             checks.append(True)
             return fallback
         if isinstance(node, DirectionalDerivativeOperator):
@@ -762,8 +758,12 @@ def parallel_tosparse(op, comm, format="csr"):
             rows.append(flat)
             cols.append(flat)
             vals.append(d1)
+        candidate_diag = _replicate_triples(rows, cols, vals, shape, comm, dtype)
+        ok = ok and _validate_against_dot(
+            node, candidate_diag, comm, entries_domain, entries_codomain, probe_seed[0],
+        )
         checks.append(ok)
-        return _replicate_triples(rows, cols, vals, shape, comm, dtype)
+        return candidate_diag
 
     result = build(op)
 
