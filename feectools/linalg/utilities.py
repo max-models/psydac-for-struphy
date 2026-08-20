@@ -589,6 +589,7 @@ def parallel_tosparse(op, comm, format="csr"):
             # asserts outright at nprocs > 1 (see `_directional_derivative_triples`)
             # -- one such block would otherwise make the whole (possibly mostly
             # StencilMatrix) BlockLinearOperator's `.tosparse()` raise.
+            checks_before = len(checks)
             nrows, ncols = node.n_block_rows, node.n_block_cols
             block_domain = (lambda j: node.domain[j]) if ncols > 1 else (lambda j: node.domain)
             block_codomain = (lambda i: node.codomain[i]) if nrows > 1 else (lambda i: node.codomain)
@@ -599,7 +600,34 @@ def parallel_tosparse(op, comm, format="csr"):
                         grid[i][j] = build(node._blocks[i, j])
                     else:
                         grid[i][j] = sparse.csr_matrix((block_codomain(i).dimension, block_domain(j).dimension))
-            return sparse.bmat(grid, format="csr")
+            candidate = sparse.bmat(grid, format="csr")
+
+            children_ok = all(checks[checks_before:])
+            if comm is not None and not isinstance(comm, MockComm):
+                children_ok = comm.allreduce(children_ok, op=MPI.LAND)
+            block_ok = False
+            if children_ok:
+                entries_domain = _local_flat_entries(node.domain)
+                entries_codomain = _local_flat_entries(node.codomain)
+                probe_seed[0] += 97
+                block_ok = _validate_against_dot(
+                    node, candidate, comm, entries_domain, entries_codomain, probe_seed[0],
+                )
+                if comm is not None and not isinstance(comm, MockComm):
+                    block_ok = comm.allreduce(block_ok, op=MPI.LAND)
+            if block_ok:
+                checks.append(True)
+                return candidate
+
+            try:
+                fallback = tosparse_via_matvec(node, format="csr")
+            except Exception:
+                checks.append(False)
+                return candidate
+
+            del checks[checks_before:]
+            checks.append(True)
+            return fallback
         if isinstance(node, DirectionalDerivativeOperator):
             # No generic strategy below applies (not diagonal-shaped in general, and
             # its own `.tosparse()` is unusable here -- see
@@ -729,8 +757,12 @@ def parallel_tosparse(op, comm, format="csr"):
             rows.append(flat)
             cols.append(flat)
             vals.append(d1)
+        candidate_diag = _replicate_triples(rows, cols, vals, shape, comm, dtype)
+        ok = ok and _validate_against_dot(
+            node, candidate_diag, comm, entries_domain, entries_codomain, probe_seed[0],
+        )
         checks.append(ok)
-        return _replicate_triples(rows, cols, vals, shape, comm, dtype)
+        return candidate_diag
 
     result = build(op)
 
