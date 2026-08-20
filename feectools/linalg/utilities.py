@@ -217,6 +217,7 @@ def tosparse_via_matvec(op, format="csc"):
                     data.append(vals)
                     if rank == currentrank:
                         v[h][i] = 0.0
+                    v[h].update_ghost_regions()
                 cumulative = 1
                 for i in range(ndim[h]):
                     cumulative *= npts[h][i]
