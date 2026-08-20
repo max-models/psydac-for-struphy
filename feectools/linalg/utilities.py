@@ -589,6 +589,7 @@ def parallel_tosparse(op, comm, format="csr"):
             # asserts outright at nprocs > 1 (see `_directional_derivative_triples`)
             # -- one such block would otherwise make the whole (possibly mostly
             # StencilMatrix) BlockLinearOperator's `.tosparse()` raise.
+            checks_before = len(checks)
             nrows, ncols = node.n_block_rows, node.n_block_cols
             block_domain = (lambda j: node.domain[j]) if ncols > 1 else (lambda j: node.domain)
             block_codomain = (lambda i: node.codomain[i]) if nrows > 1 else (lambda i: node.codomain)
@@ -599,7 +600,39 @@ def parallel_tosparse(op, comm, format="csr"):
                         grid[i][j] = build(node._blocks[i, j])
                     else:
                         grid[i][j] = sparse.csr_matrix((block_codomain(i).dimension, block_domain(j).dimension))
-            return sparse.bmat(grid, format="csr")
+            candidate = sparse.bmat(grid, format="csr")
+
+            # A block matrix can only be trusted if the already-validated child
+            # blocks also agree with the parent BlockLinearOperator's own indexing
+            # convention. Repeated component spaces (e.g. BlockVectorSpace(V, V)) are
+            # especially easy to stitch incorrectly while every scalar block still
+            # validates in isolation.
+            if not all(checks[checks_before:]):
+                return candidate
+
+            entries_domain = _local_flat_entries(node.domain)
+            entries_codomain = _local_flat_entries(node.codomain)
+            probe_seed[0] += 97
+            block_ok = _validate_against_dot(
+                node, candidate, comm, entries_domain, entries_codomain, probe_seed[0],
+            )
+            if comm is not None and not isinstance(comm, MockComm):
+                block_ok = comm.allreduce(block_ok, op=MPI.LAND)
+            if block_ok:
+                checks.append(True)
+                return candidate
+
+            # Preserve correctness for valid child blocks even when the assembled
+            # block offsets do not match the parent operator. This is slower, but
+            # still deterministic across ranks and keeps callers from receiving a
+            # silently wrong sparse matrix.
+            try:
+                fallback = tosparse_via_matvec(node, format="csr")
+            except Exception:
+                checks.append(False)
+                return candidate
+            checks.append(True)
+            return fallback
         if isinstance(node, DirectionalDerivativeOperator):
             # No generic strategy below applies (not diagonal-shaped in general, and
             # its own `.tosparse()` is unusable here -- see
