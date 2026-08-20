@@ -4,8 +4,11 @@ This module provides iterative solvers and preconditioners.
 
 """
 import cunumpy as xp
+import numpy as np
 from math import sqrt, inf
 
+from feectools.ddm.mpi          import MockComm
+from feectools.ddm.mpi          import mpi as MPI
 from feectools.utilities.utils  import is_real
 from feectools.linalg.utilities import _sym_ortho
 from feectools.linalg.basic     import (Vector, LinearOperator,
@@ -17,6 +20,7 @@ __all__ = (
     'inverse',
     'ConjugateGradient',
     'PConjugateGradient',
+    'DirectSolver',
     'BiConjugateGradient',
     'BiConjugateGradientStabilized',
     'PBiConjugateGradientStabilized',
@@ -60,6 +64,7 @@ def inverse(A, solver, **kwargs):
     solvers_dict = {
         'cg'       : ConjugateGradient,
         'pcg'      : PConjugateGradient,
+        'direct'   : DirectSolver,
         'bicg'     : BiConjugateGradient,
         'bicgstab' : BiConjugateGradientStabilized,
         'pbicgstab': PBiConjugateGradientStabilized,
@@ -407,6 +412,218 @@ class PConjugateGradient(InverseLinearOperator):
             x.copy(out=self._options["x0"])
 
         return x
+
+    def dot(self, b, out=None):
+        return self.solve(b, out=out)
+
+#===============================================================================
+class DirectSolver(InverseLinearOperator):
+    """
+    Exact sparse-direct solve, for linear systems whose left-hand-side operator A does
+    not actually change across repeated `solve()` calls -- e.g. a time-independent field
+    operator solved once per time step with only the right-hand side changing (see
+    `struphy.propagators.implicit_diffusion.ImplicitDiffusion`, whose LHS is constant
+    whenever `divide_by_dt=False`). A single sparse LU factorization
+    (`feectools.linalg.direct_solvers.SparseSolver`) then serves every call, instead of
+    an iterative method repeating (in the worst case, all the way to `maxiter`) every
+    single call.
+
+    The factorization is built lazily, on the first `solve()` call, and then reused by
+    every later call without ever re-examining `A` again -- including through a `.linop`
+    reassignment, e.g. `ImplicitDiffusion.__call__` unconditionally reassigns `.linop` to
+    a freshly *built* operator every step, regardless of whether its *values* actually
+    changed. This is a deliberate, cheap-by-construction design, not a value comparison:
+    `A.tosparse()` is not assumed to be cheap (composed operators can include a
+    basis-vector sweep, see e.g. `AverageOperator.tosparse`/`BoundaryOperator.tosparse`
+    in `struphy.feec.mass`/`struphy.feec.linear_operators`), so re-deriving and comparing
+    it on every call would undo most of the point of factorizing once. The caller is
+    therefore responsible for knowing that `A`'s *values* are actually constant across
+    calls (true whenever `ImplicitDiffusion.divide_by_dt=False`, since neither `epsilon`
+    nor `Z` change during a run); call `invalidate()` explicitly if `A` does change and
+    the factorization must be rebuilt on the next `solve()`.
+
+    At `nprocs > 1`, this factorizes a *replicated* copy of the full global matrix on
+    every rank (assembled once via `feectools.linalg.utilities.tosparse_via_matvec`,
+    which applies `A` to every global unit vector through its own -- already
+    MPI-correct -- `.dot()`, since `A.tosparse()` itself is only correct in serial for
+    several composed/derivative operators), rather than attempting an actual
+    distributed factorization. Every rank redundantly solves the same full system and
+    keeps only its own slice of the result -- correct and simple, but each rank does
+    `O(A.domain.dimension)` work per solve instead of `O(A.domain.dimension / nprocs)`,
+    and the one-time assembly is `O(A.domain.dimension)` *collective* `.dot()` calls that
+    do not get cheaper with more ranks. This trade only makes sense for problems small
+    enough that `splu` and this redundant work stay cheap (e.g. the few-thousand-DOF
+    field solves this class targets); a genuinely distributed sparse-direct solve (e.g.
+    via PETSc/MUMPS) would need its own implementation.
+
+    Parameters
+    ----------
+    A : feectools.linalg.basic.LinearOperator
+        Left-hand-side matrix A of the linear system. Must support `.tosparse()` (serial)
+        or `.dot()` (parallel, via `tosparse_via_matvec`).
+
+    pc, tol, maxiter, verbose : ignored
+        Accepted only so this class is a drop-in alternative to the iterative solvers
+        behind the same `solvers.inverse(A, solver, ...)` call site; a direct solve has
+        no preconditioner, iteration count, or convergence tolerance.
+
+    x0 : feectools.linalg.basic.Vector, optional
+        Ignored for solving (a direct solve needs no initial guess); if `recycle=True`,
+        still receives a copy of each solution, for interface consistency with the
+        iterative solvers (some callers read `x0` back out directly).
+
+    recycle : bool
+        If True, a copy of the output is stored in x0, as the iterative solvers do.
+    """
+
+    def __init__(self, A, *, pc=None, x0=None, tol=None, maxiter=None, verbose=False, recycle=False):
+
+        self._options = {"x0": x0, "pc": pc, "tol": tol, "maxiter": maxiter, "verbose": verbose, "recycle": recycle}
+
+        super().__init__(A, **self._options)
+
+        # `.parallel` only means "an MPI communicator is attached", true even at 1 rank
+        # (e.g. under `srun -n 1`), where the serial `.tosparse()` path is already
+        # correct (local range == global range) and faster than the replicated-assembly
+        # path -- so check the rank *count* (`cart.nprocs`) directly.
+        cart = self.domain.spaces[0].cart if isinstance(self.domain, BlockVectorSpace) else self.domain.cart
+        self._parallel = self.domain.parallel and any(n != 1 for n in cart.nprocs)
+        self._comm = cart.comm if self._parallel else None
+
+        self._sparse_solver = None
+        self._info = None
+
+    def _check_options(self, **kwargs):
+        # tol/maxiter/verbose are meaningless for a direct solve (see class docstring);
+        # only x0, if given, is worth the base class's type/space check.
+        x0 = kwargs.get("x0")
+        if x0 is not None:
+            assert isinstance(x0, Vector), "x0 must be a Vector or None"
+            assert x0.space == self.codomain, "x0 belongs to the wrong VectorSpace"
+
+    def invalidate(self):
+        """Force the next `solve()` call to rebuild the factorization from `A`.
+
+        Call this after actually changing `A` (in place, or via the `.linop` setter with
+        a numerically different operator) -- see the class docstring for why this is not
+        detected automatically.
+        """
+        self._sparse_solver = None
+
+    def _ensure_factorized(self):
+        if self._sparse_solver is None:
+            from feectools.linalg.direct_solvers import SparseSolver
+
+            if self._parallel:
+                from feectools.linalg.utilities import FastAssemblyUnavailable, parallel_tosparse, tosparse_via_matvec
+
+                # `parallel_tosparse` assembles in O(1) collective rounds (one per leaf
+                # operator) instead of `tosparse_via_matvec`'s O(A.domain.dimension)
+                # rounds (one per global DOF) -- a difference of several orders of
+                # magnitude for a field-solve-sized system (see its docstring for how).
+                # It only recognizes a subset of operator shapes, self-verified against
+                # `A`'s own `.dot()`; fall back to the always-correct (if much slower)
+                # sweep when it can't.
+                try:
+                    mat = parallel_tosparse(self._A, self._comm, format="csr")
+                except FastAssemblyUnavailable:
+                    mat = tosparse_via_matvec(self._A, format="csr")
+            else:
+                mat = self._A.tosparse().tocsr()
+
+            # `A` can be exactly singular at essential-BC-masked DOFs: an operator
+            # built through a BoundaryOperator zero-masks both the input and output at
+            # those rows by design (struphy.feec.linear_operators.BoundaryOperator.dot,
+            # via apply_essential_bc_to_array) -- fine for an iterative solver, which
+            # never inverts A directly, as long as `b` is masked the same way (true for
+            # every caller here: e.g. ImplicitDiffusion.__call__ builds `rhs` via the
+            # same BoundaryOperator-wrapped `.dot()`, so `b` is already 0 at these rows
+            # too). A direct factorization needs those rows regularized to identity so
+            # `x = 1^{-1} * 0 = 0` comes out right there instead of `splu` raising
+            # "Factor is exactly singular" -- a zero row is unsolvable on its own even
+            # though the underlying (masked) system is perfectly well posed.
+            zero_rows = np.flatnonzero(mat.getnnz(axis=1) == 0)
+            if zero_rows.size:
+                mat = mat.tolil()
+                mat[zero_rows, zero_rows] = 1.0
+
+            self._sparse_solver = SparseSolver(mat.tocsc())
+
+    def solve(self, b, out=None):
+        """
+        Solve A x = b exactly via the cached sparse LU factorization.
+
+        Parameters
+        ----------
+        b : feectools.linalg.stencil.StencilVector
+            Right-hand-side vector of the linear system.
+
+        out : feectools.linalg.basic.Vector | NoneType
+            The output vector, or None (optional).
+
+        Returns
+        -------
+        x : feectools.linalg.basic.Vector
+            The exact (up to factorization round-off) solution of the linear system.
+        """
+        assert isinstance(b, Vector)
+        assert b.space is self.domain
+
+        self._ensure_factorized()
+
+        # SparseSolver's factorization always lives on the host (scipy splu); the
+        # host round trip here is one flat vector of the field-solve's DOF count, not
+        # the particle arrays, so it is cheap relative to the iterations it replaces.
+        b_flat = xp.to_numpy(b.toarray())
+
+        if self._parallel:
+            # `b.toarray()` in parallel already returns the full global-shape array with
+            # only this rank's own (disjoint) entries filled in -- see
+            # `StencilVector._toarray_parallel_no_pads` -- so summing every rank's copy
+            # assembles the true global right-hand side.
+            if isinstance(self._comm, MockComm):
+                b_global = b_flat
+            else:
+                b_global = np.empty_like(b_flat)
+                self._comm.Allreduce(b_flat, b_global, op=MPI.SUM)
+            b_flat = b_global
+
+        x_flat = np.empty_like(b_flat)
+        self._sparse_solver.solve(b_flat, out=x_flat)
+
+        if self._parallel:
+            from feectools.linalg.utilities import array_to_psydac
+
+            # x_flat should be a numpy array since SparseSolver's factorization
+            # is on host
+            x_vec = array_to_psydac(xp.asarray(x_flat), self.codomain)
+            if out is None:
+                out = x_vec
+            else:
+                assert isinstance(out, Vector)
+                assert out.space is self.codomain
+                x_vec.copy(out=out)
+        else:
+            if out is None:
+                out = self.codomain.zeros()
+            else:
+                assert isinstance(out, Vector)
+                assert out.space is self.codomain
+
+            # Same local/no-pad interior slice StencilVector.toarray_local() reads from,
+            # see feectools.linalg.stencil.StencilVector.toarray_local.
+            idx = tuple(
+                slice(m * p, -m * p) if p != 0 else slice(0, None)
+                for p, m in zip(out.pads, out.space.shifts)
+            )
+            out._data[idx] = xp.asarray(x_flat.reshape(out._data[idx].shape, order='C'))
+
+        self._info = {'niter': 1, 'success': True, 'res_norm': 0.0}
+
+        if self._options.get("recycle") and self._options.get("x0") is not None:
+            out.copy(out=self._options["x0"])
+
+        return out
 
     def dot(self, b, out=None):
         return self.solve(b, out=out)
