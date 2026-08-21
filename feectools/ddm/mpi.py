@@ -90,25 +90,17 @@ def _enabled(name, default=False):
 
 
 try:
-    # MPI is off by default on the CuPy backend, and on by default otherwise.
+    # CuPy arrays implement ``__cuda_array_interface__``, which mpi4py can
+    # pass to CUDA-aware MPI implementations.  The DDM exchangers synchronize
+    # the current CUDA stream before every MPI operation, and ranks bind to a
+    # node-local GPU, so MPI is supported on the CuPy backend just as it is on
+    # NumPy.  An MPI implementation must of course have CUDA support for
+    # device-buffer communication.
     #
-    # It is no longer *incorrect* to combine the two -- the reductions in
-    # feectools.linalg stage their (tiny) buffers through the host, the ghost
-    # exchangers synchronize the device before handing it a buffer, and each
-    # rank binds to its own GPU. It is, however, still slow: a ghost exchange
-    # of device memory through MPI derived datatypes costs milliseconds, so a
-    # single-GPU run pays several times over for communication it does not
-    # need. Until that is addressed, opt in explicitly:
-    #
-    #     FEECTOOLS_ENABLE_MPI=1     use MPI on the CuPy backend
-    #     FEECTOOLS_DISABLE_MPI=1    force the serial path on any backend
+    # FEECTOOLS_DISABLE_MPI=1 remains available to force the serial path on
+    # any backend.
     if _enabled('FEECTOOLS_DISABLE_MPI'):
         raise ImportError('MPI disabled by FEECTOOLS_DISABLE_MPI')
-
-    if os.environ.get('ARRAY_BACKEND', '').lower() == 'cupy' \
-            and not _enabled('FEECTOOLS_ENABLE_MPI'):
-        raise ImportError('MPI off by default on the CuPy backend; '
-                          'set FEECTOOLS_ENABLE_MPI=1 to use it')
 
     from mpi4py import MPI
 
