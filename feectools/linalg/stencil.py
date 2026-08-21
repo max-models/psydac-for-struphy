@@ -1406,8 +1406,9 @@ class StencilMatrix(LinearOperator):
         out_data_np = _to_numpy_array(out._data)
         
         if conjugate:
-            self._transpose_func(_to_numpy_array(xp.conjugate(M_data_np)), out_data_np, **self._transpose_args)
-            self._transpose_func(xp.conjugate(M._data), out._data, **self._transpose_args)
+            # This kernel is host-backed.  Conjugate the staged host array,
+            # rather than passing it through CuPy's ufunc dispatcher.
+            self._transpose_func(M_data_np.conj(), out_data_np, **self._transpose_args)
         else:
             self._transpose_func(M_data_np, out_data_np, **self._transpose_args)
         
@@ -2411,7 +2412,8 @@ class StencilDiagonalMatrix(LinearOperator):
         return int(self._data.nbytes)
 
     def tosparse(self):
-        return sp_diags(self._data.ravel())
+        # scipy.sparse.diags expects a host sequence of diagonal arrays.
+        return sp_diags([xp.to_numpy(self._data).ravel()], [0])
 
     def toarray(self):
         return self._data.copy()

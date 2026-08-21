@@ -139,9 +139,22 @@ class BandedSolver(LinearSolver):
         transposed = self._transposed
 
         if out is None:
-            preout, self._sinfo = self._solver_function(self._bmat, self._l, self._u, rhs.T, self._ipiv,
-                                                        trans=transposed)
-            out = preout.T
+            # LAPACK is host-only.  Keep the public solver backend-agnostic by
+            # staging a device right-hand side on the host and returning the
+            # solution on the caller's backend.
+            if xp.is_gpu(rhs):
+                rhs_cpu = xp.to_numpy(rhs)
+                preout, self._sinfo = self._solver_function(
+                    self._bmat, self._l, self._u, rhs_cpu.T, self._ipiv,
+                    trans=transposed,
+                )
+                out = xp.asarray(preout.T)
+            else:
+                preout, self._sinfo = self._solver_function(
+                    self._bmat, self._l, self._u, rhs.T, self._ipiv,
+                    trans=transposed,
+                )
+                out = preout.T
 
         else:
             assert out.shape == rhs.shape
@@ -153,17 +166,21 @@ class BandedSolver(LinearSolver):
 
             # TODO: handle non-contiguous views?
 
-            # we want FORTRAN-contiguous data (default is assumed to be C contiguous)
-            from cunumpy.xp import array_backend
-            if array_backend.backend == "numpy":
-                _, self._sinfo = self._solver_function(self._bmat, self._l, self._u, out.T, self._ipiv, overwrite_b=True,
-                                                   trans=transposed)
+            # We want FORTRAN-contiguous data (default is assumed to be C
+            # contiguous).  The LAPACK factorization is host-side regardless
+            # of the globally selected backend.
+            if xp.is_gpu(out):
+                out_cpu = xp.to_numpy(out)
+                _, self._sinfo = self._solver_function(
+                    self._bmat, self._l, self._u, out_cpu.T, self._ipiv,
+                    overwrite_b=True, trans=transposed,
+                )
+                out[:] = xp.asarray(out_cpu)
             else:
-                # GPU
-                out_cpu = out.get()
-                _, self._sinfo = self._solver_function(self._bmat, self._l, self._u, out_cpu.T, self._ipiv, overwrite_b=True,
-                                                   trans=transposed)
-                out.set(out_cpu)
+                _, self._sinfo = self._solver_function(
+                    self._bmat, self._l, self._u, out.T, self._ipiv,
+                    overwrite_b=True, trans=transposed,
+                )
 
         return out
 
@@ -224,7 +241,14 @@ class SparseSolver (LinearSolver):
         transposed = self._transposed
 
         if out is None:
-            out = self._splu.solve(rhs.T, trans='T' if transposed else 'N').T
+            if xp.is_gpu(rhs):
+                rhs_cpu = xp.to_numpy(rhs)
+                result_cpu = self._splu.solve(
+                    rhs_cpu.T, trans='T' if transposed else 'N'
+                ).T
+                out = xp.asarray(result_cpu)
+            else:
+                out = self._splu.solve(rhs.T, trans='T' if transposed else 'N').T
 
         else:
             assert out.shape == rhs.shape

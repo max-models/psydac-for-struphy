@@ -1,6 +1,8 @@
 """Root-level pytest configuration."""
 import pytest
 import sys
+import importlib.util
+import os
 from pathlib import Path
 
 
@@ -32,12 +34,25 @@ def pytest_collection_modifyitems(config, items):
 
     items_to_remove = []
     skip = pytest.mark.skip(reason="Requires optional dependency (sympde)")
+    petsc_available = importlib.util.find_spec("petsc4py") is not None
+    cupy_without_mpi = (
+        os.environ.get("ARRAY_BACKEND", "").lower() == "cupy"
+        and not os.environ.get("FEECTOOLS_ENABLE_MPI")
+    )
 
     for item in items:
         # Skip if module is in skip list
         if item.fspath.basename in skip_modules:
             items_to_remove.append(item)
             continue
+
+        if item.get_closest_marker("petsc") and not petsc_available:
+            item.add_marker(pytest.mark.skip(reason="petsc4py is not installed"))
+
+        # CuPy deliberately disables MPI unless explicitly enabled; cart
+        # exchanger tests require a real Cartesian MPI communicator.
+        if cupy_without_mpi and item.fspath.basename in {"test_cart_2d.py", "test_cart_3d.py"}:
+            item.add_marker(pytest.mark.skip(reason="CuPy MPI is disabled; set FEECTOOLS_ENABLE_MPI=1"))
 
         # If running with xdist, automatically skip mpi and petsc tests
         if config.pluginmanager.has_plugin("xdist"):

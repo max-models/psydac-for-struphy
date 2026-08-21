@@ -517,6 +517,11 @@ class CartDecomposition():
         self._shape         = (0,)*self._ndims
         self._parent_starts = (None,)*self._ndims
         self._parent_ends   = (None,)*self._ndims
+        # Serial decompositions have no neighbour exchanges, but exchange
+        # helpers still inspect these caches.  Define them before the early
+        # communicator exits so those helpers are backend-independent.
+        self._shift_info = {}
+        self._shift_info_non_blocking = {}
 
         if self._comm == MPI.COMM_NULL:
             return
@@ -557,11 +562,6 @@ class CartDecomposition():
         # Create (N-1)-dimensional communicators within the Cartesian topology
         self._subcomm = domain_decomposition.subcomm
 
-        # dict to store information for communicating with neighbors
-        self._shift_info = {}
-
-#        # dict to store information for communicating with neighbors using non blocking communications
-        self._shift_info_non_blocking = {}
 
     #---------------------------------------------------------------------------
     # Global properties (same for each process)

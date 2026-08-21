@@ -114,7 +114,10 @@ class KroneckerStencilMatrix(LinearOperator):
             for jj in xp.ndindex(*pnrows):
                 i_mats = [mat._data[s, j] for s,j,mat in zip(xx, jj, mats)]
                 ii_jj = tuple(i+j+(s-1)*p for i,j,p,s in zip(ii, jj, pads, shifts))
-                v += x._data[ii_jj] * xp.prod(i_mats)
+                # ``array_api_compat.cupy`` does not accept a Python list in
+                # ``prod``; multiplying the scalar factors also avoids a
+                # temporary device array in this innermost loop.
+                v += x._data[ii_jj] * reduce(lambda a, b: a * b, i_mats, 1)
 
             out._data[xx] = v
 
@@ -152,7 +155,7 @@ class KroneckerStencilMatrix(LinearOperator):
         cols = key[self.ndim:]
         mats = self.mats
         elements = [A[i,j] for A,i,j in zip(mats, rows, cols)]
-        return xp.prod(elements)
+        return reduce(lambda a, b: a * b, elements, 1)
 
     def tostencil(self):
 
@@ -190,7 +193,7 @@ class KroneckerStencilMatrix(LinearOperator):
             for kk in xp.ndindex( *ndiags ):
 
                 values        = [mat[i,k] for mat,i,k in zip(mats, ii, kk)]
-                M[(*ii, *kk)] = xp.prod(values)
+                M[(*ii, *kk)] = reduce(lambda a, b: a * b, values, 1)
         
         # handle partly-multiplied rows
         new_nrows = nrows.copy()
@@ -213,7 +216,7 @@ class KroneckerStencilMatrix(LinearOperator):
 
                     for kk in xp.ndindex( *ndiags ):
                         values        = [mat[i,k] for mat,i,k in zip(mats, ii, kk)]
-                        M[(*ii, *kk)] = xp.prod(values)
+                        M[(*ii, *kk)] = reduce(lambda a, b: a * b, values, 1)
             new_nrows[d] += er
 
     def tosparse(self):
