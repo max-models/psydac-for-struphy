@@ -634,6 +634,21 @@ class CartDecomposition():
         return self.comm == MPI.COMM_NULL
 
     @property
+    def single_process( self ):
+        """ True if this decomposition holds the whole domain on one process.
+
+        A Cartesian decomposition carries a communicator even when it was
+        built on a single rank, so `is_parallel` alone does not say whether
+        any neighbour is remote. When every direction has one process, every
+        "neighbour" is this process itself and the MPI ghost exchange
+        degenerates to a self-message; the local slicing path in
+        `feectools.linalg.stencil` produces exactly the same result and is
+        far cheaper -- on a device backend by two orders of magnitude, since
+        MPI has to pack strided device memory element by element.
+        """
+        return all(n == 1 for n in self._nprocs)
+
+    @property
     def is_parallel( self ):
         return self._comm is not None
 

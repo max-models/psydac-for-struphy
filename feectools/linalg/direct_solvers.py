@@ -6,6 +6,7 @@
 from abc                 import abstractmethod
 import cunumpy as xp
 from cunumpy.xp import array_backend
+import numpy as np
 from scipy.linalg.lapack import dgbtrf, dgbtrs, sgbtrf, sgbtrs, cgbtrf, cgbtrs, zgbtrf, zgbtrs
 from scipy.sparse        import spmatrix, dia_matrix
 from scipy.sparse.linalg import splu
@@ -70,6 +71,11 @@ class BandedSolver(LinearSolver):
             msg = f'Cannot create a BandedSolver for bmat.dtype = {bmat.dtype}'
             raise NotImplementedError(msg)
         bmat = xp.to_numpy(bmat)
+        # Retain the unfactorized band storage.  LAPACK overwrites ``_bmat``
+        # with its LU factors, whereas the CuPy path below needs the original
+        # operator to construct its device-resident inverse once.
+        self._bmat_original = bmat.copy()
+        self._gpu_inverse = None
         self._bmat, self._ipiv, self._finfo = self._factor_function(bmat, l, u)
 
         self._sinfo = None
@@ -107,6 +113,8 @@ class BandedSolver(LinearSolver):
         obj._u = self._l
         obj._l = self._u
         obj._bmat = self._bmat
+        obj._bmat_original = self._bmat_original
+        obj._gpu_inverse = None
         obj._ipiv = self._ipiv
         obj._finfo = self._finfo
         obj._factor_function = self._factor_function
@@ -119,6 +127,31 @@ class BandedSolver(LinearSolver):
         return obj
 
     #...
+    def _device_inverse(self):
+        """Return the inverse of the original band matrix on the GPU.
+
+        The Kronecker solvers apply these small one-dimensional operators to
+        many right-hand sides.  Calling host LAPACK for every pass caused a
+        device-to-host and host-to-device transfer for each batch.  Forming a
+        dense inverse once is both safe at these small spline dimensions and
+        turns each subsequent pass into one device GEMM.
+        """
+        if self._gpu_inverse is None:
+            import cupy as cp
+
+            n = self._bmat_original.shape[1]
+            matrix = np.zeros((n, n), dtype=self._bmat_original.dtype)
+            offset = self._l + self._u
+            for col in range(n):
+                for row in range(n):
+                    band_row = offset + row - col
+                    if 0 <= band_row < self._bmat_original.shape[0]:
+                        matrix[row, col] = self._bmat_original[band_row, col]
+
+            self._gpu_inverse = cp.linalg.inv(cp.asarray(matrix))
+
+        return self._gpu_inverse
+
     def solve(self, rhs, out=None):
         """
         Solves for the given right-hand side.
@@ -138,7 +171,20 @@ class BandedSolver(LinearSolver):
 
         transposed = self._transposed
 
-        if out is None:
+        if xp.is_gpu(rhs):
+            inverse = self._device_inverse()
+            # ``rhs`` stores one right-hand side per row.  Therefore solving
+            # A x = b is ``b @ inv(A).T``; for the transposed operator use
+            # ``b @ inv(A)``.
+            result = rhs @ (inverse if transposed else inverse.T)
+            if out is None:
+                out = result
+            else:
+                assert out.shape == rhs.shape
+                assert out.dtype == rhs.dtype
+                out[...] = result
+
+        elif out is None:
             # LAPACK is host-only.  Keep the public solver backend-agnostic by
             # staging a device right-hand side on the host and returning the
             # solution on the caller's backend.
@@ -169,18 +215,10 @@ class BandedSolver(LinearSolver):
             # We want FORTRAN-contiguous data (default is assumed to be C
             # contiguous).  The LAPACK factorization is host-side regardless
             # of the globally selected backend.
-            if xp.is_gpu(out):
-                out_cpu = xp.to_numpy(out)
-                _, self._sinfo = self._solver_function(
-                    self._bmat, self._l, self._u, out_cpu.T, self._ipiv,
-                    overwrite_b=True, trans=transposed,
-                )
-                out[:] = xp.asarray(out_cpu)
-            else:
-                _, self._sinfo = self._solver_function(
-                    self._bmat, self._l, self._u, out.T, self._ipiv,
-                    overwrite_b=True, trans=transposed,
-                )
+            _, self._sinfo = self._solver_function(
+                self._bmat, self._l, self._u, out.T, self._ipiv,
+                overwrite_b=True, trans=transposed,
+            )
 
         return out
 

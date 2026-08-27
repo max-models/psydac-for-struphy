@@ -112,6 +112,12 @@ class NonBlockingCartDataExchanger(CartDataExchanger):
 
         assert isinstance( array, xp.ndarray )
 
+        if self._cart.single_process:
+            # Every neighbour is this process; see
+            # CartDataExchanger._local_exchange_assembly_data.
+            self._local_exchange_assembly_data( array )
+            return
+
         synchronize_for_mpi( array )
 
         # Shortcuts

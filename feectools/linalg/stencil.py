@@ -54,6 +54,23 @@ def _is_device_array(val):
     """Whether `val` lives on a device (CuPy) rather than on the host."""
     return xp.is_gpu(val)
 
+def _mpi_exchange_needed(space):
+    """Whether a ghost/assembly exchange really has to go through MPI.
+
+    A space counts as "parallel" as soon as a communicator is attached, which
+    is also true of a single-rank run. There every neighbour in the Cartesian
+    topology is this process itself, so the exchange is a self-message that
+    the serial slicing paths below reproduce exactly -- and far more cheaply,
+    since MPI has to walk the strided stencil datatype element by element.
+    On a device backend that is catastrophic: one ghost update of a 131^2 x 4
+    stencil vector measured 575 ms through MPI against 0.12 ms through the
+    slicing path.
+    """
+    if not space.parallel:
+        return False
+
+    return not getattr(space.cart, "single_process", False)
+
 #========================================================================# Dictionary used to select correct kernel functions based on dimensionality
 kernels = {
     'axpy'  : (None,   axpy_1d,   axpy_2d,   axpy_3d),
@@ -911,13 +928,15 @@ class StencilVector(Vector):
         """
 
         # Update interior ghost regions
-        if self.space.parallel:
+        if _mpi_exchange_needed(self.space):
             if not self.space.cart.is_comm_null:
                 # PARALLEL CASE: fill in ghost regions with data from neighbors
                 self.space._synchronizer.start_update_ghost_regions(self._data, self._requests)
                 self.space._synchronizer.  end_update_ghost_regions(self._data, self._requests)
         else:
-            # SERIAL CASE: fill in ghost regions along periodic directions, otherwise set to zero
+            # SERIAL CASE: fill in ghost regions along periodic directions, otherwise set to zero.
+            # A single-rank Cartesian space lands here too: see
+            # `_mpi_exchange_needed`.
             self._update_ghost_regions_serial()
 
         # Update interface ghost regions
@@ -1657,7 +1676,7 @@ class StencilMatrix(LinearOperator):
         elements (e.g. in matrix transposition).
         """
         ndim     = self._codomain.ndim
-        parallel = self._codomain.parallel
+        parallel = _mpi_exchange_needed(self._codomain)
 
         if parallel:
             if not self._codomain.cart.is_comm_null:
@@ -1665,7 +1684,9 @@ class StencilMatrix(LinearOperator):
                 self._synchronizer.start_update_ghost_regions( self._data, self._requests )
                 self._synchronizer.end_update_ghost_regions( self._data , self._requests)
         else:
-            # SERIAL CASE: fill in ghost regions along periodic directions, otherwise set to zero
+            # SERIAL CASE: fill in ghost regions along periodic directions, otherwise set to zero.
+            # A single-rank Cartesian space lands here too: see
+            # `_mpi_exchange_needed`.
             self._update_ghost_regions_serial()
 
         # Flag ghost regions as up-to-date
@@ -2054,7 +2075,10 @@ class StencilMatrix(LinearOperator):
         for direction in range(self._codomain.ndim):
 
             periodic = self._codomain.periods[direction]
-            p        = self._codomain.pads   [direction]
+            # The ghost region is `shifts` copies of `pads` wide, exactly as
+            # in StencilVector._update_ghost_regions_serial; using `pads`
+            # alone silently mismatched the MPI exchange whenever shifts > 1.
+            p        = self._codomain.pads[direction] * self._codomain.shifts[direction]
 
             if p == 0:
                 continue
