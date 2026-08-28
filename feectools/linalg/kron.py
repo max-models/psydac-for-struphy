@@ -589,9 +589,33 @@ class KroneckerLinearSolver(LinearOperator):
         """
         The internal solve loop. Can handle arbitrary dimensions.
         """
-        temp1 = self._temp1
-        temp2 = self._temp2
+        if xp.is_gpu(inslice) and self._allserial and self._localsize <= 4096:
+            from feectools.linalg.direct_solvers import BandedSolver, SparseSolver
 
+            host_factor_types = (BandedSolver, SparseSolver)
+            if all(type(solver) in host_factor_types for solver in self._solvers):
+                # Tiny tensor solves are latency-bound on the GPU: each of the
+                # three directions launches a small GEMM and two directions
+                # require a full tensor reorder. Stage once in each direction
+                # and execute the already-factorized banded solves on the host.
+                if not hasattr(self, '_host_temp1'):
+                    self._host_temp1 = np.empty((int(self._tempsize),), dtype=self._dtype)
+                    self._host_temp2 = np.empty((int(self._tempsize),), dtype=self._dtype)
+                    self._host_out = np.empty(tuple(int(n) for n in self._nlocals), dtype=self._dtype)
+                host_in = xp.to_numpy(inslice)
+                self._solve_nd_with_temps(
+                    host_in,
+                    self._host_out,
+                    self._host_temp1,
+                    self._host_temp2,
+                )
+                outslice[...] = xp.asarray(self._host_out)
+                return
+
+        self._solve_nd_with_temps(inslice, outslice, self._temp1, self._temp2)
+
+    def _solve_nd_with_temps(self, inslice, outslice, temp1, temp2):
+        """Internal Kronecker passes using caller-provided work arrays."""
         # copy input
         self._inslice_to_temp(inslice, temp1)
 

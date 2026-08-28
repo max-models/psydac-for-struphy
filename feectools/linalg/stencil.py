@@ -1419,6 +1419,21 @@ class StencilMatrix(LinearOperator):
         else :
             out = StencilMatrix(M.codomain, M.domain, pads=self._pads, backend=self._backend, precompiled=self._precompiled)
 
+        if _is_device_array(M._data) and _is_device_array(out._data):
+            from feectools.linalg.kernels.device_transpose import (
+                device_transpose_3d,
+                supports as device_transpose_supports,
+            )
+
+            if device_transpose_supports(M._data, out._data, conjugate):
+                device_transpose_3d(
+                    M._data,
+                    out._data,
+                    **self._transpose_args,
+                )
+                out.ghost_regions_in_sync = False
+                return out
+
         # Call low-level '_transpose' function (works on Numpy arrays directly)
         # Convert CuPy arrays to NumPy for compiled kernels
         M_data_np = _to_numpy_array(M._data)

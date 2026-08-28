@@ -238,6 +238,8 @@ class SparseSolver (LinearSolver):
         assert isinstance(spmat, spmatrix)
 
         self._space = xp.ndarray
+        self._matrix_original = spmat.toarray()
+        self._gpu_inverse = None
         self._splu  = splu(spmat.tocsc())
         self._transposed = transposed
 
@@ -254,9 +256,19 @@ class SparseSolver (LinearSolver):
 
         obj._space = self._space
         obj._splu = self._splu
+        obj._matrix_original = self._matrix_original
+        obj._gpu_inverse = self._gpu_inverse
         obj._transposed = not self._transposed
 
         return obj
+
+    def _device_inverse(self):
+        """Return a cached dense inverse of the small 1D sparse factor."""
+        if self._gpu_inverse is None:
+            import cupy as cp
+
+            self._gpu_inverse = cp.linalg.inv(cp.asarray(self._matrix_original))
+        return self._gpu_inverse
 
     #...
     def solve(self, rhs, out=None):
@@ -278,15 +290,18 @@ class SparseSolver (LinearSolver):
         assert rhs.T.shape[0] == self._splu.shape[1]
         transposed = self._transposed
 
-        if out is None:
-            if xp.is_gpu(rhs):
-                rhs_cpu = xp.to_numpy(rhs)
-                result_cpu = self._splu.solve(
-                    rhs_cpu.T, trans='T' if transposed else 'N'
-                ).T
-                out = xp.asarray(result_cpu)
+        if xp.is_gpu(rhs):
+            inverse = self._device_inverse()
+            result = rhs @ (inverse if transposed else inverse.T)
+            if out is None:
+                out = result
             else:
-                out = self._splu.solve(rhs.T, trans='T' if transposed else 'N').T
+                assert out.shape == rhs.shape
+                assert out.dtype == rhs.dtype
+                out[...] = result
+
+        elif out is None:
+            out = self._splu.solve(rhs.T, trans='T' if transposed else 'N').T
 
         else:
             assert out.shape == rhs.shape
@@ -297,11 +312,6 @@ class SparseSolver (LinearSolver):
             # factorization always lives on the host regardless of backend, and a caller
             # may deliberately pass an already-host `rhs`/`out` pair even while the
             # active backend is CuPy.
-            if xp.is_gpu(rhs):
-                rhs_cpu = xp.to_numpy(rhs)
-                result_cpu = self._splu.solve(rhs_cpu.T, trans='T' if transposed else 'N').T
-                out[:] = xp.asarray(result_cpu)
-            else:
-                out[:] = self._splu.solve(rhs.T, trans='T' if transposed else 'N').T
+            out[:] = self._splu.solve(rhs.T, trans='T' if transposed else 'N').T
 
         return out
