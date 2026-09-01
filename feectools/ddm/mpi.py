@@ -80,12 +80,28 @@ class MockMPI:
     #     return 1
 
 
+import os
+
+def _enabled(name, default=False):
+    value = os.environ.get(name)
+    if value is None:
+        return default
+    return value.strip().lower() not in ('', '0', 'false', 'no')
+
+
 try:
-    # Disable MPI when using CuPy due to known segfault issues with OpenMPI + CUDA
-    import os
-    if os.environ.get('ARRAY_BACKEND') == 'cupy':
-        raise ImportError("MPI disabled when using CuPy backend")
-    
+    # CuPy arrays implement ``__cuda_array_interface__``, which mpi4py can
+    # pass to CUDA-aware MPI implementations.  The DDM exchangers synchronize
+    # the current CUDA stream before every MPI operation, and ranks bind to a
+    # node-local GPU, so MPI is supported on the CuPy backend just as it is on
+    # NumPy.  An MPI implementation must of course have CUDA support for
+    # device-buffer communication.
+    #
+    # FEECTOOLS_DISABLE_MPI=1 remains available to force the serial path on
+    # any backend.
+    if _enabled('FEECTOOLS_DISABLE_MPI'):
+        raise ImportError('MPI disabled by FEECTOOLS_DISABLE_MPI')
+
     from mpi4py import MPI
 
     _comm = MPI.COMM_WORLD
@@ -93,7 +109,7 @@ try:
     # size = _comm.Get_size()
     mpi_enabled = True
 except ImportError:
-    # mpi4py not installed
+    # mpi4py not installed, or disabled on purpose
     mpi_enabled = False
 except Exception:
     # mpi4py installed but not running under mpirun
